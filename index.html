@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ورقة ضبط الغياب الأسبوعية</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- ملاحظة: ميزة "استيراد من إكسيل" تحتاج اتصالاً بالإنترنت لتحميل مكتبتها في هذا السطر أعلاه. باقي التطبيق (الجدول، المشاركة عبر الشبكة، الطباعة) يعمل بدون إنترنت إطلاقًا. -->
+<style>
+:root{
+  --bg:#F5F3EE; --panel:#FFFFFF; --ink:#1E2A28; --ink-soft:#5B6664;
+  --line:#DFDACD; --teal:#0F4C46; --teal-soft:#E4EFEC;
+  --absent:#B3402F; --absent-soft:#F6E3DE; --gold:#A9793D; --gold-soft:#F2E8D8;
+  padding-top: env(safe-area-inset-top,0px); padding-bottom: env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#161B1A; --panel:#1F2624; --ink:#EDEAE2; --ink-soft:#9AA39F;
+    --line:#33403C; --teal:#4FBFB0; --teal-soft:#22322E;
+    --absent:#E17A66; --absent-soft:#3A2320; --gold:#D7B37A; --gold-soft:#332A19;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#161B1A; --panel:#1F2624; --ink:#EDEAE2; --ink-soft:#9AA39F;
+  --line:#33403C; --teal:#4FBFB0; --teal-soft:#22322E;
+  --absent:#E17A66; --absent-soft:#3A2320; --gold:#D7B37A; --gold-soft:#332A19;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI','Tahoma','Arial',sans-serif;font-size:14px}
+.wrap{max-width:1200px;margin:0 auto;padding:18px 16px 60px}
+header{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:52px;height:52px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#fff;border:1px solid var(--line)}
+h1{font-size:20px;font-weight:900;margin:0;color:var(--teal)}
+.sub{color:var(--ink-soft);font-size:12.5px;margin-top:2px}
+.week input{font-family:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 8px;font-size:13px}
+.week label{font-size:12px;color:var(--ink-soft);margin-inline-start:6px}
+.btn{display:inline-block;text-decoration:none;border:1px solid var(--teal);background:var(--teal);color:#fff;padding:7px 14px;border-radius:6px;font-family:inherit;font-size:13px;cursor:pointer;font-weight:500}
+.btn.ghost{background:transparent;color:var(--teal)}
+.btn.danger{background:var(--absent);border-color:var(--absent)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.tab{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 14px;border-radius:999px;font-family:inherit;font-size:13px;cursor:pointer}
+.tab.active{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:700}
+.tab-edit{margin-inline-start:6px;opacity:.7;font-size:12px}
+.tab-edit:hover{opacity:1}
+.tab.add-tab{background:transparent;border-style:dashed;color:var(--teal);font-weight:700}
+.cell.readonly{cursor:default}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:18px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:900px;font-size:12.5px}
+th,td{border:1px solid var(--line);padding:5px 4px;text-align:center;white-space:nowrap}
+th.day{background:var(--teal-soft);color:var(--teal);font-weight:700;font-size:12px}
+th.per{background:var(--panel);font-weight:500;color:var(--ink-soft)}
+td.name{text-align:right;padding-inline-start:8px;font-weight:500;position:sticky;right:0;background:var(--panel);min-width:150px}
+td.num{color:var(--ink-soft);width:26px}
+.meta input{width:78px;border:1px dashed var(--line);background:transparent;color:var(--ink);font-family:inherit;font-size:11px;text-align:center;border-radius:4px;padding:2px}
+.meta input:first-child{margin-bottom:2px}
+.cell{cursor:pointer;width:30px;height:26px;user-select:none}
+.cell.absent{background:var(--absent-soft);color:var(--absent);font-weight:900}
+.foot td{background:var(--teal-soft);font-weight:700;color:var(--teal)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card h3{margin:0 0 10px;font-size:14px;color:var(--teal)}
+.big{font-size:30px;font-weight:900}
+.row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}
+.row:last-child{border-bottom:none}
+.row .n{font-weight:700}
+.row.top{background:var(--gold-soft);margin:0 -6px;padding:6px;border-radius:6px;border-bottom:none}
+.row.top .n{color:var(--gold)}
+select{font-family:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 6px;font-size:12.5px}
+.empty{color:var(--ink-soft);font-size:12.5px;padding:8px 0}
+.del{border:none;background:transparent;color:var(--absent);font-size:16px;cursor:pointer;line-height:1;padding:2px 6px}
+.btn.wa{background:#25D366;border-color:#25D366;padding:5px 12px;font-size:12.5px}
+.row .muted{color:var(--ink-soft);font-size:12px;margin-inline-start:6px}
+.phone{width:110px;border:1px dashed var(--line);background:transparent;color:var(--ink);font-family:inherit;font-size:12px;text-align:center;border-radius:4px;padding:3px}
+.addbar{display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);min-width:900px}
+.addbar input{font-family:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:7px 10px;font-size:13px;flex:1;max-width:260px}
+@media print{.tabs,.btn,header .week{display:none}}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;align-items:center;justify-content:center;padding:20px}
+.modal-box{background:var(--panel);color:var(--ink);border-radius:12px;padding:20px;max-width:360px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.modal-box p{margin:0 0 16px;font-size:14px;line-height:1.6;white-space:pre-line}
+.modal-input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:14px;margin-bottom:14px;background:var(--bg);color:var(--ink)}
+.modal-actions{display:flex;gap:8px;flex-wrap:wrap}
+.modal-actions .btn{flex:1;min-width:100px}
+.modal-actions .btn:disabled{opacity:.45;cursor:not-allowed}
+.import-box{max-width:680px;text-align:right}
+.import-controls{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.import-preview-wrap{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-bottom:12px}
+#importPreview{width:100%;border-collapse:collapse;font-size:11.5px}
+#importPreview th,#importPreview td{border:1px solid var(--line);padding:3px 6px;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis}
+#importPreview th.colbtn{cursor:pointer;background:var(--teal-soft);color:var(--teal);font-weight:700;position:sticky;top:0}
+#importPreview th.colbtn.chosen{background:var(--teal);color:#fff}
+#importPreview td.rownum{cursor:pointer;background:var(--teal-soft);color:var(--teal);font-weight:700;text-align:center}
+#importPreview td.rownum.chosen{background:var(--teal);color:#fff}
+</style>
+</head>
+<body>
+
+<div id="pwGate" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:20px">
+  <div class="modal-box" style="max-width:340px;text-align:center">
+    <h2 style="margin:0 0 6px;color:var(--teal);font-size:18px">ورقة ضبط الغياب</h2>
+    <p class="sub" style="margin:0 0 16px">هذه الورقة محمية بكلمة مرور — أدخلوها للدخول</p>
+    <input type="password" id="pwInput" class="modal-input" placeholder="كلمة المرور" autocomplete="current-password">
+    <div id="pwError" style="color:var(--absent);font-size:12.5px;min-height:16px;margin-bottom:10px"></div>
+    <button class="btn" id="pwSubmitBtn" style="width:100%" onclick="submitPassword()">دخول</button>
+  </div>
+</div>
+
+<div class="wrap" id="appWrap" style="display:none">
+<header>
+  <div class="brand">
+    <img class="logo" src="data:image/jpeg;base64,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" alt="شعار المؤسسة">
+    <div>
+      <h1>ورقة ضبط غياب التلاميذ</h1>
+      <div class="sub"><span id="instNameText"></span> — ورقة الغياب الأسبوعية <span class="tab-edit" id="instEditIcon" onclick="renameInstitution()" title="تعديل اسم المؤسسة">✏️</span></div>
+      <div class="sub" id="syncStatus">🔄 جاري التحقق من إمكانية المشاركة بين المكاتب…</div>
+    </div>
+  </div>
+  <div class="week">
+    <label>من</label><input type="date" id="wFrom">
+    <label>إلى</label><input type="date" id="wTo">
+    <button class="btn ghost" id="lockBtn" style="display:none" onclick="lockApp()" title="قفل هذه الصفحة وطلب كلمة المرور مجددًا على هذا الجهاز">🔒 قفل</button>
+    <button class="btn ghost" onclick="triggerPrint()">طباعة</button>
+  </div>
+</header>
+
+<div class="tabs" id="tabs"></div>
+<div class="toolbar">
+  <button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
+  <input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this.files[0])">
+  <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
+</div>
+<div class="panel" id="tableHost"></div>
+
+<div class="panel" id="notifyPanel">
+  <h3 style="margin:0 0 10px;font-size:14px;color:var(--teal)">🔔 إشعار أولياء الأمور بالغياب عبر واتساب — قسم <span id="notifyClassName"></span></h3>
+  <div id="notifyHost"></div>
+</div>
+
+<div class="stats">
+  <div class="panel card">
+    <h3>عدد ساعات الغياب حسب الحصة (اليوم)</h3>
+    <select id="daySel"></select>
+    <div class="big" id="dayTotal" style="margin-top:8px">0</div>
+    <div class="sub">ساعة غياب، لجميع الأقسام</div>
+  </div>
+  <div class="panel card">
+    <h3>إجمالي غياب الأسبوع</h3>
+    <div class="big" id="weekTotal">0</div>
+    <div class="sub">ساعة غياب، لجميع الأقسام</div>
+  </div>
+  <div class="panel card">
+    <h3>الغياب حسب المادة</h3>
+    <div id="bySubject"></div>
+  </div>
+  <div class="panel card">
+    <h3>الغياب حسب الأستاذ(ة)</h3>
+    <div id="byTeacher"></div>
+  </div>
+</div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" style="display:none">
+  <div class="modal-box">
+    <p id="modalMsg"></p>
+    <input type="text" id="modalInput" class="modal-input" style="display:none">
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="importOverlay" style="display:none">
+  <div class="modal-box import-box">
+    <h3 style="margin:0 0 10px;color:var(--teal);font-size:15px">استيراد لائحة تلاميذ من إكسيل</h3>
+    <div class="import-controls">
+      <label class="sub">الورقة:</label>
+      <select id="importSheetSel"></select>
+    </div>
+    <p class="sub" id="importFoundCount" style="margin:0 0 8px"></p>
+    <div class="import-preview-wrap"><table id="importPreview"></table></div>
+    <div class="modal-actions" id="importActions"></div>
+  </div>
+</div>
+
+<script>
+const CLASSES = {
+"1AIPC-1":["ايت اتمغارت رميساء","السو رحاب","زروال يوسف","هبة سهيل","أهل احميدات وهبة","حمدي البشير","بوكراع فاطمة","امزيلي خليل","اعبايل ياسين","بابيت الولي","براي فاطمة","شميروا اسية","امجاد منصور","العماري سعد","الكوري محمد","امزيان زياد","اوجعا مروى","بسمة زهيري","اوك عمران","لحيان الحسين","الحمراوي اروى"],
+"1AIPC-2":["أمين عبد العالي أمين","سدوقي طه سدوقي","جمانة حمو جمانة","فيدادي خولة فيدادي","الكرتوم محمد الكرتوم","لغيلاني بوسيف لغيلاني","اتباع محمد اتباع","أكليلي كوثر أكليلي","بلا ريان بلا","شنقاوي حمزة شنقاوي","الشيباني أحمد الشيباني","بلاوي اية بلاوي","لعروصي أحمد عينينا لعروصي","الدمناتي أنس الدمناتي","ياماني نسيمة ياماني","الثعلابي ريتاج الثعلابي","بوروس يونس بوروس","الخطاط فاطمة الخطاط","اعزرايل صلاح الدين اعزرايل","مني مروة مني","مني صفاء مني","سيف الدين"],
+"2AIPC-1":["الحنصلي مصطفى","زرايدي نبيل","زرداك اسماعيل","علاج سفيان","عبيدنا ريم","المرشاني أمينة","بوشيت عدنان","الصغير ميمينة","زروال مروان","أهل بابا المعلومة","الحوات نهيلة","أحمدناه نزيه","الشيخ ماء العينين خليهن","مصدر سيف الدين","اسماعيلي وردة","صبار ريان","بودمين حسين","البازة علي","مكروب ادم","الشيخ ماء العينين الطالب اخيار","اسماعيلي زينب","اهل حميدات احمد سالم","الغيلاني جنة","دادي محمد أمين"],
+"2AIPC-2":["العطفي صلاح الدين","درداق براء","الطنجي فاطمة","اكمار زكرياء","بدر ضحى","ابو الوليد يحيى","سباعي ادريسي هبة","ميشان فاطمة","الهنوني نكية","بوشنينة سيد أحمد","حمين يحيا","عبد اللوي يحيى","حدكي فاطمة الزهراء","الطالبي هدى","مفتاح مريم","احميمو مهدي","هوكوس سعد","حمومينة ادم","جارة مجدولين","المودن العالية","لكشوم رضى","ياسر لمريني","بوعمر رميساء","حم المختار"],
+"3AIPC-1":["عبد العالي يحيى","محفوظ محمد أمين","اطوارطوا نعيم","الشيخ ماء العينين هدى","الطاهري حمزة","سدوقي الياس","خلاد اسية","عبدالمطلب حفصة","توفيق حفصة","البشري ريان","نكور عيسى","أبو عبيدة عدنان","بودمين خديجة","بن السيد محمد","المقليش وليد","قاولي هاجر","لكريماني زكرياء","بوعيلة حما","بورشيش ايمن"],
+"3ASGC-1":["الشنقوي يوسف","غالب داهي","براي العايزة","اسبيكة الحسين","واقف ريان","عبياي ريان","الخطاط ميمي","الماح علي","رشيد فاطمة الزهراء","معطى الله مبارك","اهل أمحيمد هدى","اهل سيدي مولود محمود","اسويدة مروة","سعدي اشراق","اركيبي لالة مينتو","اركيبي لالة مروة","أوعلا بشرى","اهويدي عثمان","حميد يهديها"]
+};
+const DAY_NAMES=["الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
+const SHIFTS=["صباحا","مساء"];
+const DAYS=DAY_NAMES.flatMap(d=>SHIFTS.map(s=>d+" "+s));
+const PERIODS=["ح1","ح2","ح3"];
+const TOTAL_COLS=DAYS.length*PERIODS.length;
+const KEY="ghiyab_v2";
+
+function showModal(msg,buttons){
+  const ov=document.getElementById('modalOverlay');
+  document.getElementById('modalMsg').textContent=msg;
+  document.getElementById('modalInput').style.display='none';
+  const actions=document.getElementById('modalActions');
+  actions.innerHTML='';
+  buttons.forEach(b=>{
+    const btn=document.createElement('button');
+    btn.className=b.className||'btn';
+    btn.textContent=b.label;
+    btn.onclick=()=>{ ov.style.display='none'; if(b.onClick) b.onClick(); };
+    actions.appendChild(btn);
+  });
+  ov.style.display='flex';
+}
+function showConfirm(msg,onYes){
+  showModal(msg,[
+    {label:'تأكيد الحذف',className:'btn danger',onClick:onYes},
+    {label:'إلغاء',className:'btn ghost',onClick:null}
+  ]);
+}
+function showAlert(msg){
+  showModal(msg,[{label:'حسنًا',className:'btn',onClick:null}]);
+}
+function showPrompt(msg,defVal,onSave){
+  const ov=document.getElementById('modalOverlay');
+  document.getElementById('modalMsg').textContent=msg;
+  const inp=document.getElementById('modalInput');
+  inp.style.display='block';
+  inp.value=defVal||'';
+  const actions=document.getElementById('modalActions');
+  actions.innerHTML='';
+  const save=document.createElement('button');
+  save.className='btn'; save.textContent='حفظ';
+  save.onclick=()=>{ const v=inp.value; inp.style.display='none'; ov.style.display='none'; onSave(v); };
+  const cancel=document.createElement('button');
+  cancel.className='btn ghost'; cancel.textContent='إلغاء';
+  cancel.onclick=()=>{ inp.style.display='none'; ov.style.display='none'; };
+  actions.appendChild(save); actions.appendChild(cancel);
+  ov.style.display='flex';
+  setTimeout(()=>{inp.focus(); inp.select();},50);
+  inp.onkeydown=(e)=>{ if(e.key==='Enter') save.click(); };
+}
+
+function blankCols(){ return Array.from({length:TOTAL_COLS},()=>({subject:"",teacher:""})); }
+function blankRow(){ return Array(TOTAL_COLS).fill(false); }
+function fitLen(arr,len,fill){ const a=arr.slice(0,len); while(a.length<len) a.push(fill()); return a; }
+
+function loadState(){
+  let s=null;
+  try{ s=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
+  if(!s){
+    // migrate from the previous 4-session version if present
+    try{ s=JSON.parse(localStorage.getItem("ghiyab_v1")); }catch(e){}
+  }
+  if(!s) s={weekFrom:"",weekTo:"",data:{}};
+  if(!s.instName) s.instName="مؤسسة المثابرة الخاصة";
+  if(!s.classNames) s.classNames=Object.keys(CLASSES);
+  s.classNames.forEach(c=>{
+    if(!s.data[c]) s.data[c]={names:(CLASSES[c]||[]).slice(), columns:blankCols(), absences:(CLASSES[c]||[]).map(()=>blankRow())};
+    const cls=s.data[c];
+    if(!cls.names) cls.names=(CLASSES[c]||[]).slice();
+    cls.columns=fitLen(cls.columns||[],TOTAL_COLS,()=>({subject:"",teacher:""}));
+    cls.absences=cls.names.map((_,i)=>fitLen((cls.absences||[])[i]||[],TOTAL_COLS,()=>false));
+    cls.phones=fitLen(cls.phones||[],cls.names.length,()=>"");
+  });
+  return s;
+}
+let state=loadState();
+let currentClass=state.classNames[0];
+
+let dbNS=null, tableFocused=false, pendingRemoteState=null, pendingRemoteStr=null, lastAppliedStr=null, dbWriteTimer=null, writeInFlight=false;
+// This deployment has no per-viewer permission system: everyone who opens
+// the link can read and write the shared sheet. canWrite stays true and is
+// kept only because render/mutation functions below still check it.
+let canWrite=true;
+
+function applyPermissionUI(){
+  renderAll();
+}
+
+async function initPermissions(){
+  applyPermissionUI();
+}
+
+let lanServerOk=false;
+
+// ---- password gate ----------------------------------------------------
+// Protection is entirely optional and controlled server-side by the
+// APP_PASSWORD environment variable (see api/state.js). If that variable
+// is not set on the deployment, the server never returns 401 and the gate
+// below is skipped automatically — nothing changes for a deployment that
+// hasn't set a password. Once a password is set, every /api/state call
+// (read AND write) must carry it, so the data itself is protected, not
+// just the page.
+const PW_KEY='ghiyab_pw';
+function getStoredPw(){ try{ return localStorage.getItem(PW_KEY)||''; }catch(e){ return ''; } }
+function setStoredPw(v){ try{ localStorage.setItem(PW_KEY,v); }catch(e){} }
+function clearStoredPw(){ try{ localStorage.removeItem(PW_KEY); }catch(e){} }
+function authHeaders(){ const pw=getStoredPw(); return pw?{'X-App-Password':pw}:{}; }
+
+function showGate(msg){
+  const appWrap=document.getElementById('appWrap');
+  if(appWrap) appWrap.style.display='none';
+  document.getElementById('pwGate').style.display='flex';
+  document.getElementById('pwError').textContent=msg||'';
+  const inp=document.getElementById('pwInput');
+  inp.value='';
+  setTimeout(()=>inp.focus(),50);
+}
+function hideGate(){
+  document.getElementById('pwGate').style.display='none';
+  const appWrap=document.getElementById('appWrap');
+  if(appWrap) appWrap.style.display='block';
+  const lockBtn=document.getElementById('lockBtn');
+  if(lockBtn) lockBtn.style.display = getStoredPw() ? 'inline-block' : 'none';
+}
+function lockApp(){
+  clearStoredPw();
+  showGate();
+}
+function onAuthRejected(){
+  // The server just told us our saved password is wrong or was changed —
+  // forget it and ask again, without losing whatever is already on screen.
+  clearStoredPw();
+  showGate('كلمة المرور تغيّرت أو أصبحت غير صحيحة — أدخلوها من جديد');
+}
+async function submitPassword(){
+  const pw=document.getElementById('pwInput').value;
+  const btn=document.getElementById('pwSubmitBtn');
+  btn.disabled=true; btn.textContent='جارٍ التحقق…';
+  document.getElementById('pwError').textContent='';
+  try{
+    const res=await fetch('/api/state',{headers: pw?{'X-App-Password':pw}:{}});
+    if(res.status===401){
+      document.getElementById('pwError').textContent='كلمة مرور خاطئة، حاولوا مجددًا';
+      btn.disabled=false; btn.textContent='دخول';
+      return;
+    }
+    setStoredPw(pw);
+    hideGate();
+    startApp();
+  }catch(e){
+    document.getElementById('pwError').textContent='تعذر الاتصال بالخادم، تأكدوا من الإنترنت وحاولوا مجددًا';
+    btn.disabled=false; btn.textContent='دخول';
+  }
+}
+// ------------------------------------------------------------------------
+
+function save(){
+  localStorage.setItem(KEY, JSON.stringify(state));
+  lastAppliedStr=JSON.stringify(state);
+  writeInFlight=true; // block incoming polls from clobbering this edit until our own save actually lands
+  clearTimeout(dbWriteTimer);
+  dbWriteTimer=setTimeout(()=>{
+    fetch('/api/state',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:lastAppliedStr})
+      .then(r=>{
+        if(r.status===401){ writeInFlight=false; onAuthRejected(); return; }
+        if(!r.ok) throw new Error('bad status');
+        writeInFlight=false; setSyncStatus('online');
+      })
+      .catch(()=>{ writeInFlight=false; lastAppliedStr=null; setSyncStatus('error'); });
+  },400);
+}
+
+function setSyncStatus(s){
+  const el=document.getElementById('syncStatus');
+  if(!el) return;
+  if(s==='online'){
+    el.textContent='🟢 متصل — البيانات مشتركة مباشرة مع كل من يفتح نفس الرابط';
+  }else if(s==='error'){
+    el.textContent='🔴 تعذر الاتصال بالخادم — تأكدوا من اتصال هذا الجهاز بالإنترنت وأعيدوا المحاولة';
+  }else{
+    el.textContent='⚪ غير متصل — البيانات محفوظة على هذا الجهاز فقط مؤقتًا';
+  }
+}
+
+async function initSync(){
+  try{
+    const res=await fetch('/api/state',{headers:authHeaders()});
+    if(res.status===401){ onAuthRejected(); return; }
+    if(!res.ok) throw new Error('bad status');
+    const raw=await res.text();
+    if(raw && raw!=='null'){
+      const remote=JSON.parse(raw);
+      if(remote && remote.classNames && remote.classNames.length){
+        state=remote;
+        lastAppliedStr=JSON.stringify(state);
+        currentClass=state.classNames.includes(currentClass)?currentClass:state.classNames[0];
+      }
+    }else{
+      lastAppliedStr=JSON.stringify(state);
+      await fetch('/api/state',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:lastAppliedStr});
+    }
+    lanServerOk=true;
+    setSyncStatus('online');
+  }catch(e){
+    lanServerOk=false;
+    setSyncStatus('offline');
+  }
+  renderAll(); updateInstName();
+  setInterval(pollRemote,1500);
+}
+async function pollRemote(){
+  try{
+    const res=await fetch('/api/state',{headers:authHeaders()});
+    if(res.status===401){ onAuthRejected(); return; }
+    if(!res.ok) throw new Error('bad status');
+    const raw=await res.text();
+    lanServerOk=true;
+    if(!raw || raw==='null' || raw===lastAppliedStr) return;
+    if(writeInFlight) return; // a local edit hasn't finished saving yet — never let a stale poll undo it
+    const incoming=JSON.parse(raw);
+    if(!incoming || !incoming.classNames || !incoming.classNames.length) return;
+    if(tableFocused){ pendingRemoteState=incoming; pendingRemoteStr=raw; return; }
+    applyRemoteState(incoming,raw);
+    setSyncStatus('online');
+  }catch(e){
+    lanServerOk=false;
+    setSyncStatus('error');
+  }
+}
+function applyRemoteState(incoming,incomingStr){
+  state=incoming; lastAppliedStr=incomingStr;
+  currentClass=state.classNames.includes(currentClass)?currentClass:state.classNames[0];
+  selected.clear();
+  renderAll(); updateInstName();
+}
+
+function normalizePhone(p){
+  let d=(p||'').replace(/\D/g,'');
+  if(d.startsWith('0')) d='212'+d.slice(1);
+  return d;
+}
+function setPhone(si,val){
+  if(!canWrite) return;
+  state.data[currentClass].phones[si]=val;
+  save();
+  renderNotify();
+}
+function whatsappMessage(si){
+  const cls=state.data[currentClass];
+  const name=cls.names[si];
+  const sessions=cls.absences[si].map((v,i)=>v?colLabel(i):null).filter(Boolean);
+  const period=(state.weekFrom&&state.weekTo)?` خلال الأسبوع من ${state.weekFrom} إلى ${state.weekTo}`:'';
+  return `السلام عليكم، نحيطكم علما بتسجيل غياب ابنكم/ابنتكم "${name}" (القسم ${currentClass})${period} في الحصص التالية: ${sessions.join('، ')}.\nإدارة ${state.instName}`;
+}
+function renderNotify(){
+  document.getElementById('notifyClassName').textContent=currentClass;
+  const host=document.getElementById('notifyHost');
+  const cls=state.data[currentClass];
+  const rows=[];
+  cls.names.forEach((name,si)=>{
+    const sessions=cls.absences[si].map((v,i)=>v?colLabel(i):null).filter(Boolean);
+    if(sessions.length) rows.push({si,name,sessions});
+  });
+  if(!rows.length){ host.innerHTML='<div class="empty">لا يوجد تلاميذ عليهم غياب في هذا القسم حاليا</div>'; return; }
+  host.innerHTML=rows.map(r=>{
+    const phone=normalizePhone(cls.phones[r.si]);
+    const btn = phone
+      ? `<a class="btn wa" href="https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage(r.si))}" target="_blank" rel="noopener noreferrer">📲 إرسال إشعار</a>`
+      : `<button class="btn wa" style="opacity:.5" onclick="showAlert('الرجاء إدخال رقم هاتف ولي الأمر أولا في عمود «هاتف ولي الأمر» أمام اسم التلميذ(ة).')">📲 إرسال إشعار</button>`;
+    return `<div class="row">
+      <span>${r.name} <span class="muted">${r.sessions.length} حصة غياب</span></span>
+      ${btn}
+    </div>`;
+  }).join('');
+}
+
+function colLabel(i){ return DAYS[Math.floor(i/3)]+" "+PERIODS[i%3]; }
+
+function renderTabs(){
+  const host=document.getElementById('tabs');
+  host.innerHTML="";
+  state.classNames.forEach(c=>{
+    const b=document.createElement('button');
+    b.className='tab'+(c===currentClass?' active':'');
+    b.onclick=()=>{currentClass=c; selected.clear(); renderAll();};
+    const label=document.createElement('span');
+    label.textContent='القسم: '+c;
+    b.appendChild(label);
+    if(canWrite){
+      const edit=document.createElement('span');
+      edit.className='tab-edit';
+      edit.textContent='✏️';
+      edit.title='تعديل اسم/رقم القسم';
+      edit.onclick=(ev)=>{ ev.stopPropagation(); renameClass(c); };
+      const del=document.createElement('span');
+      del.className='tab-edit';
+      del.textContent='🗑';
+      del.title='حذف القسم';
+      del.onclick=(ev)=>{ ev.stopPropagation(); deleteClass(c); };
+      b.appendChild(edit);
+      b.appendChild(del);
+    }
+    host.appendChild(b);
+  });
+  if(canWrite){
+    const addBtn=document.createElement('button');
+    addBtn.className='tab add-tab';
+    addBtn.textContent='+ قسم جديد';
+    addBtn.onclick=addClass;
+    host.appendChild(addBtn);
+  }
+}
+function renameClass(oldName){
+  if(!canWrite) return;
+  showPrompt('تعديل اسم/رقم القسم:', oldName, (val)=>{
+    const newName=val.trim();
+    if(!newName || newName===oldName) return;
+    if(state.classNames.includes(newName)){ showAlert('يوجد قسم آخر بنفس الاسم بالفعل، الرجاء اختيار اسم مختلف.'); return; }
+    const idx=state.classNames.indexOf(oldName);
+    state.classNames[idx]=newName;
+    state.data[newName]=state.data[oldName];
+    delete state.data[oldName];
+    if(currentClass===oldName) currentClass=newName;
+    save();
+    renderAll();
+  });
+}
+function addClass(){
+  if(!canWrite) return;
+  showPrompt('اسم/رقم القسم الجديد:', '', (val)=>{
+    const name=val.trim();
+    if(!name) return;
+    if(state.classNames.includes(name)){ showAlert('يوجد قسم بنفس الاسم بالفعل.'); return; }
+    state.classNames.push(name);
+    state.data[name]={names:[], columns:blankCols(), absences:[], phones:[]};
+    currentClass=name;
+    selected.clear();
+    save();
+    renderAll();
+  });
+}
+function deleteClass(name){
+  if(!canWrite) return;
+  if(state.classNames.length<=1){ showAlert('لا يمكن حذف القسم الوحيد المتبقي.'); return; }
+  showConfirm('حذف القسم "'+name+'" نهائيا مع كل بياناته (اللائحة والغياب والهواتف)؟', ()=>{
+    const idx=state.classNames.indexOf(name);
+    state.classNames.splice(idx,1);
+    delete state.data[name];
+    if(currentClass===name) currentClass=state.classNames[0];
+    selected.clear();
+    save();
+    renderAll();
+  });
+}
+function renameInstitution(){
+  if(!canWrite) return;
+  showPrompt('تعديل اسم المؤسسة:', state.instName, (val)=>{
+    const v=val.trim();
+    if(!v) return;
+    state.instName=v;
+    save();
+    updateInstName();
+  });
+}
+function updateInstName(){
+  document.getElementById('instNameText').textContent=state.instName;
+}
+
+function renderTable(){
+  const host=document.getElementById('tableHost');
+  const cls=state.data[currentClass];
+  const names=cls.names;
+  const selAllCell=canWrite?'<input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)">':'';
+  let html=`<table><thead><tr><th rowspan="3">${selAllCell}</th><th rowspan="3"></th><th rowspan="3">م</th><th rowspan="3">الاسم الكامل</th><th rowspan="3">هاتف ولي الأمر</th>`;
+  DAYS.forEach(d=>html+=`<th class="day" colspan="3">${d}</th>`);
+  html+='</tr><tr>';
+  DAYS.forEach(()=>PERIODS.forEach(p=>html+=`<th class="per">${p}</th>`));
+  html+='</tr><tr>';
+  const dis=canWrite?'':'disabled';
+  for(let i=0;i<TOTAL_COLS;i++){
+    html+=`<th class="meta"><input ${dis} placeholder="المادة" value="${cls.columns[i].subject}" oninput="setMeta(${i},'subject',this.value)">
+      <input ${dis} placeholder="الأستاذ(ة)" value="${cls.columns[i].teacher}" oninput="setMeta(${i},'teacher',this.value)"></th>`;
+  }
+  html+='</tr></thead><tbody>';
+  names.forEach((name,si)=>{
+    const checkCell=canWrite?`<input type="checkbox" ${selected.has(si)?'checked':''} onchange="toggleSelect(${si},this.checked)">`:'';
+    const delCell=canWrite?`<button class="del" title="حذف التلميذ" onclick="deleteStudent(${si})">×</button>`:'';
+    html+=`<tr><td>${checkCell}</td><td>${delCell}</td><td class="num">${si+1}</td><td class="name">${name}</td><td><input class="phone" ${dis} placeholder="06XXXXXXXX" value="${cls.phones[si]||''}" oninput="setPhone(${si},this.value)"></td>`;
+    for(let i=0;i<TOTAL_COLS;i++){
+      const ab=cls.absences[si][i];
+      const click=canWrite?` onclick="toggleCell(${si},${i})"`:'';
+      html+=`<td class="cell${ab?' absent':''}${canWrite?'':' readonly'}"${click}>${ab?'غ':''}</td>`;
+    }
+    html+='</tr>';
+  });
+  html+='<tr class="foot"><td colspan="5">عدد الغياب في الحصة</td>';
+  for(let i=0;i<TOTAL_COLS;i++){
+    let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
+    html+=`<td>${sum}</td>`;
+  }
+  html+='</tr></tbody></table>';
+  if(canWrite){
+    html+=`<div class="addbar">
+      <input id="newName" placeholder="اسم التلميذ الجديد" onkeydown="if(event.key==='Enter')addStudent()">
+      <button class="btn" onclick="addStudent()">إضافة تلميذ</button>
+    </div>`;
+  }
+  host.innerHTML=html;
+}
+
+function triggerPrint(){
+  const cls=state.data[currentClass];
+  const logoSrc=document.querySelector('.logo').src;
+  let rows='';
+  let grandTotal=0;
+  cls.names.forEach((name,si)=>{
+    const total=cls.absences[si].filter(Boolean).length;
+    grandTotal+=total;
+    rows+=`<tr><td class="pnum">${si+1}</td><td class="pname">${name}</td>`;
+    for(let i=0;i<TOTAL_COLS;i++) rows+=`<td class="pcell">${cls.absences[si][i]?'غ':''}</td>`;
+    rows+=`<td class="ptotal">${total}</td></tr>`;
+  });
+  let footRow='<tr class="pfoot"><td colspan="2">مجموع غياب القسم في كل حصة</td>';
+  for(let i=0;i<TOTAL_COLS;i++){
+    let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
+    footRow+=`<td>${sum}</td>`;
+  }
+  footRow+=`<td>${grandTotal}</td></tr>`;
+  let metaRow='';
+  for(let i=0;i<TOTAL_COLS;i++) metaRow+=`<th class="pmeta">${(cls.columns[i].subject||'').trim()||'—'}<br><span class="pteacher">${(cls.columns[i].teacher||'').trim()||'—'}</span></th>`;
+  let dayHeader='',perHeader='';
+  DAYS.forEach(d=>dayHeader+=`<th colspan="3">${d}</th>`);
+  DAYS.forEach(()=>PERIODS.forEach(p=>perHeader+=`<th>${p}</th>`));
+  const weekInfo=(state.weekFrom&&state.weekTo)?`الأسبوع من ${state.weekFrom} إلى ${state.weekTo}`:'';
+  const html=`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+<title>ورقة غياب - ${currentClass}</title>
+<style>
+@page{size:landscape;margin:10mm}
+body{font-family:Arial,Tahoma,sans-serif;margin:0;padding:16px;color:#1E2A28}
+.phead{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.phead img{width:46px;height:46px;border-radius:50%}
+h1{font-size:16px;margin:0}
+.psub{font-size:11px;color:#5B6664}
+table{border-collapse:collapse;width:100%;font-size:9.5px}
+th,td{border:1px solid #999;padding:3px 4px;text-align:center}
+th.pmeta{font-size:8px}
+.pteacher{color:#5B6664}
+.pname{text-align:right}
+.ptotal{font-weight:700;background:#eef4f3}
+.pfoot{background:#eef4f3;font-weight:700}
+</style></head>
+<body onload="window.print()">
+<div class="phead"><img src="${logoSrc}"><div><h1>ورقة ضبط غياب التلاميذ — القسم: ${currentClass}</h1><div class="psub">${state.instName}${weekInfo?' — '+weekInfo:''}</div></div></div>
+<table><thead>
+<tr><th rowspan="3">م</th><th rowspan="3">الاسم الكامل</th>${dayHeader}<th rowspan="3">مجموع<br>غياب<br>الأسبوع</th></tr>
+<tr>${perHeader}</tr>
+<tr>${metaRow}</tr>
+</thead><tbody>${rows}${footRow}</tbody></table>
+</body></html>`;
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.target='_blank'; a.rel='noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
+let selected=new Set();
+
+function toggleSelect(si,checked){
+  if(checked) selected.add(si); else selected.delete(si);
+  updateSelUI();
+}
+function toggleSelectAll(checked){
+  selected.clear();
+  if(checked) state.data[currentClass].names.forEach((_,i)=>selected.add(i));
+  renderTable();
+  updateSelUI();
+}
+function updateSelUI(){
+  document.getElementById('selCount').textContent=selected.size;
+  document.getElementById('bulkDelBtn').style.display=selected.size? 'inline-block':'none';
+}
+function bulkDelete(){
+  if(!canWrite) return;
+  const cls=state.data[currentClass];
+  const idx=[...selected].sort((a,b)=>b-a);
+  if(!idx.length) return;
+  showConfirm('حذف '+idx.length+' تلميذ(ة) من لائحة القسم؟',()=>{
+    idx.forEach(i=>{ cls.names.splice(i,1); cls.absences.splice(i,1); cls.phones.splice(i,1); });
+    selected.clear();
+    save(); renderTable(); renderStats(); updateSelUI();
+  });
+}
+
+function addStudent(){
+  if(!canWrite) return;
+  const input=document.getElementById('newName');
+  const name=input.value.trim();
+  if(!name) return;
+  const cls=state.data[currentClass];
+  cls.names.push(name);
+  cls.absences.push(blankRow());
+  cls.phones.push('');
+  save();
+  renderTable();
+  renderStats();
+}
+function deleteStudent(si){
+  if(!canWrite) return;
+  const cls=state.data[currentClass];
+  showConfirm('حذف "'+cls.names[si]+'" من لائحة القسم؟',()=>{
+    cls.names.splice(si,1);
+    cls.absences.splice(si,1);
+    cls.phones.splice(si,1);
+    selected.delete(si);
+    save();
+    renderTable();
+    renderStats();
+  });
+}
+
+function findAnchor(rows,className){
+  for(let r=0;r<rows.length;r++){
+    for(let c=0;c<rows[r].length;c++){
+      const v=(rows[r][c]??'').toString();
+      if(v.includes('القسم') && v.includes(className)){
+        for(let r2=r;r2<Math.min(r+4,rows.length);r2++){
+          const idx=(rows[r2]||[]).findIndex(x=>(x??'').toString().includes('الاسم'));
+          if(idx>=0) return {headerRow:r2,nameCol:idx};
+        }
+      }
+    }
+  }
+  for(let r=0;r<rows.length;r++){
+    const idx=(rows[r]||[]).findIndex(x=>(x??'').toString().includes('الاسم'));
+    if(idx>=0) return {headerRow:r,nameCol:idx};
+  }
+  return null;
+}
+function colLetter(i){ let s='',n=i+1; while(n>0){ s=String.fromCharCode(65+((n-1)%26))+s; n=Math.floor((n-1)/26); } return s; }
+function extractColumn(rows,col,startRow){
+  const names=[];
+  rows.forEach((row,ri)=>{
+    if(ri<=startRow) return;
+    const s=((row||[])[col]??'').toString().trim();
+    if(!s) return;
+    if(/^\d+$/.test(s)) return;
+    if(/^(الرقم|الاسم الكامل|الاسم|القسم|رمز المادة|توقيع|تلاميذ يوجهون|صباحا|مساء)/.test(s)) return;
+    names.push(s);
+  });
+  return names;
+}
+
+let importState={wb:null,rows:null,chosenCol:null,names:[],headerRow:0};
+
+function importExcel(file){
+  if(!canWrite || !file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      importState.wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+      const sel=document.getElementById('importSheetSel');
+      sel.innerHTML=importState.wb.SheetNames.map(n=>`<option value="${n}">${n}</option>`).join('');
+      sel.onchange=()=>loadImportSheet(sel.value);
+      loadImportSheet(importState.wb.SheetNames[0]);
+      document.getElementById('importOverlay').style.display='flex';
+    }catch(err){
+      showAlert('تعذر قراءة الملف. تأكدوا أنه ملف إكسيل صالح.');
+    }
+    document.getElementById('xlsFile').value='';
+  };
+  reader.readAsArrayBuffer(file);
+}
+function loadImportSheet(sheetName){
+  const rows=XLSX.utils.sheet_to_json(importState.wb.Sheets[sheetName],{header:1,defval:''});
+  importState.rows=rows;
+  const anchor=findAnchor(rows,currentClass);
+  importState.chosenCol=anchor?anchor.nameCol:null;
+  importState.headerRow=anchor?anchor.headerRow:0;
+  renderImportPreview();
+}
+function renderImportPreview(){
+  const rows=importState.rows;
+  const maxCols=Math.min(12,rows.reduce((m,r)=>Math.max(m,r.length),1));
+  let html='<thead><tr><th></th>';
+  for(let c=0;c<maxCols;c++) html+=`<th class="colbtn${importState.chosenCol===c?' chosen':''}" onclick="chooseImportCol(${c})">${colLetter(c)}</th>`;
+  html+='</tr></thead><tbody>';
+  rows.slice(0,15).forEach((row,ri)=>{
+    html+=`<tr><td class="rownum${importState.headerRow===ri?' chosen':''}" onclick="chooseHeaderRow(${ri})" title="اعتبار هذا الصف عنوانًا (البيانات تبدأ بعده)">${ri+1}</td>`;
+    for(let c=0;c<maxCols;c++) html+=`<td>${((row[c]??'').toString()).slice(0,30)}</td>`;
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  document.getElementById('importPreview').innerHTML=html;
+  updateImportActions();
+}
+function chooseImportCol(c){ importState.chosenCol=c; renderImportPreview(); }
+function chooseHeaderRow(r){ importState.headerRow=r; renderImportPreview(); }
+function updateImportActions(){
+  const col=importState.chosenCol;
+  const names=col!=null? extractColumn(importState.rows,col,importState.headerRow):[];
+  importState.names=names;
+  document.getElementById('importFoundCount').textContent = col!=null
+    ? `العمود ${colLetter(col)}، بدءًا من الصف ${importState.headerRow+2} — تم العثور على ${names.length} اسم`
+    : 'اضغطوا على رأس أحد الأعمدة أدناه لاختيار عمود أسماء التلاميذ (ويمكنكم الضغط على رقم الصف لتحديد صف العناوين)';
+  const actions=document.getElementById('importActions');
+  actions.innerHTML='';
+  const disabled=!names.length;
+  const mk=(label,cls,mode)=>{const b=document.createElement('button');b.className=cls;b.textContent=label;b.disabled=disabled;b.onclick=()=>confirmImport(mode);return b;};
+  actions.appendChild(mk('استبدال اللائحة الحالية','btn danger','replace'));
+  actions.appendChild(mk('إضافة إلى اللائحة الحالية','btn','append'));
+  const cancel=document.createElement('button');cancel.className='btn ghost';cancel.textContent='إلغاء';
+  cancel.onclick=()=>{document.getElementById('importOverlay').style.display='none';};
+  actions.appendChild(cancel);
+}
+function confirmImport(mode){
+  const names=importState.names;
+  const cls=state.data[currentClass];
+  if(mode==='replace'){
+    cls.names=names;
+    cls.absences=names.map(()=>blankRow());
+    cls.phones=names.map(()=>'');
+  }else{
+    names.forEach(n=>{ cls.names.push(n); cls.absences.push(blankRow()); cls.phones.push(''); });
+  }
+  selected.clear();
+  save(); renderTable(); renderStats();
+  document.getElementById('importOverlay').style.display='none';
+}
+
+function toggleCell(si,ci){
+  if(!canWrite) return;
+  const cls=state.data[currentClass];
+  cls.absences[si][ci]=!cls.absences[si][ci];
+  save();
+  renderTable();
+  renderStats();
+}
+function setMeta(ci,field,val){
+  if(!canWrite) return;
+  state.data[currentClass].columns[ci][field]=val;
+  save();
+  renderStats();
+}
+
+function allColumnSum(colIdx){
+  let sum=0;
+  for(const c of state.classNames) state.data[c].absences.forEach(r=>{if(r[colIdx])sum++;});
+  return sum;
+}
+function dayTotal(dayIdx){
+  let sum=0; for(let p=0;p<3;p++) sum+=allColumnSum(dayIdx*3+p);
+  return sum;
+}
+function weekTotal(){ let s=0; for(let i=0;i<TOTAL_COLS;i++) s+=allColumnSum(i); return s; }
+
+function groupTotals(field){
+  const totals={};
+  for(const c of state.classNames){
+    const cls=state.data[c];
+    for(let i=0;i<TOTAL_COLS;i++){
+      const key=(cls.columns[i][field]||"").trim();
+      if(!key) continue;
+      const n=cls.absences.reduce((a,r)=>a+(r[i]?1:0),0);
+      if(!n) continue;
+      totals[key]=(totals[key]||0)+n;
+    }
+  }
+  return Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+}
+
+function renderStats(){
+  const daySel=document.getElementById('daySel');
+  if(daySel.options.length===0){
+    DAYS.forEach((d,i)=>{const o=document.createElement('option');o.value=i;o.textContent=d;daySel.appendChild(o);});
+    daySel.onchange=renderStats;
+  }
+  document.getElementById('dayTotal').textContent=dayTotal(+daySel.value);
+  document.getElementById('weekTotal').textContent=weekTotal();
+
+  const subj=groupTotals('subject');
+  document.getElementById('bySubject').innerHTML = subj.length? subj.map(([k,v],idx)=>
+    `<div class="row${idx===0?' top':''}"><span>${k}</span><span class="n">${v} س</span></div>`).join('')
+    : '<div class="empty">لم تُدخل بعد رموز المواد</div>';
+
+  const teach=groupTotals('teacher');
+  document.getElementById('byTeacher').innerHTML = teach.length? teach.map(([k,v],idx)=>
+    `<div class="row${idx===0?' top':''}"><span>${k}${idx===0?' — الأكثر غيابا':''}</span><span class="n">${v} س</span></div>`).join('')
+    : '<div class="empty">لم تُدخل بعد أسماء الأساتذة</div>';
+  renderNotify();
+}
+
+function renderAll(){ renderTabs(); renderTable(); renderStats(); updateSelUI(); }
+
+document.getElementById('wFrom').value=state.weekFrom;
+document.getElementById('wTo').value=state.weekTo;
+document.getElementById('wFrom').onchange=e=>{state.weekFrom=e.target.value; save();};
+document.getElementById('wTo').onchange=e=>{state.weekTo=e.target.value; save();};
+
+document.getElementById('tableHost').addEventListener('focusin', ()=>{ tableFocused=true; });
+document.getElementById('tableHost').addEventListener('focusout', ()=>{
+  setTimeout(()=>{
+    if(!document.getElementById('tableHost').contains(document.activeElement)){
+      tableFocused=false;
+      if(pendingRemoteState){
+        const inc=pendingRemoteState, incStr=pendingRemoteStr;
+        pendingRemoteState=null; pendingRemoteStr=null;
+        applyRemoteState(inc,incStr);
+      }
+    }
+  },0);
+});
+
+function startApp(){
+  updateInstName();
+  renderAll();
+  initSync();
+  initPermissions();
+}
+
+document.getElementById('pwInput').addEventListener('keydown', e=>{ if(e.key==='Enter') submitPassword(); });
+
+(function boot(){
+  const stored=getStoredPw();
+  if(stored){
+    // already validated on this device before — go straight in. If the
+    // password was since changed or removed on the server, the very first
+    // request in startApp()/initSync() will get a 401 and bounce us back
+    // to the gate via onAuthRejected().
+    hideGate();
+    startApp();
+    return;
+  }
+  // No password saved on this device yet. Probe once with no credentials:
+  // if the deployment has no APP_PASSWORD configured at all, the server
+  // never returns 401 and we skip the gate entirely — password protection
+  // is fully opt-in per deployment.
+  fetch('/api/state').then(res=>{
+    if(res.status===401){ showGate(); }
+    else { hideGate(); startApp(); }
+  }).catch(()=>{
+    // Can't reach the server at all right now (offline, or KV not set up
+    // yet) — let them in and rely on the normal offline handling below.
+    hideGate(); startApp();
+  });
+})();
+</script>
+</body>
+</html>
