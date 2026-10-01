@@ -47,6 +47,12 @@ h1{font-size:20px;font-weight:900;margin:0;color:var(--teal)}
 .tab-edit:hover{opacity:1}
 .tab.add-tab{background:transparent;border-style:dashed;color:var(--teal);font-weight:700}
 .cell.readonly{cursor:default}
+#viewBanner{background:var(--gold-soft);color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;font-weight:500}
+.userchip{font-size:12px;color:var(--ink-soft);margin-inline-start:8px;direction:ltr;unicode-bidi:isolate}
+.userchip b{color:var(--teal);margin-inline-end:4px}
+.auth-tabs{display:flex;gap:6px;margin-bottom:14px}
+.auth-tabs .tab{flex:1;text-align:center}
+@media print{#viewBanner,.userchip{display:none!important}}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:18px;overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:900px;font-size:12.5px}
 th,td{border:1px solid var(--line);padding:5px 4px;text-align:center;white-space:nowrap}
@@ -96,14 +102,23 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
 </head>
 <body>
 
-<div id="pwGate" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:20px">
-  <div class="modal-box" style="max-width:340px;text-align:center">
-    <h2 style="margin:0 0 6px;color:var(--teal);font-size:18px">ورقة ضبط الغياب</h2>
-    <p class="sub" style="margin:0 0 16px">هذه الورقة محمية بكلمة مرور — أدخلوها للدخول</p>
-    <input type="password" id="pwInput" class="modal-input" placeholder="كلمة المرور" autocomplete="current-password">
-    <div id="pwError" style="color:var(--absent);font-size:12.5px;min-height:16px;margin-bottom:10px"></div>
-    <button class="btn" id="pwSubmitBtn" style="width:100%" onclick="submitPassword()">دخول</button>
-  </div>
+<div id="loadingBox" style="min-height:100vh;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:14px">جارٍ التحميل…</div>
+
+<div id="authGate" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:20px">
+  <form class="modal-box" id="authForm" style="max-width:360px" onsubmit="return submitAuth(event)">
+    <h2 style="margin:0 0 4px;color:var(--teal);font-size:18px;text-align:center">ورقة ضبط غياب التلاميذ</h2>
+    <p class="sub" style="margin:0 0 14px;text-align:center">سجّلوا الدخول للاطلاع على البيانات</p>
+    <div class="auth-tabs">
+      <button type="button" class="tab active" id="tabLogin" onclick="setAuthMode('login')">دخول</button>
+      <button type="button" class="tab" id="tabRegister" onclick="setAuthMode('register')">إنشاء حساب</button>
+    </div>
+    <input type="email" id="authEmail" class="modal-input" placeholder="البريد الإلكتروني" autocomplete="username" dir="ltr" required>
+    <input type="password" id="authPass" class="modal-input" placeholder="كلمة المرور" autocomplete="current-password" dir="ltr" required>
+    <input type="password" id="authPass2" class="modal-input" placeholder="أعيدوا كتابة كلمة المرور" autocomplete="new-password" dir="ltr" style="display:none">
+    <div id="authError" role="alert" style="color:var(--absent);font-size:12.5px;min-height:16px;margin-bottom:10px;line-height:1.5"></div>
+    <button class="btn" id="authSubmit" type="submit" style="width:100%">دخول</button>
+    <p class="sub" id="authHint" style="margin:12px 0 0;text-align:center;line-height:1.6">الحسابات الجديدة تُنشأ للاطلاع فقط. التعديل مخصّص للمسؤول.</p>
+  </form>
 </div>
 
 <div class="wrap" id="appWrap" style="display:none">
@@ -119,10 +134,13 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
   <div class="week">
     <label>من</label><input type="date" id="wFrom">
     <label>إلى</label><input type="date" id="wTo">
-    <button class="btn ghost" id="lockBtn" style="display:none" onclick="lockApp()" title="قفل هذه الصفحة وطلب كلمة المرور مجددًا على هذا الجهاز">🔒 قفل</button>
+    <span class="userchip" id="userChip" style="display:none"></span>
+    <button class="btn ghost" id="logoutBtn" style="display:none" onclick="logout()">خروج</button>
     <button class="btn ghost" onclick="triggerPrint()">طباعة</button>
   </div>
 </header>
+
+<div id="viewBanner" style="display:none">👁️ وضع الاطلاع فقط — حسابكم لا يملك صلاحية التعديل. يمكنكم تصفّح الجدول والإحصائيات وطباعتها.</div>
 
 <div class="tabs" id="tabs"></div>
 <div class="toolbar">
@@ -182,14 +200,6 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
 </div>
 
 <script>
-const CLASSES = {
-"1AIPC-1":["ايت اتمغارت رميساء","السو رحاب","زروال يوسف","هبة سهيل","أهل احميدات وهبة","حمدي البشير","بوكراع فاطمة","امزيلي خليل","اعبايل ياسين","بابيت الولي","براي فاطمة","شميروا اسية","امجاد منصور","العماري سعد","الكوري محمد","امزيان زياد","اوجعا مروى","بسمة زهيري","اوك عمران","لحيان الحسين","الحمراوي اروى"],
-"1AIPC-2":["أمين عبد العالي أمين","سدوقي طه سدوقي","جمانة حمو جمانة","فيدادي خولة فيدادي","الكرتوم محمد الكرتوم","لغيلاني بوسيف لغيلاني","اتباع محمد اتباع","أكليلي كوثر أكليلي","بلا ريان بلا","شنقاوي حمزة شنقاوي","الشيباني أحمد الشيباني","بلاوي اية بلاوي","لعروصي أحمد عينينا لعروصي","الدمناتي أنس الدمناتي","ياماني نسيمة ياماني","الثعلابي ريتاج الثعلابي","بوروس يونس بوروس","الخطاط فاطمة الخطاط","اعزرايل صلاح الدين اعزرايل","مني مروة مني","مني صفاء مني","سيف الدين"],
-"2AIPC-1":["الحنصلي مصطفى","زرايدي نبيل","زرداك اسماعيل","علاج سفيان","عبيدنا ريم","المرشاني أمينة","بوشيت عدنان","الصغير ميمينة","زروال مروان","أهل بابا المعلومة","الحوات نهيلة","أحمدناه نزيه","الشيخ ماء العينين خليهن","مصدر سيف الدين","اسماعيلي وردة","صبار ريان","بودمين حسين","البازة علي","مكروب ادم","الشيخ ماء العينين الطالب اخيار","اسماعيلي زينب","اهل حميدات احمد سالم","الغيلاني جنة","دادي محمد أمين"],
-"2AIPC-2":["العطفي صلاح الدين","درداق براء","الطنجي فاطمة","اكمار زكرياء","بدر ضحى","ابو الوليد يحيى","سباعي ادريسي هبة","ميشان فاطمة","الهنوني نكية","بوشنينة سيد أحمد","حمين يحيا","عبد اللوي يحيى","حدكي فاطمة الزهراء","الطالبي هدى","مفتاح مريم","احميمو مهدي","هوكوس سعد","حمومينة ادم","جارة مجدولين","المودن العالية","لكشوم رضى","ياسر لمريني","بوعمر رميساء","حم المختار"],
-"3AIPC-1":["عبد العالي يحيى","محفوظ محمد أمين","اطوارطوا نعيم","الشيخ ماء العينين هدى","الطاهري حمزة","سدوقي الياس","خلاد اسية","عبدالمطلب حفصة","توفيق حفصة","البشري ريان","نكور عيسى","أبو عبيدة عدنان","بودمين خديجة","بن السيد محمد","المقليش وليد","قاولي هاجر","لكريماني زكرياء","بوعيلة حما","بورشيش ايمن"],
-"3ASGC-1":["الشنقوي يوسف","غالب داهي","براي العايزة","اسبيكة الحسين","واقف ريان","عبياي ريان","الخطاط ميمي","الماح علي","رشيد فاطمة الزهراء","معطى الله مبارك","اهل أمحيمد هدى","اهل سيدي مولود محمود","اسويدة مروة","سعدي اشراق","اركيبي لالة مينتو","اركيبي لالة مروة","أوعلا بشرى","اهويدي عثمان","حميد يهديها"]
-};
 const DAY_NAMES=["الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
 const SHIFTS=["صباحا","مساء"];
 const DAYS=DAY_NAMES.flatMap(d=>SHIFTS.map(s=>d+" "+s));
@@ -254,11 +264,14 @@ function loadState(){
   }
   if(!s) s={weekFrom:"",weekTo:"",data:{}};
   if(!s.instName) s.instName="مؤسسة المثابرة الخاصة";
-  if(!s.classNames) s.classNames=Object.keys(CLASSES);
+  if(!s.data) s.data={};
+  // The real class lists come from the server after login (they are no longer
+  // embedded in this public page); until then show one empty placeholder class.
+  if(!s.classNames || !s.classNames.length) s.classNames=["القسم 1"];
   s.classNames.forEach(c=>{
-    if(!s.data[c]) s.data[c]={names:(CLASSES[c]||[]).slice(), columns:blankCols(), absences:(CLASSES[c]||[]).map(()=>blankRow())};
+    if(!s.data[c]) s.data[c]={names:[], columns:blankCols(), absences:[]};
     const cls=s.data[c];
-    if(!cls.names) cls.names=(CLASSES[c]||[]).slice();
+    if(!cls.names) cls.names=[];
     cls.columns=fitLen(cls.columns||[],TOTAL_COLS,()=>({subject:"",teacher:""}));
     cls.absences=cls.names.map((_,i)=>fitLen((cls.absences||[])[i]||[],TOTAL_COLS,()=>false));
     cls.phones=fitLen(cls.phones||[],cls.names.length,()=>"");
@@ -269,85 +282,125 @@ let state=loadState();
 let currentClass=state.classNames[0];
 
 let dbNS=null, tableFocused=false, pendingRemoteState=null, pendingRemoteStr=null, lastAppliedStr=null, dbWriteTimer=null, writeInFlight=false;
-// This deployment has no per-viewer permission system: everyone who opens
-// the link can read and write the shared sheet. canWrite stays true and is
-// kept only because render/mutation functions below still check it.
-let canWrite=true;
+// ---- roles --------------------------------------------------------------
+// admin  : can read AND edit (only the admin email, decided by the server).
+// viewer : read only. The server enforces this on every request; canWrite
+//          below only decides which controls the page shows.
+let canWrite=false;
+let currentUser=null;
+let pollTimer=null;
+let syncedOnce=false;
+let lanServerOk=false;
 
 function applyPermissionUI(){
+  const ro=!canWrite;
+  const banner=document.getElementById('viewBanner');
+  if(banner) banner.style.display=ro?'block':'none';
+  const importBtn=document.getElementById('importBtn');
+  if(importBtn) importBtn.style.display=canWrite?'inline-block':'none';
+  const instEdit=document.getElementById('instEditIcon');
+  if(instEdit) instEdit.style.display=canWrite?'inline':'none';
+  ['wFrom','wTo'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=ro; });
+  const chip=document.getElementById('userChip');
+  if(chip && currentUser){
+    chip.style.display='inline';
+    chip.innerHTML='';
+    const b=document.createElement('b'); b.textContent=currentUser.role==='admin'?'مسؤول':'اطلاع';
+    chip.appendChild(b); chip.appendChild(document.createTextNode(currentUser.email));
+  }
+  const lo=document.getElementById('logoutBtn');
+  if(lo) lo.style.display=currentUser?'inline-block':'none';
   renderAll();
 }
 
-async function initPermissions(){
-  applyPermissionUI();
+// ---- session (token issued by /api/auth) ---------------------------------
+const TOKEN_KEY='ghiyab_token', USER_KEY='ghiyab_user';
+function getToken(){ try{ return localStorage.getItem(TOKEN_KEY)||''; }catch(e){ return ''; } }
+function authHeaders(){ const t=getToken(); return t?{'Authorization':'Bearer '+t}:{}; }
+function saveSession(d){
+  try{ localStorage.setItem(TOKEN_KEY,d.token); localStorage.setItem(USER_KEY,JSON.stringify({email:d.email,role:d.role})); }catch(e){}
 }
-
-let lanServerOk=false;
-
-// ---- password gate ----------------------------------------------------
-// Protection is entirely optional and controlled server-side by the
-// APP_PASSWORD environment variable (see api/state.js). If that variable
-// is not set on the deployment, the server never returns 401 and the gate
-// below is skipped automatically — nothing changes for a deployment that
-// hasn't set a password. Once a password is set, every /api/state call
-// (read AND write) must carry it, so the data itself is protected, not
-// just the page.
-const PW_KEY='ghiyab_pw';
-function getStoredPw(){ try{ return localStorage.getItem(PW_KEY)||''; }catch(e){ return ''; } }
-function setStoredPw(v){ try{ localStorage.setItem(PW_KEY,v); }catch(e){} }
-function clearStoredPw(){ try{ localStorage.removeItem(PW_KEY); }catch(e){} }
-function authHeaders(){ const pw=getStoredPw(); return pw?{'X-App-Password':pw}:{}; }
-
-function showGate(msg){
-  const appWrap=document.getElementById('appWrap');
-  if(appWrap) appWrap.style.display='none';
-  document.getElementById('pwGate').style.display='flex';
-  document.getElementById('pwError').textContent=msg||'';
-  const inp=document.getElementById('pwInput');
-  inp.value='';
-  setTimeout(()=>inp.focus(),50);
+function cachedUser(){
+  try{ const u=JSON.parse(localStorage.getItem(USER_KEY)); return (u&&u.email&&u.role)?u:null; }catch(e){ return null; }
 }
-function hideGate(){
-  document.getElementById('pwGate').style.display='none';
-  const appWrap=document.getElementById('appWrap');
-  if(appWrap) appWrap.style.display='block';
-  const lockBtn=document.getElementById('lockBtn');
-  if(lockBtn) lockBtn.style.display = getStoredPw() ? 'inline-block' : 'none';
-}
-function lockApp(){
-  clearStoredPw();
-  showGate();
-}
-function onAuthRejected(){
-  // The server just told us our saved password is wrong or was changed —
-  // forget it and ask again, without losing whatever is already on screen.
-  clearStoredPw();
-  showGate('كلمة المرور تغيّرت أو أصبحت غير صحيحة — أدخلوها من جديد');
-}
-async function submitPassword(){
-  const pw=document.getElementById('pwInput').value;
-  const btn=document.getElementById('pwSubmitBtn');
-  btn.disabled=true; btn.textContent='جارٍ التحقق…';
-  document.getElementById('pwError').textContent='';
+// Also wipes the locally cached sheet so nothing is left behind on a shared computer.
+function clearSession(){
   try{
-    const res=await fetch('/api/state',{headers: pw?{'X-App-Password':pw}:{}});
-    if(res.status===401){
-      document.getElementById('pwError').textContent='كلمة مرور خاطئة، حاولوا مجددًا';
-      btn.disabled=false; btn.textContent='دخول';
-      return;
-    }
-    setStoredPw(pw);
-    hideGate();
-    startApp();
-  }catch(e){
-    document.getElementById('pwError').textContent='تعذر الاتصال بالخادم، تأكدوا من الإنترنت وحاولوا مجددًا';
-    btn.disabled=false; btn.textContent='دخول';
+    localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(KEY); localStorage.removeItem('ghiyab_v1');
+  }catch(e){}
+}
+
+// ---- login / register screen ---------------------------------------------
+let authMode='login';
+function setAuthMode(m,keepMsg){
+  authMode=m;
+  const reg=(m==='register');
+  document.getElementById('tabLogin').classList.toggle('active',!reg);
+  document.getElementById('tabRegister').classList.toggle('active',reg);
+  document.getElementById('authPass2').style.display=reg?'block':'none';
+  document.getElementById('authPass2').required=reg;
+  document.getElementById('authPass').autocomplete=reg?'new-password':'current-password';
+  document.getElementById('authSubmit').textContent=reg?'إنشاء الحساب':'دخول';
+  document.getElementById('authHint').textContent=reg
+    ? 'سيُنشأ حساب للاطلاع فقط (كلمة المرور 8 أحرف على الأقل).'
+    : 'الحسابات الجديدة تُنشأ للاطلاع فقط. التعديل مخصّص للمسؤول.';
+  if(!keepMsg) document.getElementById('authError').textContent='';
+}
+function showGate(msg){
+  document.getElementById('appWrap').style.display='none';
+  document.getElementById('loadingBox').style.display='none';
+  document.getElementById('authGate').style.display='flex';
+  setAuthMode(authMode,true);
+  document.getElementById('authError').textContent=msg||'';
+  setTimeout(()=>document.getElementById('authEmail').focus(),50);
+}
+function showApp(){
+  document.getElementById('loadingBox').style.display='none';
+  document.getElementById('authGate').style.display='none';
+  document.getElementById('appWrap').style.display='block';
+}
+async function submitAuth(ev){
+  ev.preventDefault();
+  const err=document.getElementById('authError');
+  const btn=document.getElementById('authSubmit');
+  const email=document.getElementById('authEmail').value.trim();
+  const pass=document.getElementById('authPass').value;
+  err.textContent='';
+  if(authMode==='register' && pass!==document.getElementById('authPass2').value){
+    err.textContent='كلمتا المرور غير متطابقتين'; return false;
   }
+  const label=btn.textContent;
+  btn.disabled=true; btn.textContent='جارٍ التحقق…';
+  try{
+    const res=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:authMode,email:email,password:pass})});
+    let data={}; try{ data=await res.json(); }catch(e){}
+    if(!res.ok || !data.token){
+      err.textContent=data.message||'تعذر إتمام العملية، أعيدوا المحاولة';
+      btn.disabled=false; btn.textContent=label; return false;
+    }
+    saveSession(data);
+    location.reload(); // start the app cleanly with the new session
+  }catch(e){
+    err.textContent='تعذر الاتصال بالخادم، تأكدوا من الإنترنت وأعيدوا المحاولة';
+    btn.disabled=false; btn.textContent=label;
+  }
+  return false;
+}
+function logout(){ clearSession(); location.reload(); }
+function onAuthRejected(){
+  // The server no longer accepts our token (expired / invalid): stop syncing and ask again.
+  clearInterval(pollTimer); clearTimeout(dbWriteTimer);
+  clearSession();
+  showGate('انتهت الجلسة، سجّلوا الدخول من جديد');
 }
 // ------------------------------------------------------------------------
 
 function save(){
+  if(!canWrite) return; // viewers never write (the server refuses it anyway)
   localStorage.setItem(KEY, JSON.stringify(state));
+  if(!syncedOnce){ setSyncStatus('error'); return; } // never push before we have read the server's copy
   lastAppliedStr=JSON.stringify(state);
   writeInFlight=true; // block incoming polls from clobbering this edit until our own save actually lands
   clearTimeout(dbWriteTimer);
@@ -355,6 +408,14 @@ function save(){
     fetch('/api/state',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:lastAppliedStr})
       .then(r=>{
         if(r.status===401){ writeInFlight=false; onAuthRejected(); return; }
+        if(r.status===403){
+          // The server says this account cannot edit: fall back to read-only and reload the real data.
+          writeInFlight=false; lastAppliedStr=null; canWrite=false;
+          if(currentUser) currentUser.role='viewer';
+          applyPermissionUI();
+          showAlert('حسابكم لا يملك صلاحية التعديل، لم يُحفظ هذا التغيير.');
+          return;
+        }
         if(!r.ok) throw new Error('bad status');
         writeInFlight=false; setSyncStatus('online');
       })
@@ -366,31 +427,28 @@ function setSyncStatus(s){
   const el=document.getElementById('syncStatus');
   if(!el) return;
   if(s==='online'){
-    el.textContent='🟢 متصل — البيانات مشتركة مباشرة مع كل من يفتح نفس الرابط';
+    el.textContent=canWrite
+      ? '🟢 متصل — تعديلاتكم تظهر فورًا لدى كل المستخدمين'
+      : '🟢 متصل — تُحدَّث البيانات تلقائيًا (اطلاع فقط)';
   }else if(s==='error'){
     el.textContent='🔴 تعذر الاتصال بالخادم — تأكدوا من اتصال هذا الجهاز بالإنترنت وأعيدوا المحاولة';
   }else{
-    el.textContent='⚪ غير متصل — البيانات محفوظة على هذا الجهاز فقط مؤقتًا';
+    el.textContent='⚪ غير متصل — تعذر تحميل البيانات من الخادم';
   }
 }
 
 async function initSync(){
   try{
     const res=await fetch('/api/state',{headers:authHeaders()});
-    if(res.status===401){ onAuthRejected(); return; }
+    if(res.status===401){ onAuthRejected(); return false; }
     if(!res.ok) throw new Error('bad status');
-    const raw=await res.text();
-    if(raw && raw!=='null'){
-      const remote=JSON.parse(raw);
-      if(remote && remote.classNames && remote.classNames.length){
-        state=remote;
-        lastAppliedStr=JSON.stringify(state);
-        currentClass=state.classNames.includes(currentClass)?currentClass:state.classNames[0];
-      }
-    }else{
+    const remote=JSON.parse(await res.text());
+    if(remote && remote.classNames && remote.classNames.length){
+      state=remote;
       lastAppliedStr=JSON.stringify(state);
-      await fetch('/api/state',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:lastAppliedStr});
+      currentClass=state.classNames.includes(currentClass)?currentClass:state.classNames[0];
     }
+    syncedOnce=true;
     lanServerOk=true;
     setSyncStatus('online');
   }catch(e){
@@ -398,7 +456,8 @@ async function initSync(){
     setSyncStatus('offline');
   }
   renderAll(); updateInstName();
-  setInterval(pollRemote,1500);
+  pollTimer=setInterval(pollRemote,1500);
+  return true;
 }
 async function pollRemote(){
   try{
@@ -407,10 +466,11 @@ async function pollRemote(){
     if(!res.ok) throw new Error('bad status');
     const raw=await res.text();
     lanServerOk=true;
-    if(!raw || raw==='null' || raw===lastAppliedStr) return;
+    if(!raw || raw==='null' || raw===lastAppliedStr) { syncedOnce=true; return; }
     if(writeInFlight) return; // a local edit hasn't finished saving yet — never let a stale poll undo it
     const incoming=JSON.parse(raw);
     if(!incoming || !incoming.classNames || !incoming.classNames.length) return;
+    syncedOnce=true;
     if(tableFocused){ pendingRemoteState=incoming; pendingRemoteStr=raw; return; }
     applyRemoteState(incoming,raw);
     setSyncStatus('online');
@@ -556,6 +616,10 @@ function renameInstitution(){
 }
 function updateInstName(){
   document.getElementById('instNameText').textContent=state.instName;
+  // keep the week range in sync with the shared sheet (unless being typed in)
+  const f=document.getElementById('wFrom'), t=document.getElementById('wTo');
+  if(f && document.activeElement!==f) f.value=state.weekFrom||'';
+  if(t && document.activeElement!==t) t.value=state.weekTo||'';
 }
 
 function renderTable(){
@@ -889,8 +953,8 @@ function renderAll(){ renderTabs(); renderTable(); renderStats(); updateSelUI();
 
 document.getElementById('wFrom').value=state.weekFrom;
 document.getElementById('wTo').value=state.weekTo;
-document.getElementById('wFrom').onchange=e=>{state.weekFrom=e.target.value; save();};
-document.getElementById('wTo').onchange=e=>{state.weekTo=e.target.value; save();};
+document.getElementById('wFrom').onchange=e=>{ if(!canWrite) return; state.weekFrom=e.target.value; save(); };
+document.getElementById('wTo').onchange=e=>{ if(!canWrite) return; state.weekTo=e.target.value; save(); };
 
 document.getElementById('tableHost').addEventListener('focusin', ()=>{ tableFocused=true; });
 document.getElementById('tableHost').addEventListener('focusout', ()=>{
@@ -906,38 +970,33 @@ document.getElementById('tableHost').addEventListener('focusout', ()=>{
   },0);
 });
 
-function startApp(){
+async function startApp(){
   updateInstName();
-  renderAll();
-  initSync();
-  initPermissions();
+  applyPermissionUI();      // sets controls for the current role and renders
+  await initSync();         // read the shared sheet first...
+  showApp();                // ...then reveal the page, so nobody sees placeholder data
 }
 
-document.getElementById('pwInput').addEventListener('keydown', e=>{ if(e.key==='Enter') submitPassword(); });
-
-(function boot(){
-  const stored=getStoredPw();
-  if(stored){
-    // already validated on this device before — go straight in. If the
-    // password was since changed or removed on the server, the very first
-    // request in startApp()/initSync() will get a 401 and bounce us back
-    // to the gate via onAuthRejected().
-    hideGate();
-    startApp();
-    return;
+(async function boot(){
+  if(!getToken()){ showGate(); return; }
+  let me=null;
+  try{
+    const res=await fetch('/api/auth',{headers:authHeaders()});
+    if(res.status===401){ clearSession(); showGate('انتهت الجلسة، سجّلوا الدخول من جديد'); return; }
+    if(res.status===503){
+      let d={}; try{ d=await res.json(); }catch(e){}
+      showGate(d.message||'الخادم غير مهيّأ بعد'); return;
+    }
+    if(!res.ok) throw new Error('bad status');
+    me=await res.json();
+    saveSession({token:getToken(),email:me.email,role:me.role});
+  }catch(e){
+    me=cachedUser(); // offline: fall back to the identity remembered on this device
+    if(!me){ showGate('تعذر الاتصال بالخادم، تأكدوا من الإنترنت وأعيدوا المحاولة'); return; }
   }
-  // No password saved on this device yet. Probe once with no credentials:
-  // if the deployment has no APP_PASSWORD configured at all, the server
-  // never returns 401 and we skip the gate entirely — password protection
-  // is fully opt-in per deployment.
-  fetch('/api/state').then(res=>{
-    if(res.status===401){ showGate(); }
-    else { hideGate(); startApp(); }
-  }).catch(()=>{
-    // Can't reach the server at all right now (offline, or KV not set up
-    // yet) — let them in and rely on the normal offline handling below.
-    hideGate(); startApp();
-  });
+  currentUser=me;
+  canWrite=(me.role==='admin');
+  startApp();
 })();
 </script>
 </body>

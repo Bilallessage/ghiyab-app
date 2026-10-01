@@ -1,108 +1,55 @@
 // Vercel serverless function: GET/POST /api/state
-// Stores the whole app state as a single JSON value in an Upstash Redis
-// database (installed from the Vercel Marketplace) so every office that
-// opens the deployed URL reads and writes the same shared sheet.
-//
-// One-time setup required in the Vercel dashboard before this works:
-//   Project -> Storage -> Marketplace Database Integrations -> search
-//   "Upstash" -> install "Upstash Redis" -> connect it to this project.
-// (Vercel's own "KV" product was retired; Upstash Redis is its replacement
-// and is what the Marketplace offers today.) That step injects REST
-// credentials as env vars. Different integration versions have used
-// slightly different names over time, so this file accepts either:
-//   UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN   (current default)
-//   KV_REST_API_URL        / KV_REST_API_TOKEN          (older / migrated stores)
-// Until one of these pairs is present, every call below fails gracefully
-// with a clear error instead of crashing.
-
-const REST_URL =
-  process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
-const REST_TOKEN =
-  process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
-
-let redisClient = null;
-let redisLoadError = null;
-
-function getRedis() {
-  if (redisClient || redisLoadError) return redisClient;
-  try {
-    // Lazy require so a missing/broken dependency doesn't crash the whole
-    // function file at import time.
-    const { Redis } = require('@upstash/redis');
-    redisClient = new Redis({ url: REST_URL, token: REST_TOKEN });
-  } catch (e) {
-    redisLoadError = e;
-  }
-  return redisClient;
-}
+// Stores the whole sheet as one JSON value in Upstash Redis.
+//   GET  -> any logged-in account (admin or viewer)
+//   POST -> the admin only (viewers get 403, anonymous callers get 401)
+const L = require('./_lib');
+const { buildSeedState } = require('./_seed');
 
 const STATE_KEY = 'ghiyab:state';
 
-// Optional password protection: set an APP_PASSWORD environment variable
-// in the Vercel project (Settings -> Environment Variables) to require it
-// on every read AND write. Leave APP_PASSWORD unset to keep the app fully
-// open (the previous, default behavior) — nothing else changes.
-const APP_PASSWORD = process.env.APP_PASSWORD;
+function looksLikeState(d) {
+  return d && typeof d === 'object' &&
+    Array.isArray(d.classNames) && d.classNames.length > 0 && d.classNames.length <= 100 &&
+    d.classNames.every((c) => typeof c === 'string') &&
+    d.data && typeof d.data === 'object' && !Array.isArray(d.data);
+}
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-App-Password');
+  const problem = L.configProblem();
+  if (problem) return L.send(res, 503, { error: 'not_configured', message: problem });
 
-  if (req.method === 'OPTIONS') {
-    res.status(204).end();
-    return;
-  }
+  const session = L.getSession(req);
+  if (!session) return L.send(res, 401, { error: 'unauthorized' });
 
-  if (APP_PASSWORD) {
-    const given = req.headers['x-app-password'];
-    if (given !== APP_PASSWORD) {
-      res.status(401).json({ error: 'unauthorized' });
-      return;
-    }
-  }
-
-  if (!REST_URL || !REST_TOKEN) {
-    res.status(500).json({
-      error:
-        'No Redis database is connected to this project yet. In the Vercel dashboard, open the project, go to Storage, install "Upstash Redis" from the Marketplace, connect it to this project, then redeploy.',
-    });
-    return;
-  }
-
-  const redis = getRedis();
-  if (!redis) {
-    res.status(500).json({ error: 'Could not load the @upstash/redis client: ' + String(redisLoadError) });
-    return;
-  }
+  const redis = L.getRedis();
 
   if (req.method === 'GET') {
     try {
-      const raw = await redis.get(STATE_KEY);
+      const stored = await redis.get(STATE_KEY);
+      res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
-      res.status(200).send(raw ? JSON.stringify(raw) : 'null');
+      // Fresh deployment: hand out the default class lists (kept server side).
+      res.status(200).send(JSON.stringify(stored || buildSeedState()));
     } catch (e) {
-      res.status(500).json({ error: String(e) });
+      L.send(res, 500, { error: 'server_error' });
     }
     return;
   }
 
   if (req.method === 'POST') {
+    if (session.role !== 'admin') {
+      return L.send(res, 403, { error: 'forbidden', message: 'حسابكم للاطلاع فقط، ولا يملك صلاحية التعديل' });
+    }
     try {
-      // Vercel auto-parses a JSON body when Content-Type: application/json,
-      // but the frontend here just posts a raw JSON string, so handle both.
-      let data = req.body;
-      if (typeof data === 'string') {
-        data = JSON.parse(data);
-      }
-      if (!data || typeof data !== 'object') throw new Error('invalid body');
+      const data = L.parseBody(req);
+      if (!looksLikeState(data)) throw new Error('invalid body');
       await redis.set(STATE_KEY, data);
-      res.status(200).json({ ok: true });
+      L.send(res, 200, { ok: true });
     } catch (e) {
-      res.status(400).json({ ok: false, error: String(e) });
+      L.send(res, 400, { ok: false, error: 'bad_request' });
     }
     return;
   }
 
-  res.status(405).end();
+  L.send(res, 405, { error: 'method_not_allowed' });
 };
