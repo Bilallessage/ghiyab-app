@@ -14,11 +14,18 @@ const DAY_COUNT = 10;      // 5 days x (morning, afternoon)
 const PERIODS = 3;
 const TOTAL_COLS = DAY_COUNT * PERIODS;
 
+// Optional per-deployment settings (Vercel environment variables):
+//   INSTITUTION_NAME  name shown on the sheet (default: the original school)
+//   SEED_BLANK=1      start with one empty class instead of the default lists
+//                     (for another institution: no foreign student names)
 function buildSeedState() {
-  const classNames = Object.keys(CLASSES);
+  const blank = process.env.SEED_BLANK === '1';
+  const instName = (process.env.INSTITUTION_NAME || '').trim() || 'مؤسسة المثابرة الخاصة';
+  const source = blank ? { 'القسم 1': [] } : CLASSES;
+  const classNames = Object.keys(source);
   const data = {};
   for (const c of classNames) {
-    const names = CLASSES[c].slice();
+    const names = source[c].slice();
     data[c] = {
       names,
       columns: Array.from({ length: TOTAL_COLS }, () => ({ subject: '', teacher: '' })),
@@ -26,7 +33,7 @@ function buildSeedState() {
       phones: names.map(() => ''),
     };
   }
-  return { weekFrom: '', weekTo: '', instName: 'مؤسسة المثابرة الخاصة', classNames, data };
+  return { weekFrom: '', weekTo: '', instName, classNames, data };
 }
 
 module.exports = { buildSeedState };

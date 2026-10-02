@@ -4,7 +4,7 @@
 //   POST {action:'register'} -> creates a read-only (viewer) account, then logs in
 const L = require('./_lib');
 
-const userKey = (email) => 'ghiyab:user:' + email;
+const userKey = (email) => L.PREFIX + ':user:' + email;
 
 module.exports = async function handler(req, res) {
   const problem = L.configProblem();
@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
   try {
     // ------------------------------------------------------------- login
     if (body.action === 'login') {
-      if (!(await L.allow('ghiyab:rl:login:' + ip + ':' + email, 10, 900))) {
+      if (!(await L.allow(L.PREFIX + ':rl:login:' + ip + ':' + email, 10, 900))) {
         return L.send(res, 429, { error: 'too_many', message: 'محاولات كثيرة، انتظروا 15 دقيقة ثم أعيدوا المحاولة' });
       }
       const fail = () => L.send(res, 401, { error: 'bad_credentials', message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة' });
@@ -50,7 +50,7 @@ module.exports = async function handler(req, res) {
 
     // ---------------------------------------------------------- register
     if (body.action === 'register') {
-      if (!(await L.allow('ghiyab:rl:register:' + ip, 10, 3600))) {
+      if (!(await L.allow(L.PREFIX + ':rl:register:' + ip, 10, 3600))) {
         return L.send(res, 429, { error: 'too_many', message: 'محاولات كثيرة، أعيدوا المحاولة لاحقًا' });
       }
       if (!L.validEmail(email)) {

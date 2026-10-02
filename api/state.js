@@ -5,7 +5,7 @@
 const L = require('./_lib');
 const { buildSeedState } = require('./_seed');
 
-const STATE_KEY = 'ghiyab:state';
+const STATE_KEY = L.PREFIX + ':state';
 
 function looksLikeState(d) {
   return d && typeof d === 'object' &&

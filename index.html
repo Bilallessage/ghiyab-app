@@ -263,7 +263,7 @@ function loadState(){
     try{ s=JSON.parse(localStorage.getItem("ghiyab_v1")); }catch(e){}
   }
   if(!s) s={weekFrom:"",weekTo:"",data:{}};
-  if(!s.instName) s.instName="مؤسسة المثابرة الخاصة";
+  if(!s.instName) s.instName="اسم المؤسسة";
   if(!s.data) s.data={};
   // The real class lists come from the server after login (they are no longer
   // embedded in this public page); until then show one empty placeholder class.

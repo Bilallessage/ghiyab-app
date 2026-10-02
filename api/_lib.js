@@ -20,6 +20,10 @@ const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'karama252@gmail.com').trim().to
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const SESSION_SECRET = process.env.SESSION_SECRET || '';
 const SESSION_DAYS = 30;
+// Namespace for every Redis key. Lets several institutions share one Redis
+// database without seeing each other's data (each Vercel project sets its own
+// KEY_PREFIX). The default keeps the original deployment's keys unchanged.
+const PREFIX = (String(process.env.KEY_PREFIX || '').replace(/[^A-Za-z0-9_-]/g, '') || 'ghiyab');
 
 const REST_URL = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
 const REST_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
@@ -150,7 +154,7 @@ async function allow(key, limit, windowSec) {
 }
 
 module.exports = {
-  ADMIN_EMAIL, ADMIN_PASSWORD,
+  ADMIN_EMAIL, ADMIN_PASSWORD, PREFIX,
   configProblem, getRedis, send, parseBody, clientIp, normalizeEmail, validEmail,
   safeEqual, hashPassword, verifyPassword, dummyVerify,
   signToken, verifyToken, getSession, allow,
