@@ -4,6 +4,7 @@
 //   POST -> the admin only (viewers get 403, anonymous callers get 401)
 const L = require('./_lib');
 const { buildSeedState } = require('./_seed');
+const { archiveWeek } = require('./_stats');
 
 const STATE_KEY = L.PREFIX + ':state';
 
@@ -44,6 +45,9 @@ module.exports = async function handler(req, res) {
       const data = L.parseBody(req);
       if (!looksLikeState(data)) throw new Error('invalid body');
       await redis.set(STATE_KEY, data);
+      // Keep a summary of this week for the statistics page. Never let a
+      // problem here block saving the sheet itself.
+      try { await archiveWeek(redis, L.PREFIX, data); } catch (e) { /* ignore */ }
       L.send(res, 200, { ok: true });
     } catch (e) {
       L.send(res, 400, { ok: false, error: 'bad_request' });

@@ -98,6 +98,19 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
 #importPreview th.colbtn.chosen{background:var(--teal);color:#fff}
 #importPreview td.rownum{cursor:pointer;background:var(--teal-soft);color:var(--teal);font-weight:700;text-align:center}
 #importPreview td.rownum.chosen{background:var(--teal);color:#fff}
+
+/* statistics view */
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.sv-bar{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+table.sv{min-width:0;width:100%}
+table.sv th{background:var(--teal-soft);color:var(--teal);font-weight:700}
+table.sv td.svn{text-align:right;font-weight:700}
+table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--teal)}
+#statsView input[type=date],#statsView select{font-family:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 8px;font-size:13px}
+.lvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.lvgrid label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink-soft)}
+.lvgrid input{font-family:inherit;border:1px dashed var(--line);background:transparent;color:var(--ink);border-radius:6px;padding:6px 8px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -136,16 +149,40 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
     <label>إلى</label><input type="date" id="wTo">
     <span class="userchip" id="userChip" style="display:none"></span>
     <button class="btn ghost" id="logoutBtn" style="display:none" onclick="logout()">خروج</button>
+    <button class="btn ghost" id="statsBtn" onclick="openStats()">📊 الإحصائيات</button>
     <button class="btn ghost" onclick="triggerPrint()">طباعة</button>
   </div>
 </header>
 
 <div id="viewBanner" style="display:none">👁️ وضع الاطلاع فقط — حسابكم لا يملك صلاحية التعديل. يمكنكم تصفّح الجدول والإحصائيات وطباعتها.</div>
 
+<div id="statsView" style="display:none">
+  <div class="panel">
+    <div class="sv-bar">
+      <button class="btn ghost" onclick="closeStats()">↩ رجوع إلى الجدول</button>
+      <div class="seg" id="svPeriod">
+        <button type="button" class="tab" data-v="day" onclick="svPick('period','day')">يومي</button>
+        <button type="button" class="tab" data-v="week" onclick="svPick('period','week')">أسبوعي</button>
+        <button type="button" class="tab" data-v="month" onclick="svPick('period','month')">شهري</button>
+      </div>
+      <span id="svPicker"></span>
+      <div class="seg" id="svGroup">
+        <button type="button" class="tab" data-v="class" onclick="svPick('group','class')">حسب الأقسام</button>
+        <button type="button" class="tab" data-v="level" onclick="svPick('group','level')">حسب المستويات</button>
+      </div>
+      <button class="btn" id="svPrintBtn" onclick="printStats()">🖨️ طباعة الإحصائيات</button>
+    </div>
+  </div>
+  <div class="panel" id="svBody"></div>
+  <div id="svTools"><div id="svLevels"></div><div id="svDelBox"></div></div>
+</div>
+
+<div id="mainView">
 <div class="tabs" id="tabs"></div>
 <div class="toolbar">
   <button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
   <input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this.files[0])">
+  <button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()">🗓️ أسبوع جديد</button>
   <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
 </div>
 <div class="panel" id="tableHost"></div>
@@ -175,6 +212,7 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
     <h3>الغياب حسب الأستاذ(ة)</h3>
     <div id="byTeacher"></div>
   </div>
+</div>
 </div>
 </div>
 
@@ -296,6 +334,8 @@ function applyPermissionUI(){
   const ro=!canWrite;
   const banner=document.getElementById('viewBanner');
   if(banner) banner.style.display=ro?'block':'none';
+  const nwBtn=document.getElementById('newWeekBtn');
+  if(nwBtn) nwBtn.style.display=canWrite?'inline-block':'none';
   const importBtn=document.getElementById('importBtn');
   if(importBtn) importBtn.style.display=canWrite?'inline-block':'none';
   const instEdit=document.getElementById('instEditIcon');
@@ -969,6 +1009,291 @@ document.getElementById('tableHost').addEventListener('focusout', ()=>{
     }
   },0);
 });
+
+// ================= statistics: daily / weekly / monthly =================
+// The server keeps one compact summary per school week (see api/_stats.js);
+// this view only reads them (GET /api/history) and adds them up.
+const MONTHS=["يناير","فبراير","مارس","أبريل","ماي","يونيو","يوليوز","غشت","شتنبر","أكتوبر","نونبر","دجنبر"];
+let svWeeks=[], svPeriod='day', svGroup='class', svDay='', svWeek='', svMonth='', svOpen=false;
+
+function svEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function isoOk(s){ return typeof s==='string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(new Date(s+'T00:00:00Z')); }
+function addDaysIso(iso,n){ const d=new Date(iso+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); }
+function diffDays(a,b){ return Math.round((new Date(b+'T00:00:00Z')-new Date(a+'T00:00:00Z'))/86400000); }
+function todayIso(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function monthLabel(m){ const [y,mm]=m.split('-'); return MONTHS[+mm-1]+' '+y; }
+// same rule as the server: "1AIPC-2" -> "1AIPC"
+function deriveLevel(name){ const n=String(name||'').trim(); const b=n.replace(/[\s\-–_/.]*\d+$/,'').trim(); return b||n; }
+function levelOf(cls,snapLevel){ const o=((state.levels||{})[cls]||'').trim(); return o||snapLevel||deriveLevel(cls); }
+function sumRange(arr,from,to){ let s=0; for(let i=from;i<to;i++) s+=(arr[i]||0); return s; }
+
+function svWeekDays(){ // every Mon..Fri date that belongs to a recorded week
+  const out=[]; svWeeks.forEach(w=>{ for(let d=0;d<5;d++) out.push({date:addDaysIso(w.weekStart,d),w,d}); }); return out;
+}
+function svMonths(){ return [...new Set(svWeekDays().map(x=>x.date.slice(0,7)))].sort().reverse(); }
+
+function svDefaults(){
+  const days=svWeekDays().map(x=>x.date).sort();
+  const t=todayIso();
+  if(!isoOk(svDay)) svDay=days.includes(t)?t:(days.filter(x=>x<=t).pop()||days[days.length-1]||t);
+  if(!svWeeks.some(w=>w.weekStart===svWeek)) svWeek=(svWeeks.find(w=>w.current)||svWeeks[0]||{}).weekStart||'';
+  const ms=svMonths();
+  if(!ms.includes(svMonth)) svMonth=ms.includes(t.slice(0,7))?t.slice(0,7):(ms[0]||'');
+}
+
+// Builds {title, sub, head:[...], rows:[[...]], total:[...], bars:[...], note} for the current choice.
+function svBuild(){
+  const per=new Map();
+  const order=(state.classNames||[]).slice();
+  const touch=(c,snap)=>{
+    if(!per.has(c)) per.set(c,{cls:c,level:levelOf(c,snap.level),students:0,hours:0,absent:0});
+    return per.get(c);
+  };
+  let title='', sub='', note='', empty='', monthDays=1;
+  if(svPeriod==='day'){
+    const hit=svWeekDays().find(x=>x.date===svDay);
+    if(!hit) empty='لا توجد بيانات مسجّلة لهذا اليوم. تُسجَّل الأيام من الاثنين إلى الجمعة للأسابيع التي حُدّدت تواريخها وأُدخل غيابها.';
+    else{
+      title='الإحصاء اليومي';
+      sub=DAY_NAMES[hit.d]+' '+svDay;
+      Object.entries(hit.w.classes).forEach(([c,s])=>{
+        const r=touch(c,s); r.students=s.students; r.hours=sumRange(s.cols,hit.d*6,hit.d*6+6); r.absent=s.dayStudents[hit.d]||0;
+        if(!order.includes(c)) order.push(c);
+      });
+    }
+  }else if(svPeriod==='week'){
+    const w=svWeeks.find(x=>x.weekStart===svWeek);
+    if(!w) empty='لا توجد أسابيع مسجّلة بعد.';
+    else{
+      title='الإحصاء الأسبوعي';
+      sub='الأسبوع من '+w.weekStart+' إلى '+addDaysIso(w.weekStart,4);
+      Object.entries(w.classes).forEach(([c,s])=>{
+        const r=touch(c,s); r.students=s.students; r.hours=sumRange(s.cols,0,30); r.absent=s.weekStudents||0;
+        if(!order.includes(c)) order.push(c);
+      });
+    }
+  }else{
+    const days=svWeekDays().filter(x=>x.date.slice(0,7)===svMonth);
+    if(!days.length) empty='لا توجد بيانات مسجّلة لهذا الشهر.';
+    else{
+      title='الإحصاء الشهري';
+      sub=monthLabel(svMonth);
+      const dates=new Set();
+      days.sort((a,b)=>a.date<b.date?-1:1).forEach(x=>{
+        dates.add(x.date);
+        Object.entries(x.w.classes).forEach(([c,s])=>{
+          const r=touch(c,s); r.students=s.students; r.level=levelOf(c,s.level);
+          r.hours+=sumRange(s.cols,x.d*6,x.d*6+6); r.absent+=s.dayStudents[x.d]||0;
+          if(!order.includes(c)) order.push(c);
+        });
+      });
+      monthDays=dates.size;
+      note='عدد الأيام المسجّلة في هذا الشهر: '+dates.size+'. «أيام الغياب» = مجموع عدد التلاميذ الغائبين في كل يوم (تلميذ·يوم).';
+    }
+  }
+  if(empty) return {empty};
+  const month=svPeriod==='month', nDays=monthDays;
+  let rows=order.filter(c=>per.has(c)).map(c=>per.get(c));
+  let groupRows;
+  if(svGroup==='level'){
+    const g=new Map();
+    rows.forEach(r=>{
+      if(!g.has(r.level)) g.set(r.level,{key:r.level,classes:0,students:0,hours:0,absent:0});
+      const x=g.get(r.level); x.classes++; x.students+=r.students; x.hours+=r.hours; x.absent+=r.absent;
+    });
+    groupRows=[...g.values()];
+  }else{
+    groupRows=rows.map(r=>({key:r.cls,level:r.level,students:r.students,hours:r.hours,absent:r.absent}));
+  }
+  const pct=(a,s)=>s?((a/s*100).toFixed(1)+'%'):'—';
+  const avg=(a)=>nDays?(a/nDays).toFixed(1):'—';
+  const head=(svGroup==='level'?['المستوى','عدد الأقسام']:['القسم','المستوى']).concat(['عدد التلاميذ','ساعات الغياب'],
+    month?['أيام الغياب (تلميذ·يوم)','متوسط الغائبين يوميا']:['التلاميذ الغائبون','نسبة الغائبين']);
+  const cells=r=>[r.key, svGroup==='level'?r.classes:r.level, r.students, r.hours,
+    r.absent, month?avg(r.absent):pct(r.absent,r.students)];
+  const tot=groupRows.reduce((a,r)=>({students:a.students+r.students,hours:a.hours+r.hours,absent:a.absent+r.absent,classes:a.classes+(r.classes||1)}),{students:0,hours:0,absent:0,classes:0});
+  const total=['المجموع', svGroup==='level'?tot.classes:'', tot.students, tot.hours, tot.absent, month?avg(tot.absent):pct(tot.absent,tot.students)];
+  return {title,sub,note,head,rows:groupRows.map(cells),total,hours:groupRows.map(r=>r.hours),maxHours:Math.max(1,...groupRows.map(r=>r.hours))};
+}
+
+function svTableHtml(m,forPrint){
+  let h='<table class="sv"><thead><tr>'+m.head.map(x=>'<th>'+svEsc(x)+'</th>').join('')+'</tr></thead><tbody>';
+  m.rows.forEach((r,i)=>{
+    const pctW=forPrint?0:Math.round(m.hours[i]/m.maxHours*100);
+    h+='<tr>'+r.map((x,j)=>{
+      const style=(j===3&&pctW)?` style="background:linear-gradient(to left,var(--absent-soft) ${pctW}%,transparent ${pctW}%)"`:'';
+      return '<td'+(j===0?' class="svn"':'')+style+'>'+svEsc(x)+'</td>';
+    }).join('')+'</tr>';
+  });
+  h+='<tr class="svtot">'+m.total.map((x,j)=>'<td'+(j===0?' class="svn"':'')+'>'+svEsc(x)+'</td>').join('')+'</tr></tbody></table>';
+  return h;
+}
+
+function svSetSeg(id,val){ document.querySelectorAll('#'+id+' .tab').forEach(b=>b.classList.toggle('active',b.dataset.v===val)); }
+
+function svRender(full){
+  svDefaults();
+  svSetSeg('svPeriod',svPeriod); svSetSeg('svGroup',svGroup);
+  const pick=document.getElementById('svPicker');
+  if(full!==false) svBuildPicker(pick);
+  svRenderBody();
+  svRenderTools(full!==false);
+}
+function svBuildPicker(pick){
+  if(svPeriod==='day'){
+    const days=svWeekDays().map(x=>x.date).sort();
+    pick.innerHTML='<input type="date" id="svDayIn" value="'+svEsc(svDay)+'"'+(days.length?' min="'+days[0]+'" max="'+days[days.length-1]+'"':'')+'>';
+    document.getElementById('svDayIn').onchange=e=>{ svDay=e.target.value; svRender(false); };
+  }else if(svPeriod==='week'){
+    pick.innerHTML='<select id="svWeekIn">'+svWeeks.map(w=>'<option value="'+w.weekStart+'"'+(w.weekStart===svWeek?' selected':'')+'>من '+w.weekStart+' إلى '+addDaysIso(w.weekStart,4)+(w.current?' (الحالي)':'')+'</option>').join('')+'</select>';
+    document.getElementById('svWeekIn').onchange=e=>{ svWeek=e.target.value; svRender(false); };
+  }else{
+    pick.innerHTML='<select id="svMonthIn">'+svMonths().map(m=>'<option value="'+m+'"'+(m===svMonth?' selected':'')+'>'+monthLabel(m)+'</option>').join('')+'</select>';
+    document.getElementById('svMonthIn').onchange=e=>{ svMonth=e.target.value; svRender(false); };
+  }
+}
+function svRenderBody(){
+  const body=document.getElementById('svBody');
+  const printBtn=document.getElementById('svPrintBtn');
+  if(!svWeeks.length){
+    body.innerHTML='<div class="empty">لا توجد أسابيع مسجّلة بعد. يُسجَّل الأسبوع تلقائيا بمجرد تحديد تواريخه (من / إلى) في أعلى الصفحة وإدخال الغياب فيه، ثم استعملوا «أسبوع جديد» لبدء الأسبوع التالي.</div>';
+    printBtn.disabled=true; return;
+  }
+  const m=svBuild();
+  if(m.empty){ body.innerHTML='<div class="empty">'+svEsc(m.empty)+'</div>'; printBtn.disabled=true; }
+  else{
+    printBtn.disabled=false;
+    body.innerHTML='<h3 style="margin:0 0 2px;font-size:15px;color:var(--teal)">'+svEsc(m.title)+' — '+svEsc(m.sub)+'</h3>'
+      +'<div class="sub" style="margin-bottom:10px">'+svEsc(svGroup==='level'?'حسب المستويات الدراسية':'حسب الأقسام')+'</div>'
+      +svTableHtml(m,false)+(m.note?'<div class="sub" style="margin-top:8px">'+svEsc(m.note)+'</div>':'');
+  }
+}
+
+function svRenderTools(full){
+  const lv=document.getElementById('svLevels'), dl=document.getElementById('svDelBox');
+  if(full){
+    if(canWrite && svWeeks.length){
+      lv.innerHTML='<div class="panel"><h3 style="margin:0 0 4px;font-size:14px;color:var(--teal)">🏷️ المستوى الدراسي لكل قسم</h3>'
+        +'<div class="sub" style="margin-bottom:8px">يُستنتج المستوى تلقائيا من اسم القسم (مثال: 1AIPC-2 ← 1AIPC). عدّلوه هنا إن كان مختلفا، ويُطبَّق على كل الأسابيع.</div>'
+        +'<div class="lvgrid">'+state.classNames.map((c,i)=>'<label>'+svEsc(c)+'<input type="text" data-i="'+i+'" value="'+svEsc((state.levels||{})[c]||'')+'" placeholder="'+svEsc(deriveLevel(c))+'"></label>').join('')+'</div></div>';
+      lv.querySelectorAll('.lvgrid input').forEach(inp=>{
+        inp.onchange=()=>{
+          if(!canWrite) return;
+          const c=state.classNames[+inp.dataset.i];
+          state.levels=state.levels||{};
+          const v=inp.value.trim();
+          if(v && v!==deriveLevel(c)) state.levels[c]=v; else delete state.levels[c];
+          save(); svRender(false); // only the table is redrawn, so typing/tabbing between fields keeps working
+        };
+      });
+    }else lv.innerHTML='';
+  }
+  const cur=svWeeks.find(w=>w.weekStart===svWeek);
+  if(canWrite && svPeriod==='week' && cur && !cur.current){
+    dl.innerHTML='<div class="panel"><button class="btn danger" id="svDelWeek">حذف هذا الأسبوع من السجل</button> <span class="sub">مفيد إذا سُجّل أسبوع بتاريخ خاطئ.</span></div>';
+    document.getElementById('svDelWeek').onclick=()=>showConfirm('حذف الأسبوع '+svWeek+' من سجل الإحصائيات نهائيا؟',async()=>{
+      try{
+        const r=await fetch('/api/history?week='+encodeURIComponent(svWeek),{method:'DELETE',headers:authHeaders()});
+        if(r.status===401){ onAuthRejected(); return; }
+        if(!r.ok) throw new Error('bad status');
+        svWeek=''; await svLoad();
+      }catch(e){ showAlert('تعذر حذف الأسبوع، أعيدوا المحاولة.'); }
+    });
+  }else dl.innerHTML='';
+}
+
+async function svLoad(){
+  document.getElementById('svBody').innerHTML='<div class="empty">جارٍ التحميل…</div>';
+  try{
+    const res=await fetch('/api/history',{headers:authHeaders()});
+    if(res.status===401){ onAuthRejected(); return; }
+    if(!res.ok) throw new Error('bad status');
+    svWeeks=(await res.json()).weeks||[];
+    svRender(true);
+  }catch(e){
+    document.getElementById('svBody').innerHTML='<div class="empty">تعذر تحميل الإحصائيات، تحقّقوا من الاتصال ثم أعيدوا فتح الصفحة.</div>';
+  }
+}
+function openStats(){
+  svOpen=true;
+  document.getElementById('mainView').style.display='none';
+  document.getElementById('statsView').style.display='block';
+  window.scrollTo(0,0);
+  svLoad();
+}
+function closeStats(){
+  svOpen=false;
+  document.getElementById('statsView').style.display='none';
+  document.getElementById('mainView').style.display='block';
+}
+function svPick(kind,v){ if(kind==='period') svPeriod=v; else svGroup=v; svRender(kind==='period'); }
+
+function printStats(){
+  const m=svBuild(); if(m.empty) return;
+  const logoSrc=document.querySelector('.logo').src;
+  const html=`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+<title>${svEsc(m.title)} - ${svEsc(m.sub)}</title>
+<style>
+@page{size:A4;margin:12mm}
+body{font-family:Arial,Tahoma,sans-serif;margin:0;padding:16px;color:#1E2A28}
+.phead{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.phead img{width:46px;height:46px;border-radius:50%}
+h1{font-size:16px;margin:0}
+.psub{font-size:12px;color:#5B6664;margin-top:2px}
+table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px}
+th,td{border:1px solid #999;padding:5px 6px;text-align:center}
+th{background:#E4EFEC}
+td.svn{text-align:right;font-weight:700}
+tr.svtot td{background:#eef4f3;font-weight:700}
+.note{font-size:11px;color:#5B6664;margin-top:8px}
+</style></head>
+<body onload="window.print()">
+<div class="phead"><img src="${logoSrc}"><div><h1>${svEsc(m.title)} — ${svEsc(m.sub)}</h1><div class="psub">${svEsc(state.instName)} — ${svGroup==='level'?'حسب المستويات الدراسية':'حسب الأقسام'}</div></div></div>
+${svTableHtml(m,true)}
+${m.note?'<div class="note">'+svEsc(m.note)+'</div>':''}
+<div class="note">طُبع بتاريخ ${svEsc(todayIso())}</div>
+</body></html>`;
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.target='_blank'; a.rel='noopener noreferrer';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
+// ---- save immediately (used before archiving a week) ---------------------
+async function saveNow(){
+  if(!canWrite || !syncedOnce) return false;
+  clearTimeout(dbWriteTimer);
+  const body=JSON.stringify(state);
+  lastAppliedStr=body; writeInFlight=true;
+  try{
+    const r=await fetch('/api/state',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body});
+    writeInFlight=false;
+    if(r.status===401){ onAuthRejected(); return false; }
+    if(!r.ok){ lastAppliedStr=null; return false; }
+    setSyncStatus('online'); return true;
+  }catch(e){ writeInFlight=false; lastAppliedStr=null; return false; }
+}
+
+// ---- start a new week: the finished week stays in the statistics ----------
+function startNewWeek(){
+  if(!canWrite) return;
+  if(!isoOk(state.weekFrom)){
+    showAlert('حدّدوا أولا تواريخ الأسبوع الحالي (من / إلى) في أعلى الصفحة، حتى يُحفظ غيابه في سجل الإحصائيات.');
+    return;
+  }
+  showModal('سيُحفظ غياب الأسبوع الحالي ('+state.weekFrom+') في سجل الإحصائيات، ثم يُمسح الغياب من الجدول وتُقدَّم التواريخ 7 أيام. أسماء التلاميذ والمواد والأساتذة تبقى كما هي.\n\nالمتابعة؟',[{label:'نعم، ابدأ أسبوعا جديدا',className:'btn',onClick:async()=>{
+    const ok=await saveNow();
+    if(!ok){ showAlert('تعذر حفظ الأسبوع الحالي في السجل، تحقّقوا من الاتصال وأعيدوا المحاولة. لم يتغيّر شيء.'); return; }
+    state.classNames.forEach(c=>{ const cls=state.data[c]; cls.absences=cls.names.map(()=>blankRow()); });
+    state.weekFrom=addDaysIso(state.weekFrom,7);
+    if(isoOk(state.weekTo)) state.weekTo=addDaysIso(state.weekTo,7);
+    document.getElementById('wFrom').value=state.weekFrom;
+    document.getElementById('wTo').value=state.weekTo;
+    save(); renderAll();
+  }},{label:'إلغاء',className:'btn ghost',onClick:null}]);
+}
 
 async function startApp(){
   updateInstName();
