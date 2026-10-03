@@ -944,13 +944,25 @@ function confirmImport(mode){
   document.getElementById('importOverlay').style.display='none';
 }
 
+// Recording or removing an absence always asks for confirmation first, so a stray click can't change the sheet.
 function toggleCell(si,ci){
   if(!canWrite) return;
   const cls=state.data[currentClass];
-  cls.absences[si][ci]=!cls.absences[si][ci];
-  save();
-  renderTable();
-  renderStats();
+  const cls0=currentClass, name=cls.names[si], make=!cls.absences[si][ci];
+  const subj=(cls.columns[ci]&&cls.columns[ci].subject||'').trim();
+  const where=DAYS[Math.floor(ci/PERIODS.length)]+' — '+PERIODS[ci%PERIODS.length]+(subj?' ('+subj+')':'');
+  const msg=(make?'تسجيل غياب التلميذ(ة) ':'حذف غياب التلميذ(ة) ')+name+' — القسم '+cls0+' — '+where+'؟';
+  showModal(msg,[
+    {label:make?'تأكيد تسجيل الغياب':'تأكيد حذف الغياب',className:make?'btn':'btn danger',onClick:()=>{
+      const c=state.data[cls0];
+      if(!canWrite||!c||c.names[si]!==name){ showAlert('تغيّرت القائمة قبل التأكيد، أعيدوا المحاولة.'); renderTable(); return; }
+      c.absences[si][ci]=make;
+      save();
+      renderTable();
+      renderStats();
+    }},
+    {label:'إلغاء',className:'btn ghost',onClick:null}
+  ]);
 }
 function setMeta(ci,field,val){
   if(!canWrite) return;
