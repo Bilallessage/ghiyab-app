@@ -90,6 +90,10 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
 .modal-actions{display:flex;gap:8px;flex-wrap:wrap}
 .modal-actions .btn{flex:1;min-width:100px}
 .modal-actions .btn:disabled{opacity:.45;cursor:not-allowed}
+.sv-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.sv-filters label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft)}
+.chartbox{border:1px solid var(--line);border-radius:8px;background:#fff;padding:6px;margin:0 0 12px;overflow-x:auto}
+.chartbox svg{display:block;width:100%;min-width:560px;height:auto}
 .import-box{max-width:680px;text-align:right}
 .import-controls{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .import-preview-wrap{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-bottom:12px}
@@ -112,6 +116,10 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
 .lvgrid label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink-soft)}
 .lvgrid input{font-family:inherit;border:1px dashed var(--line);background:transparent;color:var(--ink);border-radius:6px;padding:6px 8px;font-size:13px}
 .btn:disabled{opacity:.45;cursor:not-allowed}
+.sv-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.sv-filters label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft)}
+.chartbox{border:1px solid var(--line);border-radius:8px;background:#fff;padding:6px;margin:0 0 12px;overflow-x:auto}
+.chartbox svg{display:block;width:100%;min-width:560px;height:auto}
 </style>
 </head>
 <body>
@@ -170,8 +178,16 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
       <div class="seg" id="svGroup">
         <button type="button" class="tab" data-v="class" onclick="svPick('group','class')">حسب الأقسام</button>
         <button type="button" class="tab" data-v="level" onclick="svPick('group','level')">حسب المستويات</button>
+        <button type="button" class="tab" data-v="student" onclick="svPick('group','student')">حسب التلاميذ</button>
       </div>
       <button class="btn" id="svPrintBtn" onclick="printStats()">🖨️ طباعة الإحصائيات</button>
+    </div>
+    <div class="sv-filters">
+      <label>القسم <select id="svClsSel"></select></label>
+      <label>المستوى <select id="svLvlSel"></select></label>
+      <label>المبيان حسب <select id="svMetricSel"><option value="hours"></option><option value="absent"></option></select></label>
+      <button class="btn ghost" id="svPngBtn" onclick="svExportPng()">🖼️ تحميل المبيانات (صورة PNG)</button>
+      <button class="btn ghost" id="svXlsBtn" onclick="svExportXls()">📗 تصدير إلى إكسيل</button>
     </div>
   </div>
   <div class="panel" id="svBody"></div>
@@ -1016,6 +1032,7 @@ document.getElementById('tableHost').addEventListener('focusout', ()=>{
 // this view only reads them (GET /api/history) and adds them up.
 const MONTHS=["يناير","فبراير","مارس","أبريل","ماي","يونيو","يوليوز","غشت","شتنبر","أكتوبر","نونبر","دجنبر"];
 let svWeeks=[], svPeriod='day', svGroup='class', svDay='', svWeek='', svMonth='', svOpen=false;
+let svClsF='', svLvlF='', svMetric='hours'; // filters (class / level) and the metric the charts show
 
 function svEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 function isoOk(s){ return typeof s==='string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !isNaN(new Date(s+'T00:00:00Z')); }
@@ -1042,80 +1059,141 @@ function svDefaults(){
   if(!ms.includes(svMonth)) svMonth=ms.includes(t.slice(0,7))?t.slice(0,7):(ms[0]||'');
 }
 
-// Builds {title, sub, head:[...], rows:[[...]], total:[...], bars:[...], note} for the current choice.
+// the days covered by the chosen period: [{w:weekSnapshot, d:0..4, date}]
+function svItems(){
+  if(svPeriod==='day'){ const hit=svWeekDays().find(x=>x.date===svDay); return hit?[{w:hit.w,d:hit.d,date:hit.date}]:[]; }
+  if(svPeriod==='week'){ const w=svWeeks.find(x=>x.weekStart===svWeek); return w?[0,1,2,3,4].map(d=>({w,d,date:addDaysIso(w.weekStart,d)})):[]; }
+  return svWeekDays().filter(x=>x.date.slice(0,7)===svMonth).sort((a,b)=>a.date<b.date?-1:1).map(x=>({w:x.w,d:x.d,date:x.date}));
+}
+function svGroupLabel(){ return svGroup==='level'?'حسب المستويات الدراسية':(svGroup==='student'?'حسب التلاميذ':'حسب الأقسام'); }
+function svFilterLabel(){ const p=[]; if(svClsF) p.push('القسم: '+svClsF); if(svLvlF) p.push('المستوى: '+svLvlF); return p.join(' — '); }
+function svPass(c,lvl){ return (!svClsF||c===svClsF)&&(!svLvlF||lvl===svLvlF); }
+function svMetricLabel(m){
+  if(svMetric==='hours') return 'ساعات الغياب';
+  return svGroup==='student'?'أيام الغياب':(svPeriod==='month'?'أيام الغياب (تلميذ·يوم)':'التلاميذ الغائبون');
+}
+
+// Builds everything the table, charts, print and exports need for the current choice.
 function svBuild(){
-  const per=new Map();
+  const items=svItems();
+  if(!items.length) return {empty:svPeriod==='day'?'لا توجد بيانات مسجّلة لهذا اليوم. تُسجَّل الأيام من الاثنين إلى الجمعة للأسابيع التي حُدّدت تواريخها وأُدخل غيابها.'
+    :(svPeriod==='week'?'لا توجد أسابيع مسجّلة بعد.':'لا توجد بيانات مسجّلة لهذا الشهر.')};
+  const month=svPeriod==='month', week=svPeriod==='week', student=svGroup==='student';
+  const title=month?'الإحصاء الشهري':(week?'الإحصاء الأسبوعي':'الإحصاء اليومي');
+  const sub=month?monthLabel(svMonth):(week?'الأسبوع من '+svWeek+' إلى '+addDaysIso(svWeek,4):DAY_NAMES[items[0].d]+' '+svDay);
   const order=(state.classNames||[]).slice();
-  const touch=(c,snap)=>{
-    if(!per.has(c)) per.set(c,{cls:c,level:levelOf(c,snap.level),students:0,hours:0,absent:0});
-    return per.get(c);
-  };
-  let title='', sub='', note='', empty='', monthDays=1;
-  if(svPeriod==='day'){
-    const hit=svWeekDays().find(x=>x.date===svDay);
-    if(!hit) empty='لا توجد بيانات مسجّلة لهذا اليوم. تُسجَّل الأيام من الاثنين إلى الجمعة للأسابيع التي حُدّدت تواريخها وأُدخل غيابها.';
-    else{
-      title='الإحصاء اليومي';
-      sub=DAY_NAMES[hit.d]+' '+svDay;
-      Object.entries(hit.w.classes).forEach(([c,s])=>{
-        const r=touch(c,s); r.students=s.students; r.hours=sumRange(s.cols,hit.d*6,hit.d*6+6); r.absent=s.dayStudents[hit.d]||0;
-        if(!order.includes(c)) order.push(c);
-      });
-    }
-  }else if(svPeriod==='week'){
-    const w=svWeeks.find(x=>x.weekStart===svWeek);
-    if(!w) empty='لا توجد أسابيع مسجّلة بعد.';
-    else{
-      title='الإحصاء الأسبوعي';
-      sub='الأسبوع من '+w.weekStart+' إلى '+addDaysIso(w.weekStart,4);
-      Object.entries(w.classes).forEach(([c,s])=>{
-        const r=touch(c,s); r.students=s.students; r.hours=sumRange(s.cols,0,30); r.absent=s.weekStudents||0;
-        if(!order.includes(c)) order.push(c);
-      });
-    }
-  }else{
-    const days=svWeekDays().filter(x=>x.date.slice(0,7)===svMonth);
-    if(!days.length) empty='لا توجد بيانات مسجّلة لهذا الشهر.';
-    else{
-      title='الإحصاء الشهري';
-      sub=monthLabel(svMonth);
-      const dates=new Set();
-      days.sort((a,b)=>a.date<b.date?-1:1).forEach(x=>{
-        dates.add(x.date);
-        Object.entries(x.w.classes).forEach(([c,s])=>{
-          const r=touch(c,s); r.students=s.students; r.level=levelOf(c,s.level);
-          r.hours+=sumRange(s.cols,x.d*6,x.d*6+6); r.absent+=s.dayStudents[x.d]||0;
-          if(!order.includes(c)) order.push(c);
+  const per=new Map(), stu=new Map(), missing=new Set(), dates=new Set();
+  const trend=items.map(it=>({date:it.date,d:it.d,hours:0,absent:0}));
+  items.forEach((it,ti)=>{
+    dates.add(it.date);
+    Object.entries(it.w.classes).forEach(([c,s])=>{
+      const lvl=levelOf(c,s.level);
+      if(!svPass(c,lvl)) return;
+      if(!order.includes(c)) order.push(c);
+      if(!per.has(c)) per.set(c,{cls:c,level:lvl,students:0,hours:0,absent:0});
+      const r=per.get(c), a=it.d*6, h=sumRange(s.cols,a,a+6);
+      r.students=s.students; r.level=lvl; r.hours+=h;
+      if(week) r.absent=s.weekStudents||0; else r.absent+=s.dayStudents[it.d]||0;
+      trend[ti].hours+=h; trend[ti].absent+=s.dayStudents[it.d]||0;
+      if(student){
+        if(!Array.isArray(s.abs)){ if((s.weekStudents||0)>0) missing.add(it.w.weekStart); return; }
+        s.abs.forEach(([name,bits])=>{
+          const hh=String(bits||'').slice(a,a+6).split('1').length-1;
+          if(!hh) return;
+          const k=c+'\u0001'+name;
+          if(!stu.has(k)) stu.set(k,{name,cls:c,level:lvl,hours:0,days:0});
+          const x=stu.get(k); x.hours+=hh; x.days++;
         });
-      });
-      monthDays=dates.size;
-      note='عدد الأيام المسجّلة في هذا الشهر: '+dates.size+'. «أيام الغياب» = مجموع عدد التلاميذ الغائبين في كل يوم (تلميذ·يوم).';
-    }
-  }
-  if(empty) return {empty};
-  const month=svPeriod==='month', nDays=monthDays;
-  let rows=order.filter(c=>per.has(c)).map(c=>per.get(c));
-  let groupRows;
-  if(svGroup==='level'){
-    const g=new Map();
-    rows.forEach(r=>{
-      if(!g.has(r.level)) g.set(r.level,{key:r.level,classes:0,students:0,hours:0,absent:0});
-      const x=g.get(r.level); x.classes++; x.students+=r.students; x.hours+=r.hours; x.absent+=r.absent;
+      }
     });
-    groupRows=[...g.values()];
-  }else{
-    groupRows=rows.map(r=>({key:r.cls,level:r.level,students:r.students,hours:r.hours,absent:r.absent}));
-  }
+  });
+  const nDays=dates.size;
   const pct=(a,s)=>s?((a/s*100).toFixed(1)+'%'):'—';
   const avg=(a)=>nDays?(a/nDays).toFixed(1):'—';
-  const head=(svGroup==='level'?['المستوى','عدد الأقسام']:['القسم','المستوى']).concat(['عدد التلاميذ','ساعات الغياب'],
-    month?['أيام الغياب (تلميذ·يوم)','متوسط الغائبين يوميا']:['التلاميذ الغائبون','نسبة الغائبين']);
-  const cells=r=>[r.key, svGroup==='level'?r.classes:r.level, r.students, r.hours,
-    r.absent, month?avg(r.absent):pct(r.absent,r.students)];
-  const tot=groupRows.reduce((a,r)=>({students:a.students+r.students,hours:a.hours+r.hours,absent:a.absent+r.absent,classes:a.classes+(r.classes||1)}),{students:0,hours:0,absent:0,classes:0});
-  const total=['المجموع', svGroup==='level'?tot.classes:'', tot.students, tot.hours, tot.absent, month?avg(tot.absent):pct(tot.absent,tot.students)];
-  return {title,sub,note,head,rows:groupRows.map(cells),total,hours:groupRows.map(r=>r.hours),maxHours:Math.max(1,...groupRows.map(r=>r.hours))};
+  let head, rows, total, hoursArr, labels, absArr, note='';
+  if(student){
+    const list=[...stu.values()].sort((x,y)=>y.hours-x.hours||y.days-x.days||x.name.localeCompare(y.name,'ar'));
+    if(!list.length) return {empty:missing.size?'لا تتوفر تفاصيل التلاميذ لهذه الفترة لأنها سُجّلت قبل إضافة هذه الميزة. ستتوفر لكل الأسابيع الجديدة.':'لا يوجد تلاميذ غائبون في هذه الفترة'+(svFilterLabel()?' ('+svFilterLabel()+')':'')+'.'};
+    head=['التلميذ','القسم','المستوى','ساعات الغياب','أيام الغياب'];
+    rows=list.map(x=>[x.name,x.cls,x.level,x.hours,x.days]);
+    total=['المجموع ('+list.length+' تلميذ)','','',list.reduce((a,x)=>a+x.hours,0),list.reduce((a,x)=>a+x.days,0)];
+    hoursArr=list.map(x=>x.hours); labels=list.map(x=>x.name); absArr=list.map(x=>x.days);
+    note='تُعرض في هذا الجدول فقط التلاميذ الذين غابوا خلال الفترة، مرتّبين من الأكثر غيابا. «أيام الغياب» = عدد الأيام التي غاب فيها التلميذ ولو لحصة واحدة.';
+    if(missing.size) note+=' تنبيه: لا تتوفر تفاصيل التلاميذ للأسابيع المسجّلة قبل هذا التحديث ('+[...missing].sort().join('، ')+').';
+  }else{
+    const rs=order.filter(c=>per.has(c)).map(c=>per.get(c));
+    if(!rs.length) return {empty:'لا توجد نتائج مطابقة للمرشّحات المختارة.'};
+    let g;
+    if(svGroup==='level'){
+      const m=new Map();
+      rs.forEach(r=>{
+        if(!m.has(r.level)) m.set(r.level,{key:r.level,classes:0,students:0,hours:0,absent:0});
+        const x=m.get(r.level); x.classes++; x.students+=r.students; x.hours+=r.hours; x.absent+=r.absent;
+      });
+      g=[...m.values()];
+    }else g=rs.map(r=>({key:r.cls,level:r.level,students:r.students,hours:r.hours,absent:r.absent}));
+    head=(svGroup==='level'?['المستوى','عدد الأقسام']:['القسم','المستوى']).concat(['عدد التلاميذ','ساعات الغياب'],
+      month?['أيام الغياب (تلميذ·يوم)','متوسط الغائبين يوميا']:['التلاميذ الغائبون','نسبة الغائبين']);
+    rows=g.map(r=>[r.key,svGroup==='level'?r.classes:r.level,r.students,r.hours,r.absent,month?avg(r.absent):pct(r.absent,r.students)]);
+    const tot=g.reduce((a,r)=>({students:a.students+r.students,hours:a.hours+r.hours,absent:a.absent+r.absent,classes:a.classes+(r.classes||1)}),{students:0,hours:0,absent:0,classes:0});
+    total=['المجموع',svGroup==='level'?tot.classes:'',tot.students,tot.hours,tot.absent,month?avg(tot.absent):pct(tot.absent,tot.students)];
+    hoursArr=g.map(r=>r.hours); labels=g.map(r=>r.key); absArr=g.map(r=>r.absent);
+    if(month) note='عدد الأيام المسجّلة في هذا الشهر: '+nDays+'. «أيام الغياب» = مجموع عدد التلاميذ الغائبين في كل يوم (تلميذ·يوم).';
+  }
+  // chart data (students: only the 20 most absent)
+  const vals=svMetric==='hours'?hoursArr:absArr;
+  let idx=labels.map((_,i)=>i);
+  let truncated=false;
+  if(student && idx.length>20){ idx=idx.sort((a,b)=>vals[b]-vals[a]||a-b).slice(0,20); truncated=true; }
+  const mlabel=svMetricLabel();
+  const chart={title:'المبيان: '+mlabel+' '+svGroupLabel().replace('حسب','حسب'),labels:idx.map(i=>labels[i]),values:idx.map(i=>vals[i]),unit:mlabel,truncated};
+  if(truncated) note+=(note?' ':'')+'يعرض المبيان 20 تلميذا الأكثر غيابا فقط، والجدول يضم الجميع.';
+  let tr=null;
+  if(trend.length>1){
+    const tv=svMetric==='hours'?trend.map(x=>x.hours):trend.map(x=>x.absent);
+    const tl=week?trend.map(x=>DAY_NAMES[x.d]):trend.map(x=>x.date.slice(8)+'/'+x.date.slice(5,7));
+    const tlab=svMetric==='hours'?'ساعات الغياب':'التلاميذ الغائبون';
+    tr={title:'التطور اليومي: '+tlab,labels:tl,values:tv,unit:tlab,dates:trend.map(x=>x.date),hours:trend.map(x=>x.hours),absent:trend.map(x=>x.absent)};
+  }
+  return {title,sub,note,head,rows,total,hours:hoursArr,maxHours:Math.max(1,...hoursArr),chart,trend:tr};
 }
+
+// ---- charts: plain SVG strings (same markup on screen, in the PNG and in the print) ----
+const SV_W=760, SV_FONT='Tahoma, Arial, sans-serif';
+function svCut(s,n){ s=String(s); return s.length>n?s.slice(0,n-1)+'…':s; }
+function svBars(ch,color){ // horizontal bars, labels on the right (RTL)
+  const n=ch.labels.length, rowH=26, top=46, longest=Math.max(1,...ch.labels.map(l=>Math.min(30,String(l).length))), labW=Math.max(80,Math.min(230,Math.round(longest*8+18))), x0=SV_W-12-labW, H=top+n*rowH+16;
+  const max=Math.max(1,...ch.values), maxW=x0-56;
+  let s=`<text x="${SV_W/2}" y="26" text-anchor="middle" font-size="16" font-weight="700" fill="#0F4C46">${svEsc(ch.title)}</text>`;
+  s+=`<line x1="${x0}" y1="${top-6}" x2="${x0}" y2="${H-10}" stroke="#999" stroke-width="1"/>`;
+  ch.labels.forEach((l,i)=>{
+    const y=top+i*rowH, bw=Math.round(ch.values[i]/max*maxW);
+    s+=`<text x="${SV_W-12}" y="${y+16}" direction="rtl" text-anchor="start" font-size="13" fill="#1E2A28">${svEsc(svCut(l,30))}</text>`;
+    if(bw>0) s+=`<rect x="${x0-bw}" y="${y+3}" width="${bw}" height="${rowH-8}" rx="3" fill="${color}"/>`;
+    s+=`<text x="${x0-bw-6}" y="${y+16}" direction="rtl" text-anchor="start" font-size="12.5" font-weight="700" fill="#1E2A28">${svEsc(ch.values[i])}</text>`;
+  });
+  return {h:H,inner:s};
+}
+function svCols(ch,color){ // vertical columns per day
+  const n=ch.labels.length, left=40, right=20, top=50, plotH=150, H=top+plotH+34;
+  const max=Math.max(1,...ch.values), slot=(SV_W-left-right)/n, bw=Math.min(46,slot*0.62);
+  let s=`<text x="${SV_W/2}" y="26" text-anchor="middle" font-size="16" font-weight="700" fill="#0F4C46">${svEsc(ch.title)}</text>`;
+  s+=`<line x1="${left}" y1="${top+plotH}" x2="${SV_W-right}" y2="${top+plotH}" stroke="#999" stroke-width="1"/>`;
+  ch.labels.forEach((l,i)=>{
+    const cx=SV_W-right-slot*(i+0.5), bh=Math.round(ch.values[i]/max*plotH);
+    if(bh>0) s+=`<rect x="${(cx-bw/2).toFixed(1)}" y="${top+plotH-bh}" width="${bw.toFixed(1)}" height="${bh}" rx="3" fill="${color}"/>`;
+    s+=`<text x="${cx.toFixed(1)}" y="${top+plotH-bh-5}" text-anchor="middle" font-size="12" font-weight="700" fill="#1E2A28">${svEsc(ch.values[i])}</text>`;
+    s+=`<text x="${cx.toFixed(1)}" y="${top+plotH+18}" text-anchor="middle" font-size="${n>12?10.5:12.5}" fill="#5B6664">${svEsc(l)}</text>`;
+  });
+  return {h:H,inner:s};
+}
+function svWrap(parts){ // one standalone <svg> holding the given chart parts stacked vertically
+  let y=0, body='';
+  parts.forEach(p=>{ body+=`<g transform="translate(0,${y})">${p.inner}</g>`; y+=p.h+10; });
+  const H=Math.max(1,y-10);
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SV_W} ${H}" width="${SV_W}" height="${H}" font-family="${SV_FONT}"><rect width="${SV_W}" height="${H}" fill="#ffffff"/>${body}</svg>`;
+}
+function svChartParts(m){ const a=[svBars(m.chart,'#0F4C46')]; if(m.trend) a.push(svCols(m.trend,'#B3402F')); return a; }
 
 function svTableHtml(m,forPrint){
   let h='<table class="sv"><thead><tr>'+m.head.map(x=>'<th>'+svEsc(x)+'</th>').join('')+'</tr></thead><tbody>';
@@ -1135,6 +1213,7 @@ function svSetSeg(id,val){ document.querySelectorAll('#'+id+' .tab').forEach(b=>
 function svRender(full){
   svDefaults();
   svSetSeg('svPeriod',svPeriod); svSetSeg('svGroup',svGroup);
+  svSyncFilters(full!==false);
   const pick=document.getElementById('svPicker');
   if(full!==false) svBuildPicker(pick);
   svRenderBody();
@@ -1153,19 +1232,37 @@ function svBuildPicker(pick){
     document.getElementById('svMonthIn').onchange=e=>{ svMonth=e.target.value; svRender(false); };
   }
 }
+function svSyncFilters(rebuild){
+  const cs=document.getElementById('svClsSel'), ls=document.getElementById('svLvlSel'), ms=document.getElementById('svMetricSel');
+  if(rebuild){
+    const cls=[...new Set((state.classNames||[]).concat(...svWeeks.map(w=>Object.keys(w.classes))))];
+    const lv=[...new Set(cls.map(c=>levelOf(c,(svWeeks.map(w=>w.classes[c]).find(Boolean)||{}).level)))];
+    cs.innerHTML='<option value="">كل الأقسام</option>'+cls.map(c=>'<option>'+svEsc(c)+'</option>').join('');
+    ls.innerHTML='<option value="">كل المستويات</option>'+lv.map(c=>'<option>'+svEsc(c)+'</option>').join('');
+    cs.onchange=()=>{ svClsF=cs.value; if(svClsF) svLvlF=''; svRender(false); };
+    ls.onchange=()=>{ svLvlF=ls.value; if(svLvlF && svClsF && levelOf(svClsF)!==svLvlF) svClsF=''; svRender(false); };
+    ms.onchange=()=>{ svMetric=ms.value; svRender(false); };
+  }
+  if(![...cs.options].some(o=>o.value===svClsF)) svClsF='';
+  if(![...ls.options].some(o=>o.value===svLvlF)) svLvlF='';
+  cs.value=svClsF; ls.value=svLvlF; ms.value=svMetric;
+  ms.options[0].textContent='ساعات الغياب';
+  ms.options[1].textContent=svGroup==='student'?'أيام الغياب':(svPeriod==='month'?'أيام الغياب (تلميذ·يوم)':'التلاميذ الغائبون');
+}
+function svSetBusy(off){ ['svPrintBtn','svPngBtn','svXlsBtn'].forEach(id=>{ const b=document.getElementById(id); if(b) b.disabled=off; }); }
 function svRenderBody(){
   const body=document.getElementById('svBody');
-  const printBtn=document.getElementById('svPrintBtn');
   if(!svWeeks.length){
     body.innerHTML='<div class="empty">لا توجد أسابيع مسجّلة بعد. يُسجَّل الأسبوع تلقائيا بمجرد تحديد تواريخه (من / إلى) في أعلى الصفحة وإدخال الغياب فيه، ثم استعملوا «أسبوع جديد» لبدء الأسبوع التالي.</div>';
-    printBtn.disabled=true; return;
+    svSetBusy(true); return;
   }
   const m=svBuild();
-  if(m.empty){ body.innerHTML='<div class="empty">'+svEsc(m.empty)+'</div>'; printBtn.disabled=true; }
+  if(m.empty){ body.innerHTML='<div class="empty">'+svEsc(m.empty)+'</div>'; svSetBusy(true); }
   else{
-    printBtn.disabled=false;
+    svSetBusy(false);
     body.innerHTML='<h3 style="margin:0 0 2px;font-size:15px;color:var(--teal)">'+svEsc(m.title)+' — '+svEsc(m.sub)+'</h3>'
-      +'<div class="sub" style="margin-bottom:10px">'+svEsc(svGroup==='level'?'حسب المستويات الدراسية':'حسب الأقسام')+'</div>'
+      +'<div class="sub" style="margin-bottom:10px">'+svEsc(svGroupLabel()+(svFilterLabel()?' — '+svFilterLabel():''))+'</div>'
+      +svChartParts(m).map(p=>'<div class="chartbox">'+svWrap([p])+'</div>').join('')
       +svTableHtml(m,false)+(m.note?'<div class="sub" style="margin-top:8px">'+svEsc(m.note)+'</div>':'');
   }
 }
@@ -1247,9 +1344,13 @@ th{background:#E4EFEC}
 td.svn{text-align:right;font-weight:700}
 tr.svtot td{background:#eef4f3;font-weight:700}
 .note{font-size:11px;color:#5B6664;margin-top:8px}
+.charts{margin:8px 0 14px;page-break-inside:avoid;border:1px solid #ccc;border-radius:6px}
+.charts svg{display:block;width:100%;height:auto}
+tr{page-break-inside:avoid}thead{display:table-header-group}
 </style></head>
 <body onload="window.print()">
-<div class="phead"><img src="${logoSrc}"><div><h1>${svEsc(m.title)} — ${svEsc(m.sub)}</h1><div class="psub">${svEsc(state.instName)} — ${svGroup==='level'?'حسب المستويات الدراسية':'حسب الأقسام'}</div></div></div>
+<div class="phead"><img src="${logoSrc}"><div><h1>${svEsc(m.title)} — ${svEsc(m.sub)}</h1><div class="psub">${svEsc(state.instName)} — ${svEsc(svGroupLabel()+(svFilterLabel()?' — '+svFilterLabel():''))}</div></div></div>
+<div class="charts">${svWrap(svChartParts(m))}</div>
 ${svTableHtml(m,true)}
 ${m.note?'<div class="note">'+svEsc(m.note)+'</div>':''}
 <div class="note">طُبع بتاريخ ${svEsc(todayIso())}</div>
@@ -1260,6 +1361,45 @@ ${m.note?'<div class="note">'+svEsc(m.note)+'</div>':''}
   a.href=url; a.target='_blank'; a.rel='noopener noreferrer';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
+// ---- exports: chart as PNG, data as Excel (CSV when the Excel library is unavailable) ----
+function svFileBase(){ return 'absence-stats-'+svPeriod+'-'+(svPeriod==='day'?svDay:(svPeriod==='week'?svWeek:svMonth))+'-'+svGroup; }
+function svDownload(blob,name){
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),30000);
+}
+function svExportPng(){
+  const m=svBuild(); if(m.empty) return;
+  const svg=svWrap(svChartParts(m));
+  const mm=svg.match(/viewBox="0 0 (\d+) (\d+)"/), w=+mm[1], h=+mm[2], k=2;
+  const img=new Image();
+  img.onload=()=>{
+    const cv=document.createElement('canvas'); cv.width=w*k; cv.height=h*k;
+    const cx=cv.getContext('2d'); cx.fillStyle='#fff'; cx.fillRect(0,0,cv.width,cv.height); cx.drawImage(img,0,0,cv.width,cv.height);
+    cv.toBlob(b=>{ if(b) svDownload(b,svFileBase()+'.png'); else showAlert('تعذر إنشاء الصورة.'); },'image/png');
+  };
+  img.onerror=()=>showAlert('تعذر إنشاء الصورة.');
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+}
+function svExportXls(){
+  const m=svBuild(); if(m.empty) return;
+  const info=[[state.instName||''],[m.title+' — '+m.sub],[svGroupLabel()+(svFilterLabel()?' — '+svFilterLabel():'')],[]];
+  const main=info.concat([m.head],m.rows,[m.total]);
+  const tr=m.trend?[['اليوم','التاريخ','ساعات الغياب','التلاميذ الغائبون']].concat(m.trend.labels.map((l,i)=>[l,m.trend.dates[i],m.trend.hours[i],m.trend.absent[i]])):null;
+  if(typeof XLSX!=='undefined'){
+    const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(main);
+    ws['!cols']=m.head.map((_,i)=>({wch:i===0?30:16}));
+    XLSX.utils.book_append_sheet(wb,ws,'الإحصائيات');
+    if(tr){ const w2=XLSX.utils.aoa_to_sheet(tr); w2['!cols']=[{wch:14},{wch:14},{wch:16},{wch:18}]; XLSX.utils.book_append_sheet(wb,w2,'التطور اليومي'); }
+    wb.Workbook={Views:[{RTL:true}]};
+    XLSX.writeFile(wb,svFileBase()+'.xlsx');
+  }else{
+    const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+    const csv=main.concat(tr?[[],...tr]:[]).map(r=>r.map(q).join(';')).join('\r\n');
+    svDownload(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),svFileBase()+'.csv');
+  }
 }
 
 // ---- save immediately (used before archiving a week) ---------------------

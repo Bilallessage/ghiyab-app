@@ -54,6 +54,7 @@ function summarizeState(state) {
     const cols = Array(COLS).fill(0);
     const dayStudents = Array(DAYS).fill(0);
     let weekStudents = 0;
+    const absList = []; // [name, "0101…" x30] for every student with at least one absence
     for (let si = 0; si < names.length; si++) {
       const row = Array.isArray(abs[si]) ? abs[si] : [];
       const dayHit = Array(DAYS).fill(false);
@@ -62,7 +63,12 @@ function summarizeState(state) {
         if (row[i]) { cols[i]++; dayHit[Math.floor(i / PER_DAY)] = true; any = true; }
       }
       for (let d = 0; d < DAYS; d++) if (dayHit[d]) dayStudents[d]++;
-      if (any) weekStudents++;
+      if (any) {
+        weekStudents++;
+        let bits = '';
+        for (let i = 0; i < COLS; i++) bits += row[i] ? '1' : '0';
+        absList.push([String(names[si] == null ? '' : names[si]).trim().slice(0, 80), bits]);
+      }
     }
     const custom = state.levels && typeof state.levels[c] === 'string' ? state.levels[c].trim() : '';
     classes[c] = {
@@ -71,6 +77,7 @@ function summarizeState(state) {
       cols,
       dayStudents,
       weekStudents,
+      abs: absList,
     };
   }
   return {
