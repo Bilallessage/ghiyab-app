@@ -204,6 +204,12 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
 </div>
 <div class="panel" id="tableHost"></div>
 
+<div class="panel" id="autoPanel">
+  <h3 style="margin:0 0 4px;font-size:14px;color:var(--teal)">⚡ إشعارات تلقائية لأولياء الأمور — شهر <span id="autoMonth"></span></h3>
+  <div class="muted" style="font-size:12px;margin-bottom:8px">ساعة غياب واحدة ← إشعار لولي الأمر، وثلاث ساعات ← استدعاء للحضور (المجموع تراكمي خلال الشهر). الرسالة جاهزة، ويكفي الضغط على «إرسال».</div>
+  <div id="autoHost"></div>
+</div>
+
 <div class="panel" id="notifyPanel">
   <h3 style="margin:0 0 10px;font-size:14px;color:var(--teal)">🔔 إشعار أولياء الأمور بالغياب عبر واتساب — قسم <span id="notifyClassName"></span></h3>
   <div id="notifyHost"></div>
@@ -561,7 +567,130 @@ function whatsappMessage(si){
   const period=(state.weekFrom&&state.weekTo)?` خلال الأسبوع من ${state.weekFrom} إلى ${state.weekTo}`:'';
   return `السلام عليكم، نحيطكم علما بتسجيل غياب ابنكم/ابنتكم "${name}" (القسم ${currentClass})${period} في الحصص التالية: ${sessions.join('، ')}.\nإدارة ${state.instName}`;
 }
+// ================= automatic parent notices =================
+// 1 hour of absence this month  -> notice to the parent
+// 3 hours of absence this month -> summons to come to the school
+// Hours are counted per student over the current calendar month: the weeks
+// already archived on the server (GET /api/history) plus the sheet on screen.
+// Which notice was already sent is stored in state.notices[month][class|name].
+const NT_NOTICE=1, NT_SUMMONS=3;
+function ntMonday(iso){
+  if(!isoOk(iso)) return null;
+  const dow=new Date(iso+'T00:00:00Z').getUTCDay();
+  if(dow===6) return addDaysIso(iso,2);
+  if(dow===0) return addDaysIso(iso,1);
+  return addDaysIso(iso,-(dow-1));
+}
+function ntHoursText(n){ return n===1?'ساعة واحدة':n===2?'ساعتان':n<=10?n+' ساعات':n+' ساعة'; }
+async function ntLoad(){
+  try{
+    const res=await fetch('/api/history',{headers:authHeaders()});
+    if(res.status===401){ onAuthRejected(); return; }
+    if(!res.ok) return;
+    svWeeks=(await res.json()).weeks||[];
+    ntRender();
+  }catch(e){ /* offline: the sheet on screen is still counted */ }
+}
+function ntCompute(){
+  const month=todayIso().slice(0,7), cur=ntMonday(state.weekFrom), out={};
+  const take=(c,name,flags,ws)=>{
+    const cls=state.data[c]; if(!cls) return;
+    const si=cls.names.indexOf(name); if(si<0) return;           // only students still on the list
+    const k=c+'|'+name;
+    const e=out[k]||(out[k]={key:k,cls:c,name,si,hours:0,last:null});
+    for(let i=0;i<flags.length;i++){
+      if(!flags[i]) continue;
+      const date=ws?addDaysIso(ws,Math.floor(i/6)):todayIso();
+      if(date.slice(0,7)!==month) continue;
+      e.hours++;
+      if(!e.last||date>e.last.date||(date===e.last.date&&i>e.last.i)) e.last={date,i};
+    }
+  };
+  state.classNames.forEach(c=>{ const cls=state.data[c]; if(!cls) return; cls.names.forEach((name,si)=>take(c,name,cls.absences[si]||[],cur)); });
+  svWeeks.forEach(w=>{
+    if(cur?w.weekStart===cur:w.current) return;                  // the current week comes from the sheet itself
+    Object.keys(w.classes||{}).forEach(c=>{
+      ((w.classes[c]||{}).abs||[]).forEach(([name,bits])=>take(c,name,String(bits).split('').map(x=>x==='1'),w.weekStart));
+    });
+  });
+  return {month,list:Object.values(out).filter(e=>e.hours>0)};
+}
+function ntPending(){
+  const {month,list}=ntCompute(), rec=(state.notices&&state.notices[month])||{}, out=[];
+  list.forEach(e=>{
+    const f=rec[e.key]||{};
+    if(e.hours>=NT_SUMMONS){ if(!f.s) out.push({...e,type:'summons'}); }
+    else if(e.hours>=NT_NOTICE){ if(!f.n) out.push({...e,type:'notice'}); }
+  });
+  out.sort((a,b)=>(a.type==='summons'?0:1)-(b.type==='summons'?0:1)||b.hours-a.hours);
+  return out;
+}
+function ntMessage(e,type){
+  const ml=monthLabel(todayIso().slice(0,7)), inst=state.instName||'';
+  if(type==='summons')
+    return `السلام عليكم، بلغ مجموع غياب ابنكم/ابنتكم "${e.name}" (القسم ${e.cls}) ${ntHoursText(e.hours)} خلال شهر ${ml}. نستدعيكم للحضور إلى إدارة المؤسسة في أقرب وقت ممكن لمعالجة وضعية غياب ابنكم/ابنتكم.\nإدارة ${inst}`;
+  const when=e.last?` بتاريخ ${e.last.date} (${colLabel(e.last.i)})`:'';
+  return `السلام عليكم، نحيطكم علما بتسجيل غياب ابنكم/ابنتكم "${e.name}" (القسم ${e.cls})${when}. مجموع غيابه خلال شهر ${ml}: ${ntHoursText(e.hours)}. نرجو إفادتنا بسبب الغياب.\nإدارة ${inst}`;
+}
+function ntLink(e,type){
+  const phone=normalizePhone((state.data[e.cls].phones||[])[e.si]);
+  return phone?`https://wa.me/${phone}?text=${encodeURIComponent(ntMessage(e,type))}`:'';
+}
+function ntMark(key,type){
+  if(!canWrite) return;
+  const month=todayIso().slice(0,7);
+  state.notices=state.notices||{};
+  Object.keys(state.notices).sort().slice(0,-3).forEach(m=>{ delete state.notices[m]; }); // keep the last few months only
+  const m=state.notices[month]=state.notices[month]||{}, f=m[key]=m[key]||{}, t=Date.now();
+  f.n=f.n||t; if(type==='summons') f.s=t;
+  save(); ntRender();
+}
+let ntCur=[];
+const ntAsked=new Set();
+function ntRender(){
+  const host=document.getElementById('autoHost');
+  if(!host) return;
+  document.getElementById('autoMonth').textContent=monthLabel(todayIso().slice(0,7));
+  ntCur=ntPending();
+  if(!ntCur.length){ host.innerHTML='<div class="empty">لا توجد إشعارات أو استدعاءات معلّقة</div>'; return; }
+  host.innerHTML=ntCur.map((e,i)=>{
+    const sm=e.type==='summons';
+    const tag=`<span style="display:inline-block;padding:1px 9px;border-radius:10px;font-size:12px;font-weight:700;margin-inline-start:6px;background:${sm?'#F6E3DE':'#F4EBD8'};color:${sm?'#B3402F':'#7A5A1E'}">${sm?'استدعاء للحضور':'إشعار بالغياب'}</span>`;
+    let act='';
+    if(canWrite){
+      const link=ntLink(e,e.type);
+      act=(link
+        ?`<a class="btn wa" href="${link}" target="_blank" rel="noopener noreferrer" onclick="setTimeout(()=>ntMark(ntCur[${i}].key,ntCur[${i}].type),400)">📲 إرسال</a>`
+        :`<button class="btn wa" style="opacity:.5" onclick="showAlert('أدخلوا أولا رقم هاتف ولي الأمر في جدول القسم ${e.cls} أمام اسم التلميذ(ة).')">📲 إرسال</button>`)
+        +` <button class="btn ghost" style="padding:5px 10px;font-size:12px" title="تعليمه كمعالَج دون إرسال" onclick="ntMark(ntCur[${i}].key,ntCur[${i}].type)">تم</button>`;
+    }
+    return `<div class="row"><span>${svEsc(e.name)} <span class="muted">${svEsc(e.cls)} — ${ntHoursText(e.hours)} غياب هذا الشهر</span>${tag}</span><span>${act}</span></div>`;
+  }).join('');
+}
+// right after an absence is recorded: offer to send the notice straight away
+function ntAfterRecord(c,name){
+  if(!canWrite||!state.data[c]) return;
+  const p=ntPending().find(x=>x.key===c+'|'+name);
+  if(!p) return;
+  const asked=p.key+'#'+p.type;                 // ask once per notice type and student, not after every cell
+  if(ntAsked.has(asked)) return;
+  ntAsked.add(asked);
+  const sm=p.type==='summons';
+  const msg=sm
+    ?`بلغ غياب التلميذ(ة) ${name} (القسم ${c}) ${ntHoursText(p.hours)} هذا الشهر: يلزم إرسال استدعاء لولي الأمر للحضور. هل ترسلونه الآن؟`
+    :`سُجّل غياب التلميذ(ة) ${name} (القسم ${c}). إشعار ولي الأمر جاهز، هل ترسلونه الآن؟`;
+  const link=ntLink(p,p.type);
+  showModal(msg,[
+    {label:link?(sm?'📲 إرسال الاستدعاء':'📲 إرسال الإشعار'):'أدخلوا رقم الهاتف أولا',className:link?'btn wa':'btn',onClick:()=>{
+      if(!link){ showAlert('أدخلوا رقم هاتف ولي الأمر في جدول القسم '+c+' أمام اسم التلميذ(ة)، ثم أرسلوا من لوحة «إشعارات تلقائية».'); return; }
+      window.open(link,'_blank','noopener'); ntMark(p.key,p.type);
+    }},
+    {label:'لاحقا',className:'btn ghost',onClick:null}
+  ]);
+}
+
 function renderNotify(){
+  ntRender();
   document.getElementById('notifyClassName').textContent=currentClass;
   const host=document.getElementById('notifyHost');
   const cls=state.data[currentClass];
@@ -960,6 +1089,7 @@ function toggleCell(si,ci){
       save();
       renderTable();
       renderStats();
+      if(make) setTimeout(()=>ntAfterRecord(cls0,name),80);
     }},
     {label:'إلغاء',className:'btn ghost',onClick:null}
   ]);
@@ -1475,6 +1605,8 @@ async function startApp(){
   await initSync();         // read the shared sheet first...
   await branding;
   showApp();                // ...then reveal the page, so nobody sees placeholder data
+  ntLoad();                 // earlier weeks of the month, for the automatic parent notices
+  setInterval(ntLoad,10*60*1000);
 }
 
 (async function boot(){
