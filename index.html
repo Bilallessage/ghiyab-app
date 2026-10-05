@@ -67,6 +67,14 @@ td.num{color:var(--ink-soft);width:26px}
 .cell.absent{background:var(--absent-soft);color:var(--absent);font-weight:900}
 .cell.future{background:repeating-linear-gradient(45deg,#f3f1ea,#f3f1ea 4px,#e9e6dc 4px,#e9e6dc 8px);cursor:not-allowed}
 .foot td{background:var(--teal-soft);font-weight:700;color:var(--teal)}
+/* the sheet scrolls inside its own box so the days / periods rows stay visible while going down the list */
+#tableHost{max-height:82vh;overflow:auto;padding-top:0}
+#tableHost thead tr:nth-child(1) th{position:sticky;top:0;z-index:5;box-shadow:inset 0 -1px 0 var(--line)}
+#tableHost thead tr:nth-child(2) th{position:sticky;top:var(--hr1,30px);z-index:5;box-shadow:inset 0 -1px 0 var(--line)}
+#tableHost thead th.hl{background:var(--panel)}
+#tableHost tfoot th{background:var(--teal-soft);color:var(--teal);font-weight:700;font-size:12px}
+#tableHost tfoot th.per{background:var(--panel);color:var(--ink-soft);font-weight:500}
+@media print{#tableHost{max-height:none;overflow:visible}}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
 .card h3{margin:0 0 10px;font-size:14px;color:var(--teal)}
 .big{font-size:30px;font-weight:900}
@@ -428,6 +436,7 @@ function showApp(){
   document.getElementById('loadingBox').style.display='none';
   document.getElementById('authGate').style.display='none';
   document.getElementById('appWrap').style.display='block';
+  syncHeaderOffset();
 }
 async function submitAuth(ev){
   ev.preventDefault();
@@ -819,11 +828,11 @@ function renderTable(){
   const cls=state.data[currentClass];
   const names=cls.names;
   const selAllCell=canWrite?'<input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)">':'';
-  let html=`<table><thead><tr><th rowspan="3">${selAllCell}</th><th rowspan="3"></th><th rowspan="3">م</th><th rowspan="3">الاسم الكامل</th><th rowspan="3">هاتف ولي الأمر</th>`;
+  let html=`<table><thead><tr><th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th><th class="hl" rowspan="2">م</th><th class="hl" rowspan="2">الاسم الكامل</th><th class="hl" rowspan="2">هاتف ولي الأمر</th>`;
   DAYS.forEach(d=>html+=`<th class="day" colspan="3">${d}</th>`);
   html+='</tr><tr>';
   DAYS.forEach(()=>PERIODS.forEach(p=>html+=`<th class="per">${p}</th>`));
-  html+='</tr><tr>';
+  html+='</tr><tr><th class="hl" colspan="5"></th>';
   const dis=canWrite?'':'disabled';
   for(let i=0;i<TOTAL_COLS;i++){
     html+=`<th class="meta"><input ${dis} placeholder="المادة" value="${cls.columns[i].subject}" oninput="setMeta(${i},'subject',this.value)">
@@ -846,7 +855,13 @@ function renderTable(){
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
     html+=`<td>${sum}</td>`;
   }
-  html+='</tr></tbody></table>';
+  html+='</tr></tbody>';
+  // the days / periods rows again at the bottom of the list
+  html+='<tfoot><tr><th colspan="5" rowspan="2">أيام الأسبوع والحصص</th>';
+  DAYS.forEach(d=>html+=`<th class="day" colspan="3">${d}</th>`);
+  html+='</tr><tr>';
+  DAYS.forEach(()=>PERIODS.forEach(p=>html+=`<th class="per">${p}</th>`));
+  html+='</tr></tfoot></table>';
   if(canWrite){
     html+=`<div class="addbar">
       <input id="newName" placeholder="اسم التلميذ الجديد" onkeydown="if(event.key==='Enter')addStudent()">
@@ -854,7 +869,17 @@ function renderTable(){
     </div>`;
   }
   host.innerHTML=html;
+  syncHeaderOffset();
 }
+// the second sticky header row sits right under the first one
+function syncHeaderOffset(){
+  const host=document.getElementById('tableHost'), r1=host&&host.querySelector('thead tr');
+  if(!r1) return;
+  const h=r1.getBoundingClientRect().height;
+  if(h>0) host.style.setProperty('--hr1',h+'px');
+  else requestAnimationFrame(()=>{ const h2=r1.getBoundingClientRect().height; if(h2>0) host.style.setProperty('--hr1',h2+'px'); });
+}
+window.addEventListener('resize',syncHeaderOffset);
 
 function triggerPrint(){
   const cls=state.data[currentClass];
