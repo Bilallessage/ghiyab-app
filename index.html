@@ -65,6 +65,7 @@ td.num{color:var(--ink-soft);width:26px}
 .meta input:first-child{margin-bottom:2px}
 .cell{cursor:pointer;width:30px;height:26px;user-select:none}
 .cell.absent{background:var(--absent-soft);color:var(--absent);font-weight:900}
+.cell.future{background:repeating-linear-gradient(45deg,#f3f1ea,#f3f1ea 4px,#e9e6dc 4px,#e9e6dc 8px);cursor:not-allowed}
 .foot td{background:var(--teal-soft);font-weight:700;color:var(--teal)}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
 .card h3{margin:0 0 10px;font-size:14px;color:var(--teal)}
@@ -199,6 +200,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
 <div class="toolbar">
   <button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
   <input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this.files[0])">
+  <button class="btn ghost" id="timesBtn" style="display:none" onclick="editPeriodTimes()" title="بداية كل حصة، لمنع تسجيل غياب حصة لم يحن وقتها">⏰ توقيت الحصص</button>
   <button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()">🗓️ أسبوع جديد</button>
   <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
 </div>
@@ -357,6 +359,8 @@ function applyPermissionUI(){
   const ro=!canWrite;
   const banner=document.getElementById('viewBanner');
   if(banner) banner.style.display=ro?'block':'none';
+  const tmBtn=document.getElementById('timesBtn');
+  if(tmBtn) tmBtn.style.display=canWrite?'inline-block':'none';
   const nwBtn=document.getElementById('newWeekBtn');
   if(nwBtn) nwBtn.style.display=canWrite?'inline-block':'none';
   const importBtn=document.getElementById('importBtn');
@@ -831,7 +835,7 @@ function renderTable(){
     for(let i=0;i<TOTAL_COLS;i++){
       const ab=cls.absences[si][i];
       const click=canWrite?` onclick="toggleCell(${si},${i})"`:'';
-      html+=`<td class="cell${ab?' absent':''}${canWrite?'':' readonly'}"${click}>${ab?'غ':''}</td>`;
+      html+=`<td class="cell${ab?' absent':''}${canWrite?'':' readonly'}${colIsFuture(i)?' future':''}" data-ci="${i}"${click}>${ab?'غ':''}</td>`;
     }
     html+='</tr>';
   });
@@ -1073,11 +1077,48 @@ function confirmImport(mode){
   document.getElementById('importOverlay').style.display='none';
 }
 
+// ---- a period that has not started yet cannot be marked absent ----
+// Start time of each period: [morning[3], afternoon[3]], editable with "توقيت الحصص".
+const DEFAULT_PERIOD_TIMES=[["08:00","09:00","10:00"],["14:00","15:00","16:00"]];
+function periodTimes(){
+  const t=state.periodTimes;
+  const ok=Array.isArray(t)&&t.length===2&&t.every(r=>Array.isArray(r)&&r.length===3&&r.every(x=>/^\d{1,2}:\d{2}$/.test(x)));
+  return ok?t:DEFAULT_PERIOD_TIMES;
+}
+// column ci -> when that period starts (null when the week's date is unknown)
+function colStart(ci){
+  const wf=ntMonday(state.weekFrom);
+  if(!wf) return null;
+  const date=addDaysIso(wf,Math.floor(ci/6)), shift=Math.floor(ci/3)%2;
+  const [hh,mm]=periodTimes()[shift][ci%3].split(':').map(Number);
+  return new Date(+date.slice(0,4),+date.slice(5,7)-1,+date.slice(8,10),hh,mm);
+}
+function colIsFuture(ci){ const d=colStart(ci); return !!d&&d.getTime()>Date.now(); }
+function refreshFutureCells(){
+  document.querySelectorAll('td.cell[data-ci]').forEach(td=>td.classList.toggle('future',colIsFuture(+td.dataset.ci)));
+}
+setInterval(refreshFutureCells,60*1000);
+function editPeriodTimes(){
+  if(!canWrite) return;
+  const cur=periodTimes().map(r=>r.join(',')).join(' | ');
+  showPrompt('بداية الحصص الثلاث صباحا ثم مساء (الساعة:الدقيقة)، مثال: 08:00,09:00,10:00 | 14:00,15:00,16:00',cur,val=>{
+    const parts=String(val||'').split('|').map(p=>p.split(',').map(x=>x.trim()));
+    if(parts.length!==2||!parts.every(r=>r.length===3&&r.every(x=>/^\d{1,2}:\d{2}$/.test(x)))){ showAlert('الصيغة غير صحيحة. اكتبوا ست ساعات هكذا: 08:00,09:00,10:00 | 14:00,15:00,16:00'); return; }
+    state.periodTimes=parts.map(r=>r.map(x=>x.padStart(5,'0')));
+    save(); refreshFutureCells();
+  });
+}
+
 // Recording or removing an absence always asks for confirmation first, so a stray click can't change the sheet.
 function toggleCell(si,ci){
   if(!canWrite) return;
   const cls=state.data[currentClass];
   const cls0=currentClass, name=cls.names[si], make=!cls.absences[si][ci];
+  if(make&&colIsFuture(ci)){
+    const st=colStart(ci);
+    showAlert('لا يمكن تسجيل غياب في حصة لم يحن وقتها بعد: '+colLabel(ci)+' — '+st.toLocaleDateString('en-GB')+' على الساعة '+String(st.getHours()).padStart(2,'0')+':'+String(st.getMinutes()).padStart(2,'0')+'.');
+    return;
+  }
   const subj=(cls.columns[ci]&&cls.columns[ci].subject||'').trim();
   const where=DAYS[Math.floor(ci/PERIODS.length)]+' — '+PERIODS[ci%PERIODS.length]+(subj?' ('+subj+')':'');
   const msg=(make?'تسجيل غياب التلميذ(ة) ':'حذف غياب التلميذ(ة) ')+name+' — القسم '+cls0+' — '+where+'؟';
@@ -1152,7 +1193,7 @@ function renderAll(){ renderTabs(); renderTable(); renderStats(); updateSelUI();
 
 document.getElementById('wFrom').value=state.weekFrom;
 document.getElementById('wTo').value=state.weekTo;
-document.getElementById('wFrom').onchange=e=>{ if(!canWrite) return; state.weekFrom=e.target.value; save(); };
+document.getElementById('wFrom').onchange=e=>{ if(!canWrite) return; state.weekFrom=e.target.value; save(); refreshFutureCells(); };
 document.getElementById('wTo').onchange=e=>{ if(!canWrite) return; state.weekTo=e.target.value; save(); };
 
 document.getElementById('tableHost').addEventListener('focusin', ()=>{ tableFocused=true; });
