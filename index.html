@@ -164,6 +164,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
   </div>
 </header>
 
+<div id="weekBanner" style="display:none;background:#F4EBD8;border:1px solid #D7B37A;color:#5A4210;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13.5px"></div>
 <div id="viewBanner" style="display:none">👁️ وضع الاطلاع فقط — حسابكم لا يملك صلاحية التعديل. يمكنكم تصفّح الجدول والإحصائيات وطباعتها.</div>
 
 <div id="statsView" style="display:none">
@@ -201,6 +202,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
   <button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
   <input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this.files[0])">
   <button class="btn ghost" id="timesBtn" style="display:none" onclick="editPeriodTimes()" title="بداية كل حصة، لمنع تسجيل غياب حصة لم يحن وقتها">⏰ توقيت الحصص</button>
+  <button class="btn ghost" id="prevWeekBtn" style="display:none" onclick="toggleOtherWeek()" title="عرض الأسبوع الماضي لتصحيح غياب سُجّل بالخطأ">⏪ الأسبوع الماضي</button>
   <button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()">🗓️ أسبوع جديد</button>
   <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
 </div>
@@ -1189,7 +1191,7 @@ function renderStats(){
   renderNotify();
 }
 
-function renderAll(){ renderTabs(); renderTable(); renderStats(); updateSelUI(); }
+function renderAll(){ renderTabs(); renderTable(); renderStats(); updateSelUI(); renderWeekNav(); }
 
 document.getElementById('wFrom').value=state.weekFrom;
 document.getElementById('wTo').value=state.weekTo;
@@ -1603,6 +1605,7 @@ async function saveNow(){
 // ---- start a new week: the finished week stays in the statistics ----------
 function startNewWeek(){
   if(!canWrite) return;
+  if(weekNavInfo().kind==='cur'){ showAlert('أنتم تعرضون الأسبوع الماضي. عودوا أولا إلى الأسبوع الحالي قبل بدء أسبوع جديد.'); return; }
   if(!isoOk(state.weekFrom)){
     showAlert('حدّدوا أولا تواريخ الأسبوع الحالي (من / إلى) في أعلى الصفحة، حتى يُحفظ غيابه في سجل الإحصائيات.');
     return;
@@ -1610,6 +1613,7 @@ function startNewWeek(){
   showModal('سيُحفظ غياب الأسبوع الحالي ('+state.weekFrom+') في سجل الإحصائيات، ثم يُمسح الغياب من الجدول وتُقدَّم التواريخ 7 أيام. أسماء التلاميذ والمواد والأساتذة تبقى كما هي.\n\nالمتابعة؟',[{label:'نعم، ابدأ أسبوعا جديدا',className:'btn',onClick:async()=>{
     const ok=await saveNow();
     if(!ok){ showAlert('تعذر حفظ الأسبوع الحالي في السجل، تحقّقوا من الاتصال وأعيدوا المحاولة. لم يتغيّر شيء.'); return; }
+    state.other=snapshotWeek();   // the finished week stays available through «الأسبوع الماضي»
     state.classNames.forEach(c=>{ const cls=state.data[c]; cls.absences=cls.names.map(()=>blankRow()); });
     state.weekFrom=addDaysIso(state.weekFrom,7);
     if(isoOk(state.weekTo)) state.weekTo=addDaysIso(state.weekTo,7);
@@ -1617,6 +1621,77 @@ function startNewWeek(){
     document.getElementById('wTo').value=state.weekTo;
     save(); renderAll();
   }},{label:'إلغاء',className:'btn ghost',onClick:null}]);
+}
+
+
+// ================= back to the previous week (fix an absence recorded by mistake) =================
+// The sheet holds one week. «الأسبوع الماضي» swaps it with the other week kept in
+// state.other (filled when a new week starts), or rebuilds the previous week from
+// the statistics archive. Saving then corrects that week's archived summary too.
+function snapshotWeek(){
+  const o={weekFrom:state.weekFrom,weekTo:state.weekTo,classes:{}};
+  state.classNames.forEach(c=>{ const k=state.data[c];
+    o.classes[c]={names:k.names.slice(),columns:JSON.parse(JSON.stringify(k.columns)),absences:k.absences.map(r=>r.slice())}; });
+  return o;
+}
+function applyWeek(w){
+  state.weekFrom=w.weekFrom||''; state.weekTo=w.weekTo||'';
+  state.classNames.forEach(c=>{
+    const k=state.data[c], src=(w.classes||{})[c];
+    if(!src){ k.absences=k.names.map(()=>blankRow()); return; }
+    k.absences=k.names.map(n=>{ const i=src.names.indexOf(n); return i>=0?fitLen((src.absences[i]||[]).map(Boolean),TOTAL_COLS,()=>false):blankRow(); });
+    if(src.columns) k.columns=fitLen(JSON.parse(JSON.stringify(src.columns)),TOTAL_COLS,()=>({subject:'',teacher:''}));
+  });
+  document.getElementById('wFrom').value=state.weekFrom;
+  document.getElementById('wTo').value=state.weekTo;
+}
+function weekNavInfo(){
+  const o=state.other;
+  if(o&&isoOk(o.weekFrom)&&isoOk(state.weekFrom)) return {kind:o.weekFrom<state.weekFrom?'prev':'cur',o};
+  return {kind:'none'};
+}
+function renderWeekNav(){
+  const btn=document.getElementById('prevWeekBtn'), bar=document.getElementById('weekBanner');
+  if(!btn||!bar) return;
+  const info=weekNavInfo();
+  btn.style.display=canWrite?'inline-block':'none';
+  btn.textContent=info.kind==='cur'?'⏩ العودة إلى الأسبوع الحالي':'⏪ الأسبوع الماضي';
+  if(info.kind==='cur'){
+    bar.style.display='block';
+    bar.textContent='⏪ تعرضون الآن الأسبوع الماضي (من '+state.weekFrom+(state.weekTo?' إلى '+state.weekTo:'')+'). أي تصحيح هنا يُحدِّث سجل الإحصائيات؛ ثم اضغطوا «العودة إلى الأسبوع الحالي».';
+  }else bar.style.display='none';
+}
+// the previous week rebuilt from the statistics archive (absent students only)
+function archivedPreviousWeek(){
+  const cur=ntMonday(state.weekFrom);
+  if(!cur) return null;
+  const w=svWeeks.filter(x=>x.weekStart<cur).sort((a,b)=>a.weekStart<b.weekStart?1:-1)[0];
+  if(!w) return null;
+  const classes={}; let detailed=false;
+  Object.keys(w.classes||{}).forEach(c=>{
+    const abs=(w.classes[c]||{}).abs;
+    if(Array.isArray(abs)){ detailed=true; classes[c]={names:abs.map(a=>a[0]),absences:abs.map(a=>String(a[1]).split('').map(x=>x==='1')),columns:null}; }
+  });
+  return detailed?{weekFrom:w.weekStart,weekTo:addDaysIso(w.weekStart,4),classes}:{old:true};
+}
+async function toggleOtherWeek(){
+  if(!canWrite) return;
+  const info=weekNavInfo();
+  const swap=(target,msg)=>showModal(msg,[{label:'نعم، تابعوا',className:'btn',onClick:async()=>{
+    const ok=await saveNow();
+    if(!ok){ showAlert('تعذر حفظ الأسبوع المعروض قبل التبديل، تحقّقوا من الاتصال وأعيدوا المحاولة. لم يتغيّر شيء.'); return; }
+    const here=snapshotWeek();
+    applyWeek(target); state.other=here; selected.clear();
+    save(); renderAll();
+  }},{label:'إلغاء',className:'btn ghost',onClick:null}]);
+  if(info.kind==='cur') return swap(info.o,'سيُحفظ ما عدّلتموه في الأسبوع الماضي، ثم يُعرض الأسبوع الحالي ('+info.o.weekFrom+') كما تركتموه.\n\nالمتابعة؟');
+  if(info.kind==='prev') return swap(info.o,'سيُعرض الأسبوع الماضي ('+info.o.weekFrom+') لتصحيح أي ساعة غياب سُجّلت بالخطأ. الأسبوع الحالي يُحفظ كما هو ويمكنكم الرجوع إليه بنقرة.\n\nالمتابعة؟');
+  if(!isoOk(state.weekFrom)){ showAlert('حدّدوا أولا تواريخ الأسبوع الحالي (من / إلى).'); return; }
+  await ntLoad();
+  const a=archivedPreviousWeek();
+  if(!a) return showAlert('لا يوجد أسبوع سابق في سجل الإحصائيات.');
+  if(a.old) return showAlert('الأسبوع السابق مؤرشف قبل إضافة التفاصيل، فلا يمكن إعادة عرضه للتعديل. ابتداءً من الأسبوع القادم سيتوفر الرجوع كاملا.');
+  swap(a,'سيُعرض الأسبوع الماضي ('+a.weekFrom+') من سجل الإحصائيات: يظهر فيه التلاميذ الذين سُجّل غيابهم (أسماء المواد والأساتذة تبقى كما هي في الجدول). صحّحوا ما يلزم ثم عودوا إلى الأسبوع الحالي.\n\nالمتابعة؟');
 }
 
 // Optional per-deployment logo (LOGO_FILE env var, served from /logos)
