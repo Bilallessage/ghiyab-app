@@ -5,12 +5,21 @@
 // by the Monday of the week), so past weeks stay available for statistics
 // without making the polled sheet any bigger.
 //
-// Column layout of the sheet: 5 days x 2 shifts x 3 periods = 30 columns, so
-// day d (0 = Monday) owns columns 6d .. 6d+5.
+// Column layout of the sheet: 5 days x (morning periods + evening periods).
+// state.pc = [morning, evening] (default [3,3] = 30 columns), so day d
+// (0 = Monday) owns columns d*W .. d*W+W-1 with W = morning + evening.
+// The layout used is stored in every class summary (`pc`) so older weeks
+// saved with another number of periods are still read correctly.
 
-const COLS = 30;
-const PER_DAY = 6;
 const DAYS = 5;
+const DEFAULT_PC = [3, 3];
+const MAX_PC = 8;
+
+function periodCounts(state) {
+  const p = state && state.pc;
+  const ok = Array.isArray(p) && p.length === 2 && p.every((n) => Number.isInteger(n) && n >= 0 && n <= MAX_PC) && p[0] + p[1] >= 1;
+  return ok ? [p[0], p[1]] : DEFAULT_PC.slice();
+}
 
 function validIso(s) {
   if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
@@ -51,10 +60,13 @@ function summarizeState(state) {
     if (!cls) continue;
     const names = Array.isArray(cls.names) ? cls.names : [];
     const abs = Array.isArray(cls.absences) ? cls.absences : [];
+    const pc = periodCounts(state);
+    const PER_DAY = pc[0] + pc[1];
+    const COLS = DAYS * PER_DAY;
     const cols = Array(COLS).fill(0);
     const dayStudents = Array(DAYS).fill(0);
     let weekStudents = 0;
-    const absList = []; // [name, "0101…" x30] for every student with at least one absence
+    const absList = []; // [name, "0101…" one bit per column] for every student with at least one absence
     for (let si = 0; si < names.length; si++) {
       const row = Array.isArray(abs[si]) ? abs[si] : [];
       const dayHit = Array(DAYS).fill(false);
@@ -72,6 +84,7 @@ function summarizeState(state) {
     }
     const custom = state.levels && typeof state.levels[c] === 'string' ? state.levels[c].trim() : '';
     classes[c] = {
+      pc,
       level: custom || deriveLevel(c),
       students: names.length,
       cols,

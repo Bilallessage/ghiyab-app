@@ -210,6 +210,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
   <button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
   <input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this.files[0])">
   <button class="btn ghost" id="timesBtn" style="display:none" onclick="editPeriodTimes()" title="بداية كل حصة، لمنع تسجيل غياب حصة لم يحن وقتها">⏰ توقيت الحصص</button>
+  <button class="btn ghost" id="periodsBtn" style="display:none" onclick="periodsDialog()" title="إضافة حصة أو حذفها صباحا أو مساء لتلائم النظام الدراسي للمؤسسة">🧮 عدد الحصص</button>
   <button class="btn ghost" id="prevWeekBtn" style="display:none" onclick="toggleOtherWeek()" title="عرض الأسبوع الماضي لتصحيح غياب سُجّل بالخطأ">⏪ الأسبوع الماضي</button>
   <button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()">🗓️ أسبوع جديد</button>
   <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
@@ -276,8 +277,28 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
 const DAY_NAMES=["الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
 const SHIFTS=["صباحا","مساء"];
 const DAYS=DAY_NAMES.flatMap(d=>SHIFTS.map(s=>d+" "+s));
-const PERIODS=["ح1","ح2","ح3"];
-const TOTAL_COLS=DAYS.length*PERIODS.length;
+// ---- number of periods per half-day (editable with «عدد الحصص») ----
+// state.pc = [morning, evening]; each day owns morning periods then evening periods:
+// column i -> day = floor(i/W), W = morning+evening.  Default [3,3] = 30 columns.
+const DEF_PC=[3,3], MAX_PC=8;
+function validPc(p){ return (Array.isArray(p)&&p.length===2&&p.every(n=>Number.isInteger(n)&&n>=0&&n<=MAX_PC)&&p[0]+p[1]>=1)?p:DEF_PC; }
+function pcount(){ return validPc(state&&state.pc); }
+function totalCols(pc){ pc=pc||pcount(); return 5*(pc[0]+pc[1]); }
+function colInfo(i,pc){ pc=pc||pcount(); const W=pc[0]+pc[1], d=Math.floor(i/W), r=i%W; return r<pc[0]?{d,s:0,p:r}:{d,s:1,p:r-pc[0]}; }
+function colIndex(d,s,p,pc){ pc=pc||pcount(); return d*(pc[0]+pc[1])+(s?pc[0]:0)+p; }
+function colLabelPc(i,pc){ const o=colInfo(i,pc); return DAYS[o.d*2+o.s]+" ح"+(o.p+1); }
+// DAYS[j] (day + shift) -> {start, n} columns of that half-day
+function shiftSpan(j,pc){ pc=pc||pcount(); return {start:colIndex(j>>1,j&1,0,pc),n:pc[j&1]}; }
+// re-map one row of a sheet from one layout to another (same day/shift/period stays in place)
+function convertArr(arr,from,to,fill){
+  const out=[]; for(let i=0;i<totalCols(to);i++){
+    const o=colInfo(i,to);
+    if(o.p>=from[o.s]){ out.push(fill()); continue; }
+    const k=colIndex(o.d,o.s,o.p,from);
+    out.push(k<arr.length&&arr[k]!=null?arr[k]:fill());
+  }
+  return out;
+}
 const KEY="ghiyab_v2";
 
 function showModal(msg,buttons){
@@ -324,8 +345,8 @@ function showPrompt(msg,defVal,onSave){
   inp.onkeydown=(e)=>{ if(e.key==='Enter') save.click(); };
 }
 
-function blankCols(){ return Array.from({length:TOTAL_COLS},()=>({subject:"",teacher:""})); }
-function blankRow(){ return Array(TOTAL_COLS).fill(false); }
+function blankCols(n){ return Array.from({length:n==null?totalCols():n},()=>({subject:"",teacher:""})); }
+function blankRow(n){ return Array(n==null?totalCols():n).fill(false); }
 function fitLen(arr,len,fill){ const a=arr.slice(0,len); while(a.length<len) a.push(fill()); return a; }
 
 function loadState(){
@@ -341,12 +362,13 @@ function loadState(){
   // The real class lists come from the server after login (they are no longer
   // embedded in this public page); until then show one empty placeholder class.
   if(!s.classNames || !s.classNames.length) s.classNames=["القسم 1"];
+  const nCols=totalCols(validPc(s.pc));
   s.classNames.forEach(c=>{
-    if(!s.data[c]) s.data[c]={names:[], columns:blankCols(), absences:[]};
+    if(!s.data[c]) s.data[c]={names:[], columns:blankCols(nCols), absences:[]};
     const cls=s.data[c];
     if(!cls.names) cls.names=[];
-    cls.columns=fitLen(cls.columns||[],TOTAL_COLS,()=>({subject:"",teacher:""}));
-    cls.absences=cls.names.map((_,i)=>fitLen((cls.absences||[])[i]||[],TOTAL_COLS,()=>false));
+    cls.columns=fitLen(cls.columns||[],nCols,()=>({subject:"",teacher:""}));
+    cls.absences=cls.names.map((_,i)=>fitLen((cls.absences||[])[i]||[],nCols,()=>false));
     cls.phones=fitLen(cls.phones||[],cls.names.length,()=>"");
   });
   return s;
@@ -371,6 +393,8 @@ function applyPermissionUI(){
   if(banner) banner.style.display=ro?'block':'none';
   const tmBtn=document.getElementById('timesBtn');
   if(tmBtn) tmBtn.style.display=canWrite?'inline-block':'none';
+  const pdBtn=document.getElementById('periodsBtn');
+  if(pdBtn) pdBtn.style.display=canWrite?'inline-block':'none';
   const nwBtn=document.getElementById('newWeekBtn');
   if(nwBtn) nwBtn.style.display=canWrite?'inline-block':'none';
   const importBtn=document.getElementById('importBtn');
@@ -608,24 +632,25 @@ async function ntLoad(){
 }
 function ntCompute(){
   const month=todayIso().slice(0,7), cur=ntMonday(state.weekFrom), out={};
-  const take=(c,name,flags,ws)=>{
+  const take=(c,name,flags,ws,pc)=>{
     const cls=state.data[c]; if(!cls) return;
     const si=cls.names.indexOf(name); if(si<0) return;           // only students still on the list
     const k=c+'|'+name;
     const e=out[k]||(out[k]={key:k,cls:c,name,si,hours:0,last:null});
     for(let i=0;i<flags.length;i++){
       if(!flags[i]) continue;
-      const date=ws?addDaysIso(ws,Math.floor(i/6)):todayIso();
+      const date=ws?addDaysIso(ws,colInfo(i,pc).d):todayIso();
       if(date.slice(0,7)!==month) continue;
       e.hours++;
-      if(!e.last||date>e.last.date||(date===e.last.date&&i>e.last.i)) e.last={date,i};
+      if(!e.last||date>e.last.date||(date===e.last.date&&i>e.last.i)) e.last={date,i,label:colLabelPc(i,pc)};
     }
   };
-  state.classNames.forEach(c=>{ const cls=state.data[c]; if(!cls) return; cls.names.forEach((name,si)=>take(c,name,cls.absences[si]||[],cur)); });
+  state.classNames.forEach(c=>{ const cls=state.data[c]; if(!cls) return; cls.names.forEach((name,si)=>take(c,name,cls.absences[si]||[],cur,pcount())); });
   svWeeks.forEach(w=>{
     if(cur?w.weekStart===cur:w.current) return;                  // the current week comes from the sheet itself
     Object.keys(w.classes||{}).forEach(c=>{
-      ((w.classes[c]||{}).abs||[]).forEach(([name,bits])=>take(c,name,String(bits).split('').map(x=>x==='1'),w.weekStart));
+      const cs=w.classes[c]||{}, pc=validPc(cs.pc);
+      (cs.abs||[]).forEach(([name,bits])=>take(c,name,String(bits).split('').map(x=>x==='1'),w.weekStart,pc));
     });
   });
   return {month,list:Object.values(out).filter(e=>e.hours>0)};
@@ -644,7 +669,7 @@ function ntMessage(e,type){
   const ml=monthLabel(todayIso().slice(0,7)), inst=state.instName||'';
   if(type==='summons')
     return `السلام عليكم، بلغ مجموع غياب ابنكم/ابنتكم "${e.name}" (القسم ${e.cls}) ${ntHoursText(e.hours)} خلال شهر ${ml}. نستدعيكم للحضور إلى إدارة المؤسسة في أقرب وقت ممكن لمعالجة وضعية غياب ابنكم/ابنتكم.\nإدارة ${inst}`;
-  const when=e.last?` بتاريخ ${e.last.date} (${colLabel(e.last.i)})`:'';
+  const when=e.last?` بتاريخ ${e.last.date} (${e.last.label})`:'';
   return `السلام عليكم، نحيطكم علما بتسجيل غياب ابنكم/ابنتكم "${e.name}" (القسم ${e.cls})${when}. مجموع غيابه خلال شهر ${ml}: ${ntHoursText(e.hours)}. نرجو إفادتنا بسبب الغياب.\nإدارة ${inst}`;
 }
 function ntLink(e,type){
@@ -727,7 +752,7 @@ function renderNotify(){
   }).join('');
 }
 
-function colLabel(i){ return DAYS[Math.floor(i/3)]+" "+PERIODS[i%3]; }
+function colLabel(i){ return colLabelPc(i); }
 
 function renderTabs(){
   const host=document.getElementById('tabs');
@@ -829,12 +854,13 @@ function renderTable(){
   const names=cls.names;
   const selAllCell=canWrite?'<input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)">':'';
   let html=`<table><thead><tr><th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th><th class="hl" rowspan="2">م</th><th class="hl" rowspan="2">الاسم الكامل</th><th class="hl" rowspan="2">هاتف ولي الأمر</th>`;
-  DAYS.forEach(d=>html+=`<th class="day" colspan="3">${d}</th>`);
+  const pc=pcount(), NC=totalCols(pc);
+  DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
-  DAYS.forEach(()=>PERIODS.forEach(p=>html+=`<th class="per">${p}</th>`));
+  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per">ح${p+1}</th>`; });
   html+='</tr><tr><th class="hl" colspan="5"></th>';
   const dis=canWrite?'':'disabled';
-  for(let i=0;i<TOTAL_COLS;i++){
+  for(let i=0;i<NC;i++){
     html+=`<th class="meta"><input ${dis} placeholder="المادة" value="${cls.columns[i].subject}" oninput="setMeta(${i},'subject',this.value)">
       <input ${dis} placeholder="الأستاذ(ة)" value="${cls.columns[i].teacher}" oninput="setMeta(${i},'teacher',this.value)"></th>`;
   }
@@ -843,7 +869,7 @@ function renderTable(){
     const checkCell=canWrite?`<input type="checkbox" ${selected.has(si)?'checked':''} onchange="toggleSelect(${si},this.checked)">`:'';
     const delCell=canWrite?`<button class="del" title="حذف التلميذ" onclick="deleteStudent(${si})">×</button>`:'';
     html+=`<tr><td>${checkCell}</td><td>${delCell}</td><td class="num">${si+1}</td><td class="name">${name}</td><td><input class="phone" ${dis} placeholder="06XXXXXXXX" value="${cls.phones[si]||''}" oninput="setPhone(${si},this.value)"></td>`;
-    for(let i=0;i<TOTAL_COLS;i++){
+    for(let i=0;i<NC;i++){
       const ab=cls.absences[si][i];
       const click=canWrite?` onclick="toggleCell(${si},${i})"`:'';
       html+=`<td class="cell${ab?' absent':''}${canWrite?'':' readonly'}${colIsFuture(i)?' future':''}" data-ci="${i}"${click}>${ab?'غ':''}</td>`;
@@ -851,16 +877,16 @@ function renderTable(){
     html+='</tr>';
   });
   html+='<tr class="foot"><td colspan="5">عدد الغياب في الحصة</td>';
-  for(let i=0;i<TOTAL_COLS;i++){
+  for(let i=0;i<NC;i++){
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
     html+=`<td>${sum}</td>`;
   }
   html+='</tr></tbody>';
   // the days / periods rows again at the bottom of the list
   html+='<tfoot><tr><th colspan="5" rowspan="2">أيام الأسبوع والحصص</th>';
-  DAYS.forEach(d=>html+=`<th class="day" colspan="3">${d}</th>`);
+  DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
-  DAYS.forEach(()=>PERIODS.forEach(p=>html+=`<th class="per">${p}</th>`));
+  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per">ح${p+1}</th>`; });
   html+='</tr></tfoot></table>';
   if(canWrite){
     html+=`<div class="addbar">
@@ -882,7 +908,7 @@ function syncHeaderOffset(){
 window.addEventListener('resize',syncHeaderOffset);
 
 function triggerPrint(){
-  const cls=state.data[currentClass];
+  const cls=state.data[currentClass], pc=pcount(), NC=totalCols(pc);
   const logoEl=document.querySelector('.logo'); const logoSrc=logoEl.src; const logoWide=logoEl.classList.contains('wide');
   let rows='';
   let grandTotal=0;
@@ -890,20 +916,20 @@ function triggerPrint(){
     const total=cls.absences[si].filter(Boolean).length;
     grandTotal+=total;
     rows+=`<tr><td class="pnum">${si+1}</td><td class="pname">${name}</td>`;
-    for(let i=0;i<TOTAL_COLS;i++) rows+=`<td class="pcell">${cls.absences[si][i]?'غ':''}</td>`;
+    for(let i=0;i<NC;i++) rows+=`<td class="pcell">${cls.absences[si][i]?'غ':''}</td>`;
     rows+=`<td class="ptotal">${total}</td></tr>`;
   });
   let footRow='<tr class="pfoot"><td colspan="2">مجموع غياب القسم في كل حصة</td>';
-  for(let i=0;i<TOTAL_COLS;i++){
+  for(let i=0;i<NC;i++){
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
     footRow+=`<td>${sum}</td>`;
   }
   footRow+=`<td>${grandTotal}</td></tr>`;
   let metaRow='';
-  for(let i=0;i<TOTAL_COLS;i++) metaRow+=`<th class="pmeta">${(cls.columns[i].subject||'').trim()||'—'}<br><span class="pteacher">${(cls.columns[i].teacher||'').trim()||'—'}</span></th>`;
+  for(let i=0;i<NC;i++) metaRow+=`<th class="pmeta">${(cls.columns[i].subject||'').trim()||'—'}<br><span class="pteacher">${(cls.columns[i].teacher||'').trim()||'—'}</span></th>`;
   let dayHeader='',perHeader='';
-  DAYS.forEach(d=>dayHeader+=`<th colspan="3">${d}</th>`);
-  DAYS.forEach(()=>PERIODS.forEach(p=>perHeader+=`<th>${p}</th>`));
+  DAYS.forEach((d,j)=>{ if(pc[j&1]) dayHeader+=`<th colspan="${pc[j&1]}">${d}</th>`; });
+  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) perHeader+=`<th>ح${p+1}</th>`; });
   const weekInfo=(state.weekFrom&&state.weekTo)?`الأسبوع من ${state.weekFrom} إلى ${state.weekTo}`:'';
   const html=`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
 <title>ورقة غياب - ${currentClass}</title>
@@ -1105,19 +1131,22 @@ function confirmImport(mode){
 }
 
 // ---- a period that has not started yet cannot be marked absent ----
-// Start time of each period: [morning[3], afternoon[3]], editable with "توقيت الحصص".
-const DEFAULT_PERIOD_TIMES=[["08:00","09:00","10:00"],["14:00","15:00","16:00"]];
+// Start time of each period: [morning[n], afternoon[m]], editable with "توقيت الحصص".
+function fmtTime(min){ min=Math.max(0,Math.min(23*60+59,min)); return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0'); }
+function toMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+// default: one hour per period, from 08:00 (morning) and 14:00 (afternoon)
+function defaultTimes(pc){ return [0,1].map(s=>Array.from({length:pc[s]},(_,p)=>fmtTime((s?14:8)*60+p*60))); }
 function periodTimes(){
-  const t=state.periodTimes;
-  const ok=Array.isArray(t)&&t.length===2&&t.every(r=>Array.isArray(r)&&r.length===3&&r.every(x=>/^\d{1,2}:\d{2}$/.test(x)));
-  return ok?t:DEFAULT_PERIOD_TIMES;
+  const t=state.periodTimes, pc=pcount();
+  const ok=Array.isArray(t)&&t.length===2&&t.every((r,s)=>Array.isArray(r)&&r.length===pc[s]&&r.every(x=>/^\d{1,2}:\d{2}$/.test(x)));
+  return ok?t:defaultTimes(pc);
 }
 // column ci -> when that period starts (null when the week's date is unknown)
 function colStart(ci){
   const wf=ntMonday(state.weekFrom);
   if(!wf) return null;
-  const date=addDaysIso(wf,Math.floor(ci/6)), shift=Math.floor(ci/3)%2;
-  const [hh,mm]=periodTimes()[shift][ci%3].split(':').map(Number);
+  const o=colInfo(ci), date=addDaysIso(wf,o.d);
+  const [hh,mm]=periodTimes()[o.s][o.p].split(':').map(Number);
   return new Date(+date.slice(0,4),+date.slice(5,7)-1,+date.slice(8,10),hh,mm);
 }
 function colIsFuture(ci){ const d=colStart(ci); return !!d&&d.getTime()>Date.now(); }
@@ -1127,12 +1156,84 @@ function refreshFutureCells(){
 setInterval(refreshFutureCells,60*1000);
 function editPeriodTimes(){
   if(!canWrite) return;
-  const cur=periodTimes().map(r=>r.join(',')).join(' | ');
-  showPrompt('بداية الحصص الثلاث صباحا ثم مساء (الساعة:الدقيقة)، مثال: 08:00,09:00,10:00 | 14:00,15:00,16:00',cur,val=>{
-    const parts=String(val||'').split('|').map(p=>p.split(',').map(x=>x.trim()));
-    if(parts.length!==2||!parts.every(r=>r.length===3&&r.every(x=>/^\d{1,2}:\d{2}$/.test(x)))){ showAlert('الصيغة غير صحيحة. اكتبوا ست ساعات هكذا: 08:00,09:00,10:00 | 14:00,15:00,16:00'); return; }
+  const pc=pcount(), cur=periodTimes().map(r=>r.join(',')).join(' | ');
+  const ex=defaultTimes(pc).map(r=>r.join(',')).join(' | ');
+  showPrompt('بداية كل حصة (الساعة:الدقيقة): '+pc[0]+' حصص صباحا | '+pc[1]+' حصص مساء، تفصل بينها العلامة | . مثال: '+ex,cur,val=>{
+    const parts=String(val||'').split('|').map(p=>p.split(',').map(x=>x.trim()).filter(x=>x!==''));
+    if(parts.length!==2||!parts.every((r,s)=>r.length===pc[s]&&r.every(x=>/^\d{1,2}:\d{2}$/.test(x)))){ showAlert('الصيغة غير صحيحة. عدد الحصص الحالي: '+pc[0]+' صباحا و'+pc[1]+' مساء. اكتبوا الساعات هكذا: '+ex); return; }
     state.periodTimes=parts.map(r=>r.map(x=>x.padStart(5,'0')));
     save(); refreshFutureCells();
+  });
+}
+
+// ================= add / delete a period (morning or evening) =================
+// state.pc = [morning, evening] periods per day. Adding appends a period at the end of that half-day;
+// deleting removes the chosen one and the later ones move up. Subjects, teachers, absences, start times
+// and the saved «other week» are re-mapped together so nothing shifts to the wrong period.
+function relayoutPeriods(newPc,pmap){
+  const old=pcount(), nN=totalCols(newPc), mk=()=>({subject:'',teacher:''});
+  const idx=[];
+  for(let i=0;i<nN;i++){ const o=colInfo(i,newPc), op=pmap(o.s,o.p); idx.push(op<0?-1:colIndex(o.d,o.s,op,old)); }
+  const re=(arr,fill)=>idx.map(k=>(k>=0&&k<arr.length&&arr[k]!=null)?arr[k]:fill());
+  state.classNames.forEach(c=>{
+    const k=state.data[c];
+    k.columns=re(k.columns||[],mk);
+    k.absences=k.absences.map(r=>re(r,()=>false));
+  });
+  if(state.other&&state.other.classes){
+    const ofrom=validPc(state.other.pc);
+    Object.keys(state.other.classes).forEach(c=>{
+      const k=state.other.classes[c];
+      if(k.columns) k.columns=re(convertArr(k.columns,ofrom,old,mk),mk);
+      k.absences=(k.absences||[]).map(r=>re(convertArr(r,ofrom,old,()=>false),()=>false));
+    });
+    state.other.pc=newPc.slice();
+  }
+  const ot=periodTimes();
+  state.periodTimes=[0,1].map(s=>{
+    const arr=[];
+    for(let p=0;p<newPc[s];p++){ const op=pmap(s,p); arr.push(op>=0?ot[s][op]:(p>0?fmtTime(toMin(arr[p-1])+60):defaultTimes(newPc)[s][0])); }
+    return arr;
+  });
+  state.pc=newPc.slice();
+}
+function periodsDialog(note){
+  if(!canWrite) return;
+  const pc=pcount(), btns=[];
+  [0,1].forEach(s=>{
+    if(pc[s]<MAX_PC) btns.push({label:'➕ إضافة حصة '+SHIFTS[s],className:'btn',onClick:()=>addPeriod(s)});
+    if(pc[s]>0&&pc[0]+pc[1]>1) btns.push({label:'➖ حذف حصة '+SHIFTS[s],className:'btn danger',onClick:()=>delPeriod(s)});
+  });
+  btns.push({label:'إغلاق',className:'btn ghost',onClick:null});
+  showModal((note?note+'\n\n':'')+'عدد الحصص في كل يوم: '+pc[0]+' صباحا و'+pc[1]+' مساء (من '+MAX_PC+' كحد أقصى لكل فترة). تنطبق التغييرات على كل الأقسام وكل أيام الأسبوع.',btns);
+}
+function applyPeriodChange(newPc,pmap,note){
+  relayoutPeriods(newPc,pmap);
+  selected.clear();
+  save(); renderAll();
+  periodsDialog(note);
+}
+function addPeriod(s){
+  if(!canWrite) return;
+  const pc=pcount(); if(pc[s]>=MAX_PC) return;
+  const np=pc.slice(); np[s]++;
+  applyPeriodChange(np,(ss,p)=>(ss===s&&p>=pc[s])?-1:p,'تمت إضافة الحصة ح'+np[s]+' '+SHIFTS[s]+'. يمكنكم ضبط توقيتها من «توقيت الحصص».');
+}
+function delPeriod(s){
+  if(!canWrite) return;
+  const pc=pcount(); if(pc[s]<1||pc[0]+pc[1]<=1) return;
+  showPrompt('رقم الحصة التي تريدون حذفها '+SHIFTS[s]+' (من 1 إلى '+pc[s]+')',String(pc[s]),v=>{
+    const q=parseInt(String(v).trim(),10);
+    if(!(q>=1&&q<=pc[s])){ showAlert('رقم غير صحيح. اكتبوا رقما بين 1 و'+pc[s]+'.'); return; }
+    let hrs=0;
+    state.classNames.forEach(c=>state.data[c].absences.forEach(r=>{ for(let d=0;d<5;d++) if(r[colIndex(d,s,q-1,pc)]) hrs++; }));
+    showModal('ستُحذف الحصة ح'+q+' '+SHIFTS[s]+' من كل أيام الأسبوع ومن كل الأقسام، مع المادة والأستاذ المسجلين فيها'+(hrs?' و'+hrs+' ساعة غياب مسجلة فيها هذا الأسبوع':'')+'، وتتغيّر أرقام الحصص التي بعدها. الأسابيع المؤرشفة في الإحصائيات لا تتغيّر.\n\nالمتابعة؟',[
+      {label:'نعم، احذفوا الحصة',className:'btn danger',onClick:()=>{
+        const np=pc.slice(); np[s]--;
+        applyPeriodChange(np,(ss,p)=>(ss===s&&p>=q-1)?p+1:p,'تم حذف الحصة ح'+q+' '+SHIFTS[s]+'.');
+      }},
+      {label:'إلغاء',className:'btn ghost',onClick:()=>periodsDialog()}
+    ]);
   });
 }
 
@@ -1147,7 +1248,7 @@ function toggleCell(si,ci){
     return;
   }
   const subj=(cls.columns[ci]&&cls.columns[ci].subject||'').trim();
-  const where=DAYS[Math.floor(ci/PERIODS.length)]+' — '+PERIODS[ci%PERIODS.length]+(subj?' ('+subj+')':'');
+  const wi=colInfo(ci), where=DAYS[wi.d*2+wi.s]+' — ح'+(wi.p+1)+(subj?' ('+subj+')':'');
   const msg=(make?'تسجيل غياب التلميذ(ة) ':'حذف غياب التلميذ(ة) ')+name+' — القسم '+cls0+' — '+where+'؟';
   showModal(msg,[
     {label:make?'تأكيد تسجيل الغياب':'تأكيد حذف الغياب',className:make?'btn':'btn danger',onClick:()=>{
@@ -1175,17 +1276,17 @@ function allColumnSum(colIdx){
   return sum;
 }
 function dayTotal(dayIdx){
-  let sum=0; for(let p=0;p<3;p++) sum+=allColumnSum(dayIdx*3+p);
+  const sp=shiftSpan(dayIdx); let sum=0; for(let p=0;p<sp.n;p++) sum+=allColumnSum(sp.start+p);
   return sum;
 }
-function weekTotal(){ let s=0; for(let i=0;i<TOTAL_COLS;i++) s+=allColumnSum(i); return s; }
+function weekTotal(){ let s=0; for(let i=0;i<totalCols();i++) s+=allColumnSum(i); return s; }
 
 function groupTotals(field){
   const totals={};
   for(const c of state.classNames){
     const cls=state.data[c];
-    for(let i=0;i<TOTAL_COLS;i++){
-      const key=(cls.columns[i][field]||"").trim();
+    for(let i=0;i<totalCols();i++){
+      const key=((cls.columns[i]||{})[field]||"").trim();
       if(!key) continue;
       const n=cls.absences.reduce((a,r)=>a+(r[i]?1:0),0);
       if(!n) continue;
@@ -1197,8 +1298,13 @@ function groupTotals(field){
 
 function renderStats(){
   const daySel=document.getElementById('daySel');
-  if(daySel.options.length===0){
-    DAYS.forEach((d,i)=>{const o=document.createElement('option');o.value=i;o.textContent=d;daySel.appendChild(o);});
+  const dsig=pcount().join();
+  if(daySel.dataset.sig!==dsig){
+    const prev=daySel.value;
+    daySel.innerHTML='';
+    DAYS.forEach((d,i)=>{ if(!pcount()[i&1]) return; const o=document.createElement('option');o.value=i;o.textContent=d;daySel.appendChild(o);});
+    if([...daySel.options].some(o=>o.value===prev)) daySel.value=prev;
+    daySel.dataset.sig=dsig;
     daySel.onchange=renderStats;
   }
   document.getElementById('dayTotal').textContent=dayTotal(+daySel.value);
@@ -1301,14 +1407,14 @@ function svBuild(){
       if(!svPass(c,lvl)) return;
       if(!order.includes(c)) order.push(c);
       if(!per.has(c)) per.set(c,{cls:c,level:lvl,students:0,hours:0,absent:0});
-      const r=per.get(c), a=it.d*6, h=sumRange(s.cols,a,a+6);
+      const r=per.get(c), W=(validPc(s.pc)[0]+validPc(s.pc)[1]), a=it.d*W, h=sumRange(s.cols,a,a+W);
       r.students=s.students; r.level=lvl; r.hours+=h;
       if(week) r.absent=s.weekStudents||0; else r.absent+=s.dayStudents[it.d]||0;
       trend[ti].hours+=h; trend[ti].absent+=s.dayStudents[it.d]||0;
       if(student){
         if(!Array.isArray(s.abs)){ if((s.weekStudents||0)>0) missing.add(it.w.weekStart); return; }
         s.abs.forEach(([name,bits])=>{
-          const hh=String(bits||'').slice(a,a+6).split('1').length-1;
+          const hh=String(bits||'').slice(a,a+W).split('1').length-1;
           if(!hh) return;
           const k=c+'\u0001'+name;
           if(!stu.has(k)) stu.set(k,{name,cls:c,level:lvl,hours:0,days:0});
@@ -1654,7 +1760,7 @@ function startNewWeek(){
 // state.other (filled when a new week starts), or rebuilds the previous week from
 // the statistics archive. Saving then corrects that week's archived summary too.
 function snapshotWeek(){
-  const o={weekFrom:state.weekFrom,weekTo:state.weekTo,classes:{}};
+  const o={weekFrom:state.weekFrom,weekTo:state.weekTo,pc:pcount().slice(),classes:{}};
   state.classNames.forEach(c=>{ const k=state.data[c];
     o.classes[c]={names:k.names.slice(),columns:JSON.parse(JSON.stringify(k.columns)),absences:k.absences.map(r=>r.slice())}; });
   return o;
@@ -1664,8 +1770,9 @@ function applyWeek(w){
   state.classNames.forEach(c=>{
     const k=state.data[c], src=(w.classes||{})[c];
     if(!src){ k.absences=k.names.map(()=>blankRow()); return; }
-    k.absences=k.names.map(n=>{ const i=src.names.indexOf(n); return i>=0?fitLen((src.absences[i]||[]).map(Boolean),TOTAL_COLS,()=>false):blankRow(); });
-    if(src.columns) k.columns=fitLen(JSON.parse(JSON.stringify(src.columns)),TOTAL_COLS,()=>({subject:'',teacher:''}));
+    const from=validPc(src.pc||w.pc), to=pcount();       // the week may have been saved with another number of periods
+    k.absences=k.names.map(n=>{ const i=src.names.indexOf(n); return i>=0?convertArr((src.absences[i]||[]).map(Boolean),from,to,()=>false):blankRow(); });
+    if(src.columns) k.columns=convertArr(JSON.parse(JSON.stringify(src.columns)),from,to,()=>({subject:'',teacher:''}));
   });
   document.getElementById('wFrom').value=state.weekFrom;
   document.getElementById('wTo').value=state.weekTo;
@@ -1695,7 +1802,7 @@ function archivedPreviousWeek(){
   const classes={}; let detailed=false;
   Object.keys(w.classes||{}).forEach(c=>{
     const abs=(w.classes[c]||{}).abs;
-    if(Array.isArray(abs)){ detailed=true; classes[c]={names:abs.map(a=>a[0]),absences:abs.map(a=>String(a[1]).split('').map(x=>x==='1')),columns:null}; }
+    if(Array.isArray(abs)){ detailed=true; classes[c]={names:abs.map(a=>a[0]),absences:abs.map(a=>String(a[1]).split('').map(x=>x==='1')),columns:null,pc:(w.classes[c]||{}).pc||DEF_PC}; }
   });
   return detailed?{weekFrom:w.weekStart,weekTo:addDaysIso(w.weekStart,4),classes}:{old:true};
 }
