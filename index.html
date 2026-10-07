@@ -211,6 +211,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
   <input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this.files[0])">
   <button class="btn ghost" id="timesBtn" style="display:none" onclick="editPeriodTimes()" title="بداية كل حصة، لمنع تسجيل غياب حصة لم يحن وقتها">⏰ توقيت الحصص</button>
   <button class="btn ghost" id="periodsBtn" style="display:none" onclick="periodsDialog()" title="إضافة حصة أو حذفها صباحا أو مساء لتلائم النظام الدراسي للمؤسسة">🧮 عدد الحصص</button>
+  <button class="btn ghost" id="logoBtn" style="display:none" onclick="logoDialog()" title="تغيير شعار المؤسسة الظاهر في أعلى الصفحة وفي الطباعة">🖼️ شعار المؤسسة</button>
   <button class="btn ghost" id="prevWeekBtn" style="display:none" onclick="toggleOtherWeek()" title="عرض الأسبوع الماضي لتصحيح غياب سُجّل بالخطأ">⏪ الأسبوع الماضي</button>
   <button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()">🗓️ أسبوع جديد</button>
   <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
@@ -257,6 +258,23 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
     <p id="modalMsg"></p>
     <input type="text" id="modalInput" class="modal-input" style="display:none">
     <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="logoOverlay" style="display:none">
+  <div class="modal-box" style="max-width:400px">
+    <h3 style="margin:0 0 10px;color:var(--teal);font-size:15px">شعار المؤسسة</h3>
+    <div style="display:flex;align-items:center;justify-content:center;min-height:120px;border:1px dashed var(--line);border-radius:10px;background:#fff;margin-bottom:10px;padding:10px">
+      <img id="logoPreview" alt="معاينة الشعار" style="max-width:100%;max-height:110px;object-fit:contain">
+    </div>
+    <p class="sub" id="logoNote" style="margin:0 0 12px;line-height:1.6">اختاروا صورة الشعار من هذا الجهاز (png أو jpg أو webp). تُصغَّر الصورة تلقائيا، ويظهر الشعار الجديد لدى كل المستخدمين وفي الطباعة.</p>
+    <input type="file" id="logoFile" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none" onchange="logoPicked(this.files[0]); this.value=''">
+    <div class="modal-actions">
+      <button class="btn ghost" type="button" onclick="document.getElementById('logoFile').click()">📁 اختيار صورة</button>
+      <button class="btn" type="button" id="logoSaveBtn" onclick="logoSave()" disabled>حفظ الشعار</button>
+      <button class="btn danger" type="button" id="logoResetBtn" onclick="logoReset()">استرجاع الشعار الأصلي</button>
+      <button class="btn ghost" type="button" onclick="logoClose()">إغلاق</button>
+    </div>
   </div>
 </div>
 
@@ -395,6 +413,10 @@ function applyPermissionUI(){
   if(tmBtn) tmBtn.style.display=canWrite?'inline-block':'none';
   const pdBtn=document.getElementById('periodsBtn');
   if(pdBtn) pdBtn.style.display=canWrite?'inline-block':'none';
+  const lgBtn=document.getElementById('logoBtn');
+  if(lgBtn) lgBtn.style.display=canWrite?'inline-block':'none';
+  const lgImg=document.querySelector('.logo');
+  if(lgImg){ lgImg.style.cursor=canWrite?'pointer':''; lgImg.title=canWrite?'تغيير الشعار':''; lgImg.onclick=canWrite?logoDialog:null; }
   const nwBtn=document.getElementById('newWeekBtn');
   if(nwBtn) nwBtn.style.display=canWrite?'inline-block':'none';
   const importBtn=document.getElementById('importBtn');
@@ -557,6 +579,7 @@ async function initSync(){
     lanServerOk=false;
     setSyncStatus('offline');
   }
+  noteLogoVersion();
   renderAll(); updateInstName();
   pollTimer=setInterval(pollRemote,1500);
   return true;
@@ -585,6 +608,7 @@ function applyRemoteState(incoming,incomingStr){
   state=incoming; lastAppliedStr=incomingStr;
   currentClass=state.classNames.includes(currentClass)?currentClass:state.classNames[0];
   selected.clear();
+  noteLogoVersion();
   renderAll(); updateInstName();
 }
 
@@ -1826,24 +1850,123 @@ async function toggleOtherWeek(){
   swap(a,'سيُعرض الأسبوع الماضي ('+a.weekFrom+') من سجل الإحصائيات: يظهر فيه التلاميذ الذين سُجّل غيابهم (أسماء المواد والأساتذة تبقى كما هي في الجدول). صحّحوا ما يلزم ثم عودوا إلى الأسبوع الحالي.\n\nالمتابعة؟');
 }
 
-// Optional per-deployment logo (LOGO_FILE env var, served from /logos)
+// ---- institution logo ------------------------------------------------------
+// Order of precedence: the logo uploaded by the admin (kept on the server, so
+// every device shows it) > LOGO_FILE from /logos > the built-in default.
+let defaultLogoSrc='';
+function setLogo(src){
+  const img=document.querySelector('.logo');
+  if(!defaultLogoSrc) defaultLogoSrc=img.src;
+  const want=src||defaultLogoSrc;
+  const done0=()=>{
+    // wide (non-square) logos need a rectangular frame instead of the round one
+    img.classList.toggle('wide',!!(img.naturalWidth && img.naturalWidth>img.naturalHeight*1.3));
+  };
+  if(img.src===want){ done0(); return Promise.resolve(); }
+  return new Promise(done=>{
+    img.onload=()=>{ done0(); done(); };
+    img.onerror=()=>{ img.src=defaultLogoSrc; img.classList.remove('wide'); done(); };
+    img.src=want;
+    setTimeout(done,4000);
+  });
+}
 async function applyBranding(){
   try{
     const r=await fetch('/api/config');
     if(!r.ok) return;
     const c=await r.json();
-    if(!c || !c.logo) return;
-    const img=document.querySelector('.logo');
-    const fallback=img.src;
-    await new Promise(done=>{
-      img.onload=done;
-      img.onerror=()=>{ img.src=fallback; done(); };
-      img.src=c.logo;
-      setTimeout(done,4000);
-    });
-    // wide (non-square) logos need a rectangular frame instead of the round one
-    if(img.naturalWidth && img.naturalWidth>img.naturalHeight*1.3) img.classList.add('wide');
-  }catch(e){ /* keep the default logo */ }
+    await setLogo(c && c.logo ? c.logo : '');
+  }catch(e){ /* keep the current logo */ }
+}
+// Other devices learn about a new logo through state.logoV (a timestamp saved with the sheet).
+let seenLogoV=null;
+function noteLogoVersion(){
+  const v=state.logoV||0;
+  if(seenLogoV!==null && v!==seenLogoV) applyBranding();
+  seenLogoV=v;
+}
+
+let logoDraft='';
+function logoDialog(){
+  if(!canWrite) return;
+  logoDraft='';
+  document.getElementById('logoPreview').src=document.querySelector('.logo').src;
+  document.getElementById('logoSaveBtn').disabled=true;
+  document.getElementById('logoNote').textContent='اختاروا صورة الشعار من هذا الجهاز (png أو jpg أو webp). تُصغَّر الصورة تلقائيا، ويظهر الشعار الجديد لدى كل المستخدمين وفي الطباعة.';
+  document.getElementById('logoOverlay').style.display='flex';
+}
+function logoClose(){ document.getElementById('logoOverlay').style.display='none'; logoDraft=''; }
+function logoNote(t){ document.getElementById('logoNote').textContent=t; }
+
+// Shrinks the chosen picture to at most `max` px on its longest side. PNG keeps
+// its transparency; anything that stays too big is re-encoded as JPEG on white.
+function logoEncode(file,max){
+  return new Promise((ok,bad)=>{
+    const url=URL.createObjectURL(file), im=new Image();
+    im.onerror=()=>{ URL.revokeObjectURL(url); bad(new Error('تعذرت قراءة هذه الصورة، جرّبوا ملفا آخر.')); };
+    im.onload=()=>{
+      URL.revokeObjectURL(url);
+      let w=im.naturalWidth, h=im.naturalHeight;
+      if(!w||!h) return bad(new Error('تعذرت قراءة هذه الصورة، جرّبوا ملفا آخر.'));
+      const LIMIT=240000;
+      for(let m=max; m>=120; m=Math.round(m*0.75)){
+        const k=Math.min(1,m/Math.max(w,h));
+        const cw=Math.max(1,Math.round(w*k)), ch=Math.max(1,Math.round(h*k));
+        const cv=document.createElement('canvas'); cv.width=cw; cv.height=ch;
+        const cx=cv.getContext('2d');
+        let out='';
+        if(file.type!=='image/jpeg'){ cx.drawImage(im,0,0,cw,ch); out=cv.toDataURL('image/png'); }
+        if(!out || out.length>LIMIT){
+          cx.fillStyle='#fff'; cx.fillRect(0,0,cw,ch); cx.drawImage(im,0,0,cw,ch);
+          out=cv.toDataURL('image/jpeg',0.88);
+        }
+        if(out.length<=LIMIT) return ok(out);
+      }
+      bad(new Error('الصورة معقدة جدا، اختاروا شعارا أبسط أو أصغر حجما.'));
+    };
+    im.src=url;
+  });
+}
+async function logoPicked(file){
+  if(!file) return;
+  if(!/^image\/(png|jpeg|webp|gif)$/.test(file.type)){ logoNote('اختاروا ملف صورة بصيغة png أو jpg أو webp.'); return; }
+  if(file.size>15*1024*1024){ logoNote('حجم الصورة كبير جدا، اختاروا صورة أصغر.'); return; }
+  try{
+    logoDraft=await logoEncode(file,320);
+    document.getElementById('logoPreview').src=logoDraft;
+    document.getElementById('logoSaveBtn').disabled=false;
+    logoNote('هذه معاينة الشعار الجديد. اضغطوا «حفظ الشعار» لاعتماده.');
+  }catch(e){
+    logoDraft=''; document.getElementById('logoSaveBtn').disabled=true;
+    logoNote(e.message||'تعذرت معالجة الصورة.');
+  }
+}
+async function logoPost(body){
+  const r=await fetch('/api/config',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify(body)});
+  if(r.status===401){ onAuthRejected(); return false; }
+  return r.ok;
+}
+async function logoCommit(body,after){
+  const ok=await logoPost(body).catch(()=>false);
+  if(!ok){ logoNote('تعذر حفظ الشعار، تحقّقوا من الاتصال وأعيدوا المحاولة.'); return; }
+  await after();
+  state.logoV=Date.now(); seenLogoV=state.logoV;
+  saveNow();
+  logoClose();
+}
+function logoSave(){
+  if(!canWrite||!logoDraft) return;
+  const d=logoDraft;
+  logoNote('جارٍ الحفظ…');
+  logoCommit({logo:d},()=>setLogo(d));
+}
+function logoReset(){
+  if(!canWrite) return;
+  logoClose();
+  showModal('سيُسترجع الشعار الأصلي للتطبيق لدى كل المستخدمين. المتابعة؟',[
+    {label:'نعم، استرجعوه',className:'btn danger',onClick:()=>{ logoCommit({reset:true},applyBranding); }},
+    {label:'إلغاء',className:'btn ghost',onClick:null}
+  ]);
 }
 
 async function startApp(){
