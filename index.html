@@ -205,7 +205,6 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
 </div>
 
 <div id="mainView">
-<div class="tabs" id="tabs"></div>
 <div class="toolbar">
   <button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
   <input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this.files[0])">
@@ -217,6 +216,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
   <button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()">🗓️ أسبوع جديد</button>
   <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
 </div>
+<div class="tabs" id="tabs"></div>
 <div class="panel" id="tableHost"></div>
 
 <div class="panel" id="autoPanel">
