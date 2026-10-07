@@ -134,6 +134,52 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
 .sv-filters label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-soft)}
 .chartbox{border:1px solid var(--line);border-radius:8px;background:#fff;padding:6px;margin:0 0 12px;overflow-x:auto}
 .chartbox svg{display:block;width:100%;min-width:560px;height:auto}
+
+/* ---- colour layer: one hue per weekday, one hue per kind of action ---- */
+:root{
+  --d0:#2F6FB8; --d1:#25784F; --d2:#A96A06; --d3:#7B52B4; --d4:#C4405E;
+  --c-violet:#7B52B4; --c-blue:#2F6FB8; --c-amber:#A96A06; --c-slate:#4F6D8A; --c-green:#25784F; --c-indigo:#4A55B8; --c-rose:#C4405E;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --d0:#6BA3E8; --d1:#5CC592; --d2:#E8B24A; --d3:#A98AE0; --d4:#EE7F97;
+    --c-violet:#A98AE0; --c-blue:#6BA3E8; --c-amber:#E8B24A; --c-slate:#8FB0CF; --c-green:#5CC592; --c-indigo:#8E98EE; --c-rose:#EE7F97;
+  }
+}
+:root[data-theme="dark"]{
+  --d0:#6BA3E8; --d1:#5CC592; --d2:#E8B24A; --d3:#A98AE0; --d4:#EE7F97;
+  --c-violet:#A98AE0; --c-blue:#6BA3E8; --c-amber:#E8B24A; --c-slate:#8FB0CF; --c-green:#5CC592; --c-indigo:#8E98EE; --c-rose:#EE7F97;
+}
+.d0{--dc:var(--d0)} .d1{--dc:var(--d1)} .d2{--dc:var(--d2)} .d3{--dc:var(--d3)} .d4{--dc:var(--d4)}
+/* day names: solid colour for the morning, a deeper shade of it for the evening */
+#tableHost table th.day{background:var(--dc,var(--teal));color:#fff;font-size:12.5px;letter-spacing:.2px}
+#tableHost table th.day.ev{background:color-mix(in srgb,var(--dc,var(--teal)) 76%,#000)}
+/* period numbers: a tint of the day's colour, in the same colour */
+#tableHost table th.per{background:color-mix(in srgb,var(--dc,var(--teal)) 15%,var(--panel));color:color-mix(in srgb,var(--dc,var(--teal)) 82%,var(--ink));font-weight:700}
+#tableHost table th.meta{background:color-mix(in srgb,var(--dc,var(--teal)) 6%,var(--panel))}
+/* the cells carry a whisper of the day's colour so each day reads as one block */
+#tableHost table td.cell{background:color-mix(in srgb,var(--dc,var(--teal)) 5%,var(--panel))}
+#tableHost table td.cell.absent{background:var(--absent-soft)}
+#tableHost table td.cell.future{background:repeating-linear-gradient(45deg,#f3f1ea,#f3f1ea 4px,#e9e6dc 4px,#e9e6dc 8px)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) #tableHost table td.cell.future{background:repeating-linear-gradient(45deg,#232b29,#232b29 4px,#2a3330 4px,#2a3330 8px)} }
+/* buttons: outlined and tinted in the colour of what they do */
+.btn.ghost{--bc:var(--teal);color:var(--bc);border-color:color-mix(in srgb,var(--bc) 55%,transparent);background:color-mix(in srgb,var(--bc) 8%,transparent);transition:background .15s}
+.btn.ghost:hover:not(:disabled){background:color-mix(in srgb,var(--bc) 17%,transparent)}
+#logoBtn{--bc:var(--c-violet)} #periodsBtn{--bc:var(--c-blue)} #timesBtn{--bc:var(--c-amber)} #prevWeekBtn{--bc:var(--c-slate)} #newWeekBtn{--bc:var(--c-green)}
+#statsBtn{--bc:var(--c-indigo)} #usersBtn{--bc:var(--c-rose)} #printBtn{--bc:var(--c-slate)} #importBtn{--bc:var(--c-green)} #svXlsBtn{--bc:var(--c-green)} #svPngBtn{--bc:var(--c-violet)}
+.langBtn{--bc:var(--c-slate)}
+/* a week ribbon under the header: Monday to Friday */
+header{position:relative;padding-bottom:14px}
+header::after{content:"";position:absolute;inset-inline:0;bottom:0;height:4px;border-radius:4px;
+  background:linear-gradient(270deg,var(--d0) 0 20%,var(--d1) 20% 40%,var(--d2) 40% 60%,var(--d3) 60% 80%,var(--d4) 80% 100%)}
+html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var(--d1) 20% 40%,var(--d2) 40% 60%,var(--d3) 60% 80%,var(--d4) 80% 100%)}
+@media print{header::after{display:none}}
+/* the four summary cards get a colour of their own */
+.stats .card{border-top:4px solid var(--teal)}
+.stats .card:nth-child(1){border-top-color:var(--d0)} .stats .card:nth-child(2){border-top-color:var(--d1)}
+.stats .card:nth-child(3){border-top-color:var(--d2)} .stats .card:nth-child(4){border-top-color:var(--d3)}
+.stats .card:nth-child(1) h3{color:var(--d0)} .stats .card:nth-child(2) h3{color:var(--d1)}
+.stats .card:nth-child(3) h3{color:var(--d2)} .stats .card:nth-child(4) h3{color:var(--d3)}
 </style>
 </head>
 <body>
@@ -174,7 +220,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
     <span class="userchip" id="userChip" style="display:none"></span>
     <button class="btn ghost" id="logoutBtn" style="display:none" onclick="logout()">خروج</button>
     <div class="btncol"><button class="btn ghost" id="statsBtn" onclick="openStats()">📊 الإحصائيات</button><button class="btn ghost" id="usersBtn" style="display:none" onclick="usersDialog()" title="الموافقة على طلبات حسابات الاطلاع">👥 الموافقة على حساب جديد <span id="usersBadge" style="display:none;background:var(--absent);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-inline-start:4px">0</span></button></div>
-    <button class="btn ghost" onclick="triggerPrint()">طباعة</button>
+    <button class="btn ghost" id="printBtn" onclick="triggerPrint()">طباعة</button>
     <button class="btn ghost langBtn" type="button" onclick="setLang(LANG==='fr'?'ar':'fr')">Français</button>
   </div>
 </header>
@@ -324,6 +370,9 @@ function colIndex(d,s,p,pc){ pc=pc||pcount(); return d*(pc[0]+pc[1])+(s?pc[0]:0)
 // period of every day (' dend'). Border classes only; nothing here changes the data.
 function sepPer(j,p,pc){ pc=pc||pcount(); const s=j&1; let r=''; if(p===0&&s===1&&pc[0]&&pc[1]) r+=' sep'; if(p===pc[s]-1&&s===(pc[1]?1:0)) r+=' dend'; return r; }
 function sepDay(j,pc){ pc=pc||pcount(); const s=j&1; if(!pc[s]) return ''; let r=''; if(s===1&&pc[0]) r+=' sep'; if(s===(pc[1]?1:0)) r+=' dend'; return r; }
+// day colour classes (d0..d4 = Monday..Friday) used by the table and the printed sheet
+function dayCl(j){ return ' d'+(j>>1); }
+function colDayCl(i,pc){ return ' d'+colInfo(i,pc||pcount()).d; }
 function sepCol(i,pc){ pc=pc||pcount(); const o=colInfo(i,pc); return sepPer(o.d*2+o.s,o.p,pc); }
 function colLabelPc(i,pc){ const o=colInfo(i,pc); return DAYS[o.d*2+o.s]+" ح"+(o.p+1); }
 // DAYS[j] (day + shift) -> {start, n} columns of that half-day
@@ -925,13 +974,13 @@ function renderTable(){
   const selAllCell=canWrite?'<input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)">':'';
   let html=`<table><thead><tr><th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th><th class="hl" rowspan="2">م</th><th class="hl" rowspan="2">الاسم الكامل</th><th class="hl" rowspan="2">هاتف ولي الأمر</th>`;
   const pc=pcount(), NC=totalCols(pc);
-  DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
+  DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
-  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${sepPer(j,p,pc)}">ح${p+1}</th>`; });
+  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
   html+='</tr><tr><th class="hl" colspan="5"></th>';
   const dis=canWrite?'':'disabled';
   for(let i=0;i<NC;i++){
-    html+=`<th class="meta${sepCol(i,pc)}"><input ${dis} placeholder="المادة" value="${cls.columns[i].subject}" oninput="setMeta(${i},'subject',this.value)">
+    html+=`<th class="meta${colDayCl(i,pc)}${sepCol(i,pc)}"><input ${dis} placeholder="المادة" value="${cls.columns[i].subject}" oninput="setMeta(${i},'subject',this.value)">
       <input ${dis} placeholder="الأستاذ(ة)" value="${cls.columns[i].teacher}" oninput="setMeta(${i},'teacher',this.value)"></th>`;
   }
   html+='</tr></thead><tbody>';
@@ -942,7 +991,7 @@ function renderTable(){
     for(let i=0;i<NC;i++){
       const ab=cls.absences[si][i];
       const click=canWrite?` onclick="toggleCell(${si},${i})"`:'';
-      html+=`<td class="cell${ab?' absent':''}${canWrite?'':' readonly'}${colIsFuture(i)?' future':''}${sepCol(i,pc)}" data-ci="${i}"${click}>${ab?'غ':''}</td>`;
+      html+=`<td class="cell${ab?' absent':''}${canWrite?'':' readonly'}${colIsFuture(i)?' future':''}${colDayCl(i,pc)}${sepCol(i,pc)}" data-ci="${i}"${click}>${ab?'غ':''}</td>`;
     }
     html+='</tr>';
   });
@@ -954,9 +1003,9 @@ function renderTable(){
   html+='</tr></tbody>';
   // the days / periods rows again at the bottom of the list
   html+='<tfoot><tr><th colspan="5" rowspan="2">أيام الأسبوع والحصص</th>';
-  DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
+  DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
-  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${sepPer(j,p,pc)}">ح${p+1}</th>`; });
+  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
   html+='</tr></tfoot></table>';
   if(canWrite){
     html+=`<div class="addbar">
@@ -999,8 +1048,8 @@ function triggerPrint(){
   let metaRow='';
   for(let i=0;i<NC;i++) metaRow+=`<th class="pmeta${sepCol(i,pc)}">${(cls.columns[i].subject||'').trim()||'—'}<br><span class="pteacher">${(cls.columns[i].teacher||'').trim()||'—'}</span></th>`;
   let dayHeader='',perHeader='';
-  DAYS.forEach((d,j)=>{ if(pc[j&1]) dayHeader+=`<th class="${sepDay(j,pc).trim()}" colspan="${pc[j&1]}">${d}</th>`; });
-  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) perHeader+=`<th class="${sepPer(j,p,pc).trim()}">ح${p+1}</th>`; });
+  DAYS.forEach((d,j)=>{ if(pc[j&1]) dayHeader+=`<th class="${(dayCl(j)+(j&1?' ev':'')+sepDay(j,pc)).trim()}" colspan="${pc[j&1]}">${d}</th>`; });
+  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) perHeader+=`<th class="${(dayCl(j)+sepPer(j,p,pc)).trim()}">ح${p+1}</th>`; });
   const weekInfo=(state.weekFrom&&state.weekTo)?`الأسبوع من ${state.weekFrom} إلى ${state.weekTo}`:'';
   const fr=LANG==='fr', pdir=fr?'ltr':'rtl', palign=fr?'left':'right';
   const html=Th(`<!DOCTYPE html><html lang="${fr?'fr':'ar'}" dir="${pdir}"><head><meta charset="UTF-8">
@@ -1019,6 +1068,9 @@ th.pmeta{font-size:8px}
 .pname{text-align:${palign}}
 .ptotal{font-weight:700;background:#eef4f3}
 .sep{border-inline-start:2.5px solid #0F4C46!important}
+th,td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+th.day.d0{background:#CFE0F4}th.day.d1{background:#CDEBDD}th.day.d2{background:#F7E2B5}th.day.d3{background:#E0D4F1}th.day.d4{background:#F6D3DB}
+th.d0:not(.day){background:#EAF2FB}th.d1:not(.day){background:#E8F6EF}th.d2:not(.day){background:#FBF2DB}th.d3:not(.day){background:#F1EAF9}th.d4:not(.day){background:#FBE8EC}
 .dend{border-inline-end:2.5px solid #0F4C46!important}
 .pfoot{background:#eef4f3;font-weight:700}
 </style></head>
