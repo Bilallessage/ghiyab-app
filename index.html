@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ورقة ضبط الغياب الأسبوعية</title>
+<script src="fr.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- ملاحظة: ميزة "استيراد من إكسيل" تحتاج اتصالاً بالإنترنت لتحميل مكتبتها في هذا السطر أعلاه. باقي التطبيق (الجدول، المشاركة عبر الشبكة، الطباعة) يعمل بدون إنترنت إطلاقًا. -->
 <style>
@@ -150,6 +151,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
     <div id="authError" role="alert" style="color:var(--absent);font-size:12.5px;min-height:16px;margin-bottom:10px;line-height:1.5"></div>
     <button class="btn" id="authSubmit" type="submit" style="width:100%">دخول</button>
     <p class="sub" id="authHint" style="margin:12px 0 0;text-align:center;line-height:1.6">حسابات الاطلاع الجديدة تحتاج إلى موافقة المسؤول قبل الدخول. التعديل مخصّص للمسؤول.</p>
+    <div style="text-align:center;margin-top:12px"><button type="button" class="tab langBtn" onclick="setLang(LANG==='fr'?'ar':'fr')">Français</button></div>
   </form>
 </div>
 
@@ -170,6 +172,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
     <button class="btn ghost" id="logoutBtn" style="display:none" onclick="logout()">خروج</button>
     <div class="btncol"><button class="btn ghost" id="statsBtn" onclick="openStats()">📊 الإحصائيات</button><button class="btn ghost" id="usersBtn" style="display:none" onclick="usersDialog()" title="الموافقة على طلبات حسابات الاطلاع">👥 الموافقة على حساب جديد <span id="usersBadge" style="display:none;background:var(--absent);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-inline-start:4px">0</span></button></div>
     <button class="btn ghost" onclick="triggerPrint()">طباعة</button>
+    <button class="btn ghost langBtn" type="button" onclick="setLang(LANG==='fr'?'ar':'fr')">Français</button>
   </div>
 </header>
 
@@ -301,6 +304,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
 </div>
 
 <script>
+document.querySelectorAll('.langBtn').forEach(b=>{ b.textContent=LANG==='fr'?'العربية':'Français'; });
 const DAY_NAMES=["الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
 const SHIFTS=["صباحا","مساء"];
 const DAYS=DAY_NAMES.flatMap(d=>SHIFTS.map(s=>d+" "+s));
@@ -641,10 +645,19 @@ function setPhone(si,val){
   save();
   renderNotify();
 }
+// ---- French mode helpers (fr.js): institution name, class label, hours ----
+function instDisplay(){ return LANG==='fr' ? ((state.instNameFr||'').trim() || T(state.instName||'')) : (state.instName||''); }
+function frClass(c){ const t=T(c); return /^Classe\b/.test(t)?t:'Classe '+c; }
+function ntHoursFr(n){ return n===1?'1 heure':n+' heures'; }
+function frMonthOf(m){ return /^[aeiouéèhAEIOU]/.test(m)?"d'"+m:'de '+m; }
 function whatsappMessage(si){
   const cls=state.data[currentClass];
   const name=cls.names[si];
   const sessions=cls.absences[si].map((v,i)=>v?colLabel(i):null).filter(Boolean);
+  if(LANG==='fr'){
+    const per=(state.weekFrom&&state.weekTo)?` durant la semaine du ${state.weekFrom} au ${state.weekTo}`:'';
+    return `Bonjour, nous vous informons de l'absence de votre enfant « ${name} » (${frClass(currentClass)})${per} lors des séances suivantes : ${sessions.map(T).join(', ')}.\nL'administration — ${instDisplay()}`;
+  }
   const period=(state.weekFrom&&state.weekTo)?` خلال الأسبوع من ${state.weekFrom} إلى ${state.weekTo}`:'';
   return `السلام عليكم، نحيطكم علما بتسجيل غياب ابنكم/ابنتكم "${name}" (القسم ${currentClass})${period} في الحصص التالية: ${sessions.join('، ')}.\nإدارة ${state.instName}`;
 }
@@ -709,6 +722,13 @@ function ntPending(){
 }
 function ntMessage(e,type){
   const ml=monthLabel(todayIso().slice(0,7)), inst=state.instName||'';
+  if(LANG==='fr'){
+    const mf=T(ml), nf=instDisplay();
+    if(type==='summons')
+      return `Bonjour, le cumul des absences de votre enfant « ${e.name} » (${frClass(e.cls)}) a atteint ${ntHoursFr(e.hours)} durant le mois ${frMonthOf(mf)}. Nous vous convoquons à vous présenter à l'administration de l'établissement dans les meilleurs délais afin de traiter la situation d'absence de votre enfant.\nL'administration — ${nf}`;
+    const wf=e.last?` le ${e.last.date} (${T(e.last.label)})`:'';
+    return `Bonjour, nous vous informons de l'absence de votre enfant « ${e.name} » (${frClass(e.cls)})${wf}. Total de ses absences durant le mois ${frMonthOf(mf)} : ${ntHoursFr(e.hours)}. Nous vous prions de bien vouloir nous en communiquer le motif.\nL'administration — ${nf}`;
+  }
   if(type==='summons')
     return `السلام عليكم، بلغ مجموع غياب ابنكم/ابنتكم "${e.name}" (القسم ${e.cls}) ${ntHoursText(e.hours)} خلال شهر ${ml}. نستدعيكم للحضور إلى إدارة المؤسسة في أقرب وقت ممكن لمعالجة وضعية غياب ابنكم/ابنتكم.\nإدارة ${inst}`;
   const when=e.last?` بتاريخ ${e.last.date} (${e.last.label})`:'';
@@ -746,7 +766,7 @@ function ntRender(){
         :`<button class="btn wa" style="opacity:.5" onclick="showAlert('أدخلوا أولا رقم هاتف ولي الأمر في جدول القسم ${e.cls} أمام اسم التلميذ(ة).')">📲 إرسال</button>`)
         +` <button class="btn ghost" style="padding:5px 10px;font-size:12px" title="تعليمه كمعالَج دون إرسال" onclick="ntMark(ntCur[${i}].key,ntCur[${i}].type)">تم</button>`;
     }
-    return `<div class="row"><span>${svEsc(e.name)} <span class="muted">${svEsc(e.cls)} — ${ntHoursText(e.hours)} غياب هذا الشهر</span>${tag}</span><span>${act}</span></div>`;
+    return `<div class="row"><span><bdi>${svEsc(e.name)}</bdi> <span class="muted"><bdi>${svEsc(e.cls)}</bdi> — ${ntHoursText(e.hours)} غياب هذا الشهر</span>${tag}</span><span>${act}</span></div>`;
   }).join('');
 }
 // right after an absence is recorded: offer to send the notice straight away
@@ -773,7 +793,7 @@ function ntAfterRecord(c,name){
 
 function renderNotify(){
   ntRender();
-  document.getElementById('notifyClassName').textContent=currentClass;
+  document.getElementById('notifyClassName').textContent=LANG==='fr'?frClass(currentClass):currentClass;
   const host=document.getElementById('notifyHost');
   const cls=state.data[currentClass];
   const rows=[];
@@ -788,7 +808,7 @@ function renderNotify(){
       ? `<a class="btn wa" href="https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage(r.si))}" target="_blank" rel="noopener noreferrer">📲 إرسال إشعار</a>`
       : `<button class="btn wa" style="opacity:.5" onclick="showAlert('الرجاء إدخال رقم هاتف ولي الأمر أولا في عمود «هاتف ولي الأمر» أمام اسم التلميذ(ة).')">📲 إرسال إشعار</button>`;
     return `<div class="row">
-      <span>${r.name} <span class="muted">${r.sessions.length} حصة غياب</span></span>
+      <span><bdi>${r.name}</bdi> <span class="muted">${r.sessions.length} حصة غياب</span></span>
       ${btn}
     </div>`;
   }).join('');
@@ -874,16 +894,16 @@ function deleteClass(name){
 }
 function renameInstitution(){
   if(!canWrite) return;
-  showPrompt('تعديل اسم المؤسسة:', state.instName, (val)=>{
+  showPrompt('تعديل اسم المؤسسة:', LANG==='fr'?instDisplay():state.instName, (val)=>{
     const v=val.trim();
     if(!v) return;
-    state.instName=v;
+    if(LANG==='fr') state.instNameFr=v; else state.instName=v;
     save();
     updateInstName();
   });
 }
 function updateInstName(){
-  document.getElementById('instNameText').textContent=state.instName;
+  document.getElementById('instNameText').textContent=instDisplay();
   // keep the week range in sync with the shared sheet (unless being typed in)
   const f=document.getElementById('wFrom'), t=document.getElementById('wTo');
   if(f && document.activeElement!==f) f.value=state.weekFrom||'';
@@ -974,7 +994,8 @@ function triggerPrint(){
   DAYS.forEach((d,j)=>{ if(pc[j&1]) dayHeader+=`<th colspan="${pc[j&1]}">${d}</th>`; });
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) perHeader+=`<th>ح${p+1}</th>`; });
   const weekInfo=(state.weekFrom&&state.weekTo)?`الأسبوع من ${state.weekFrom} إلى ${state.weekTo}`:'';
-  const html=`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+  const fr=LANG==='fr', pdir=fr?'ltr':'rtl', palign=fr?'left':'right';
+  const html=Th(`<!DOCTYPE html><html lang="${fr?'fr':'ar'}" dir="${pdir}"><head><meta charset="UTF-8">
 <title>ورقة غياب - ${currentClass}</title>
 <style>
 @page{size:landscape;margin:10mm}
@@ -987,18 +1008,18 @@ table{border-collapse:collapse;width:100%;font-size:9.5px}
 th,td{border:1px solid #999;padding:3px 4px;text-align:center}
 th.pmeta{font-size:8px}
 .pteacher{color:#5B6664}
-.pname{text-align:right}
+.pname{text-align:${palign}}
 .ptotal{font-weight:700;background:#eef4f3}
 .pfoot{background:#eef4f3;font-weight:700}
 </style></head>
 <body onload="window.print()">
-<div class="phead"><img src="${logoSrc}"><div><h1>ورقة ضبط غياب التلاميذ — القسم: ${currentClass}</h1><div class="psub">${state.instName}${weekInfo?' — '+weekInfo:''}</div></div></div>
+<div class="phead"><img src="${logoSrc}"><div><h1>ورقة ضبط غياب التلاميذ — القسم: ${currentClass}</h1><div class="psub">${fr?instDisplay():state.instName}${weekInfo?' — '+weekInfo:''}</div></div></div>
 <table><thead>
-<tr><th rowspan="3">م</th><th rowspan="3">الاسم الكامل</th>${dayHeader}<th rowspan="3">مجموع<br>غياب<br>الأسبوع</th></tr>
+<tr><th rowspan="3">م</th><th rowspan="3">الاسم الكامل</th>${dayHeader}<th rowspan="3">${fr?'Total<br>absences<br>semaine':'مجموع<br>غياب<br>الأسبوع'}</th></tr>
 <tr>${perHeader}</tr>
 <tr>${metaRow}</tr>
 </thead><tbody>${rows}${footRow}</tbody></table>
-</body></html>`;
+</body></html>`);
   const blob=new Blob([html],{type:'text/html'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1064,20 +1085,21 @@ function deleteStudent(si){
   });
 }
 
+const isNameHdr=x=>{ const v=(x??'').toString(); return v.includes('الاسم')||/(^|[^a-zà-ÿ])(nom|pr[ée]nom|[ée]l[èe]ve)/i.test(v); };
 function findAnchor(rows,className){
   for(let r=0;r<rows.length;r++){
     for(let c=0;c<rows[r].length;c++){
       const v=(rows[r][c]??'').toString();
-      if(v.includes('القسم') && v.includes(className)){
+      if((v.includes('القسم')||/classe/i.test(v)) && v.includes(className)){
         for(let r2=r;r2<Math.min(r+4,rows.length);r2++){
-          const idx=(rows[r2]||[]).findIndex(x=>(x??'').toString().includes('الاسم'));
+          const idx=(rows[r2]||[]).findIndex(isNameHdr);
           if(idx>=0) return {headerRow:r2,nameCol:idx};
         }
       }
     }
   }
   for(let r=0;r<rows.length;r++){
-    const idx=(rows[r]||[]).findIndex(x=>(x??'').toString().includes('الاسم'));
+    const idx=(rows[r]||[]).findIndex(isNameHdr);
     if(idx>=0) return {headerRow:r,nameCol:idx};
   }
   return null;
@@ -1090,7 +1112,7 @@ function extractColumn(rows,col,startRow){
     const s=((row||[])[col]??'').toString().trim();
     if(!s) return;
     if(/^\d+$/.test(s)) return;
-    if(/^(الرقم|الاسم الكامل|الاسم|القسم|رمز المادة|توقيع|تلاميذ يوجهون|صباحا|مساء)/.test(s)) return;
+    if(/^(الرقم|الاسم الكامل|الاسم|القسم|رمز المادة|توقيع|تلاميذ يوجهون|صباحا|مساء)/.test(s)||/^(nom|pr[ée]nom|[ée]l[èe]ve|classe|n°|num[ée]ro|mati|apr[èe]s)/i.test(s)) return;
     names.push(s);
   });
   return names;
@@ -1520,8 +1542,21 @@ function svBuild(){
 // ---- charts: plain SVG strings (same markup on screen, in the PNG and in the print) ----
 const SV_W=760, SV_FONT='Tahoma, Arial, sans-serif';
 function svCut(s,n){ s=String(s); return s.length>n?s.slice(0,n-1)+'…':s; }
-function svBars(ch,color){ // horizontal bars, labels on the right (RTL)
-  const n=ch.labels.length, rowH=26, top=46, longest=Math.max(1,...ch.labels.map(l=>Math.min(30,String(l).length))), labW=Math.max(80,Math.min(230,Math.round(longest*8+18))), x0=SV_W-12-labW, H=top+n*rowH+16;
+function svBars(ch,color){ // horizontal bars, labels on the right (RTL) or on the left (French, LTR)
+  const n=ch.labels.length, rowH=26, top=46, longest=Math.max(1,...ch.labels.map(l=>Math.min(30,String(l).length))), labW=Math.max(80,Math.min(230,Math.round(longest*8+18))), H=top+n*rowH+16;
+  if(LANG==='fr'){
+    const x0=12+labW, max=Math.max(1,...ch.values), maxW=SV_W-12-x0-44;
+    let s=`<text x="${SV_W/2}" y="26" text-anchor="middle" font-size="16" font-weight="700" fill="#0F4C46">${svEsc(ch.title)}</text>`;
+    s+=`<line x1="${x0}" y1="${top-6}" x2="${x0}" y2="${H-10}" stroke="#999" stroke-width="1"/>`;
+    ch.labels.forEach((l,i)=>{
+      const y=top+i*rowH, bw=Math.round(ch.values[i]/max*maxW);
+      s+=`<text x="12" y="${y+16}" direction="ltr" text-anchor="start" font-size="13" fill="#1E2A28">${svEsc(svCut(l,30))}</text>`;
+      if(bw>0) s+=`<rect x="${x0}" y="${y+3}" width="${bw}" height="${rowH-8}" rx="3" fill="${color}"/>`;
+      s+=`<text x="${x0+bw+6}" y="${y+16}" direction="ltr" text-anchor="start" font-size="12.5" font-weight="700" fill="#1E2A28">${svEsc(ch.values[i])}</text>`;
+    });
+    return {h:H,inner:s};
+  }
+  const x0=SV_W-12-labW;
   const max=Math.max(1,...ch.values), maxW=x0-56;
   let s=`<text x="${SV_W/2}" y="26" text-anchor="middle" font-size="16" font-weight="700" fill="#0F4C46">${svEsc(ch.title)}</text>`;
   s+=`<line x1="${x0}" y1="${top-6}" x2="${x0}" y2="${H-10}" stroke="#999" stroke-width="1"/>`;
@@ -1539,7 +1574,7 @@ function svCols(ch,color){ // vertical columns per day
   let s=`<text x="${SV_W/2}" y="26" text-anchor="middle" font-size="16" font-weight="700" fill="#0F4C46">${svEsc(ch.title)}</text>`;
   s+=`<line x1="${left}" y1="${top+plotH}" x2="${SV_W-right}" y2="${top+plotH}" stroke="#999" stroke-width="1"/>`;
   ch.labels.forEach((l,i)=>{
-    const cx=SV_W-right-slot*(i+0.5), bh=Math.round(ch.values[i]/max*plotH);
+    const cx=LANG==='fr'?left+slot*(i+0.5):SV_W-right-slot*(i+0.5), bh=Math.round(ch.values[i]/max*plotH);
     if(bh>0) s+=`<rect x="${(cx-bw/2).toFixed(1)}" y="${top+plotH-bh}" width="${bw.toFixed(1)}" height="${bh}" rx="3" fill="${color}"/>`;
     s+=`<text x="${cx.toFixed(1)}" y="${top+plotH-bh-5}" text-anchor="middle" font-size="12" font-weight="700" fill="#1E2A28">${svEsc(ch.values[i])}</text>`;
     s+=`<text x="${cx.toFixed(1)}" y="${top+plotH+18}" text-anchor="middle" font-size="${n>12?10.5:12.5}" fill="#5B6664">${svEsc(l)}</text>`;
@@ -1550,7 +1585,7 @@ function svWrap(parts){ // one standalone <svg> holding the given chart parts st
   let y=0, body='';
   parts.forEach(p=>{ body+=`<g transform="translate(0,${y})">${p.inner}</g>`; y+=p.h+10; });
   const H=Math.max(1,y-10);
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SV_W} ${H}" width="${SV_W}" height="${H}" font-family="${SV_FONT}"><rect width="${SV_W}" height="${H}" fill="#ffffff"/>${body}</svg>`;
+  return Th(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SV_W} ${H}" width="${SV_W}" height="${H}" font-family="${SV_FONT}"><rect width="${SV_W}" height="${H}" fill="#ffffff"/>${body}</svg>`);
 }
 function svChartParts(m){ const a=[svBars(m.chart,'#0F4C46')]; if(m.trend) a.push(svCols(m.trend,'#B3402F')); return a; }
 
@@ -1559,7 +1594,7 @@ function svTableHtml(m,forPrint){
   m.rows.forEach((r,i)=>{
     const pctW=forPrint?0:Math.round(m.hours[i]/m.maxHours*100);
     h+='<tr>'+r.map((x,j)=>{
-      const style=(j===3&&pctW)?` style="background:linear-gradient(to left,var(--absent-soft) ${pctW}%,transparent ${pctW}%)"`:'';
+      const style=(j===3&&pctW)?` style="background:linear-gradient(to ${LANG==='fr'?'right':'left'},var(--absent-soft) ${pctW}%,transparent ${pctW}%)"`:'';
       return '<td'+(j===0?' class="svn"':'')+style+'>'+svEsc(x)+'</td>';
     }).join('')+'</tr>';
   });
@@ -1688,7 +1723,8 @@ function svPick(kind,v){ if(kind==='period') svPeriod=v; else svGroup=v; svRende
 function printStats(){
   const m=svBuild(); if(m.empty) return;
   const logoEl=document.querySelector('.logo'); const logoSrc=logoEl.src; const logoWide=logoEl.classList.contains('wide');
-  const html=`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8">
+  const fr=LANG==='fr';
+  const html=Th(`<!DOCTYPE html><html lang="${fr?'fr':'ar'}" dir="${fr?'ltr':'rtl'}"><head><meta charset="UTF-8">
 <title>${svEsc(m.title)} - ${svEsc(m.sub)}</title>
 <style>
 @page{size:A4;margin:12mm}
@@ -1700,7 +1736,7 @@ h1{font-size:16px;margin:0}
 table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px}
 th,td{border:1px solid #999;padding:5px 6px;text-align:center}
 th{background:#E4EFEC}
-td.svn{text-align:right;font-weight:700}
+td.svn{text-align:${fr?'left':'right'};font-weight:700}
 tr.svtot td{background:#eef4f3;font-weight:700}
 .note{font-size:11px;color:#5B6664;margin-top:8px}
 .charts{margin:8px 0 14px;page-break-inside:avoid;border:1px solid #ccc;border-radius:6px}
@@ -1708,12 +1744,12 @@ tr.svtot td{background:#eef4f3;font-weight:700}
 tr{page-break-inside:avoid}thead{display:table-header-group}
 </style></head>
 <body onload="window.print()">
-<div class="phead"><img src="${logoSrc}"><div><h1>${svEsc(m.title)} — ${svEsc(m.sub)}</h1><div class="psub">${svEsc(state.instName)} — ${svEsc(svGroupLabel()+(svFilterLabel()?' — '+svFilterLabel():''))}</div></div></div>
+<div class="phead"><img src="${logoSrc}"><div><h1>${svEsc(m.title)} — ${svEsc(m.sub)}</h1><div class="psub">${svEsc(fr?instDisplay():state.instName)} — ${svEsc(svGroupLabel()+(svFilterLabel()?' — '+svFilterLabel():''))}</div></div></div>
 <div class="charts">${svWrap(svChartParts(m))}</div>
 ${svTableHtml(m,true)}
 ${m.note?'<div class="note">'+svEsc(m.note)+'</div>':''}
 <div class="note">طُبع بتاريخ ${svEsc(todayIso())}</div>
-</body></html>`;
+</body></html>`);
   const blob=new Blob([html],{type:'text/html'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1744,15 +1780,15 @@ function svExportPng(){
 }
 function svExportXls(){
   const m=svBuild(); if(m.empty) return;
-  const info=[[state.instName||''],[m.title+' — '+m.sub],[svGroupLabel()+(svFilterLabel()?' — '+svFilterLabel():'')],[]];
-  const main=info.concat([m.head],m.rows,[m.total]);
-  const tr=m.trend?[['اليوم','التاريخ','ساعات الغياب','التلاميذ الغائبون']].concat(m.trend.labels.map((l,i)=>[l,m.trend.dates[i],m.trend.hours[i],m.trend.absent[i]])):null;
+  const info=[[(LANG==='fr'?instDisplay():state.instName)||''],[m.title+' — '+m.sub],[svGroupLabel()+(svFilterLabel()?' — '+svFilterLabel():'')],[]];
+  const main=info.concat([m.head],m.rows,[m.total]).map(r=>r.map(T));
+  const tr=m.trend?[['اليوم','التاريخ','ساعات الغياب','التلاميذ الغائبون']].concat(m.trend.labels.map((l,i)=>[l,m.trend.dates[i],m.trend.hours[i],m.trend.absent[i]])).map(r=>r.map(T)):null;
   if(typeof XLSX!=='undefined'){
     const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(main);
     ws['!cols']=m.head.map((_,i)=>({wch:i===0?30:16}));
-    XLSX.utils.book_append_sheet(wb,ws,'الإحصائيات');
-    if(tr){ const w2=XLSX.utils.aoa_to_sheet(tr); w2['!cols']=[{wch:14},{wch:14},{wch:16},{wch:18}]; XLSX.utils.book_append_sheet(wb,w2,'التطور اليومي'); }
-    wb.Workbook={Views:[{RTL:true}]};
+    XLSX.utils.book_append_sheet(wb,ws,T('الإحصائيات'));
+    if(tr){ const w2=XLSX.utils.aoa_to_sheet(tr); w2['!cols']=[{wch:14},{wch:14},{wch:16},{wch:18}]; XLSX.utils.book_append_sheet(wb,w2,T('التطور اليومي')); }
+    wb.Workbook={Views:[{RTL:LANG!=='fr'}]};
     XLSX.writeFile(wb,svFileBase()+'.xlsx');
   }else{
     const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
