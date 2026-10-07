@@ -65,6 +65,7 @@ td.name{text-align:right;padding-inline-start:8px;font-weight:500;position:stick
 td.num{color:var(--ink-soft);width:26px}
 /* a clear, thick vertical line between the morning and the evening periods of every day */
 .sep{border-inline-start:3px solid var(--teal)!important}
+.dend{border-inline-end:3px solid var(--teal)!important}
 .meta input{width:78px;border:1px dashed var(--line);background:transparent;color:var(--ink);font-family:inherit;font-size:11px;text-align:center;border-radius:4px;padding:2px}
 .meta input:first-child{margin-bottom:2px}
 .cell{cursor:pointer;width:30px;height:26px;user-select:none}
@@ -319,9 +320,11 @@ function pcount(){ return validPc(state&&state.pc); }
 function totalCols(pc){ pc=pc||pcount(); return 5*(pc[0]+pc[1]); }
 function colInfo(i,pc){ pc=pc||pcount(); const W=pc[0]+pc[1], d=Math.floor(i/W), r=i%W; return r<pc[0]?{d,s:0,p:r}:{d,s:1,p:r-pc[0]}; }
 function colIndex(d,s,p,pc){ pc=pc||pcount(); return d*(pc[0]+pc[1])+(s?pc[0]:0)+p; }
-// first evening column of a day (when the day also has morning periods): carries the thick separator
-function sepCol(i,pc){ pc=pc||pcount(); if(!pc[0]||!pc[1]) return ''; const o=colInfo(i,pc); return (o.s===1&&o.p===0)?' sep':''; }
-function sepDay(j,pc){ pc=pc||pcount(); return ((j&1)&&pc[0]&&pc[1])?' sep':''; }
+// thick vertical lines: between the morning and the evening periods of a day (' sep') and after the last
+// period of every day (' dend'). Border classes only; nothing here changes the data.
+function sepPer(j,p,pc){ pc=pc||pcount(); const s=j&1; let r=''; if(p===0&&s===1&&pc[0]&&pc[1]) r+=' sep'; if(p===pc[s]-1&&s===(pc[1]?1:0)) r+=' dend'; return r; }
+function sepDay(j,pc){ pc=pc||pcount(); const s=j&1; if(!pc[s]) return ''; let r=''; if(s===1&&pc[0]) r+=' sep'; if(s===(pc[1]?1:0)) r+=' dend'; return r; }
+function sepCol(i,pc){ pc=pc||pcount(); const o=colInfo(i,pc); return sepPer(o.d*2+o.s,o.p,pc); }
 function colLabelPc(i,pc){ const o=colInfo(i,pc); return DAYS[o.d*2+o.s]+" ح"+(o.p+1); }
 // DAYS[j] (day + shift) -> {start, n} columns of that half-day
 function shiftSpan(j,pc){ pc=pc||pcount(); return {start:colIndex(j>>1,j&1,0,pc),n:pc[j&1]}; }
@@ -924,7 +927,7 @@ function renderTable(){
   const pc=pcount(), NC=totalCols(pc);
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
-  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${p===0?sepDay(j,pc):''}">ح${p+1}</th>`; });
+  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${sepPer(j,p,pc)}">ح${p+1}</th>`; });
   html+='</tr><tr><th class="hl" colspan="5"></th>';
   const dis=canWrite?'':'disabled';
   for(let i=0;i<NC;i++){
@@ -953,7 +956,7 @@ function renderTable(){
   html+='<tfoot><tr><th colspan="5" rowspan="2">أيام الأسبوع والحصص</th>';
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
-  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${p===0?sepDay(j,pc):''}">ح${p+1}</th>`; });
+  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${sepPer(j,p,pc)}">ح${p+1}</th>`; });
   html+='</tr></tfoot></table>';
   if(canWrite){
     html+=`<div class="addbar">
@@ -997,7 +1000,7 @@ function triggerPrint(){
   for(let i=0;i<NC;i++) metaRow+=`<th class="pmeta${sepCol(i,pc)}">${(cls.columns[i].subject||'').trim()||'—'}<br><span class="pteacher">${(cls.columns[i].teacher||'').trim()||'—'}</span></th>`;
   let dayHeader='',perHeader='';
   DAYS.forEach((d,j)=>{ if(pc[j&1]) dayHeader+=`<th class="${sepDay(j,pc).trim()}" colspan="${pc[j&1]}">${d}</th>`; });
-  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) perHeader+=`<th class="${p===0?sepDay(j,pc).trim():''}">ح${p+1}</th>`; });
+  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) perHeader+=`<th class="${sepPer(j,p,pc).trim()}">ح${p+1}</th>`; });
   const weekInfo=(state.weekFrom&&state.weekTo)?`الأسبوع من ${state.weekFrom} إلى ${state.weekTo}`:'';
   const fr=LANG==='fr', pdir=fr?'ltr':'rtl', palign=fr?'left':'right';
   const html=Th(`<!DOCTYPE html><html lang="${fr?'fr':'ar'}" dir="${pdir}"><head><meta charset="UTF-8">
@@ -1016,6 +1019,7 @@ th.pmeta{font-size:8px}
 .pname{text-align:${palign}}
 .ptotal{font-weight:700;background:#eef4f3}
 .sep{border-inline-start:2.5px solid #0F4C46!important}
+.dend{border-inline-end:2.5px solid #0F4C46!important}
 .pfoot{background:#eef4f3;font-weight:700}
 </style></head>
 <body onload="window.print()">
