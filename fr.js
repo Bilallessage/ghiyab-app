@@ -52,7 +52,7 @@
     // titles, login
     'ورقة ضبط الغياب الأسبوعية': "Feuille hebdomadaire de suivi des absences",
     'جارٍ التحميل…': 'Chargement…',
-    'ورقة ضبط غياب التلاميذ': "Suivi des absences des élèves",
+    'تتبع غياب التلاميذ': "Suivi des absences des élèves",
     'سجّلوا الدخول للاطلاع على البيانات': 'Connectez-vous pour consulter les données',
     'دخول': 'Se connecter',
     'إنشاء حساب': 'Créer un compte',
@@ -324,7 +324,7 @@
     [/^المبيان: (.+) (حسب .+)$/, function (m, t) { var g = t(m[2]); return 'Graphique : ' + t(m[1]) + ' ' + g.charAt(0).toLowerCase() + g.slice(1); }],
     [/^التطور اليومي: (.+)$/, 'Évolution journalière : %1'],
     [/^(.*) — الأكثر غيابا$/, '$1 — le plus absent'],
-    [new RegExp('^(.*) — (' + HRS + ') غياب هذا الشهر$'), '$1 — %2 d\'absence ce mois-ci'],
+    [new RegExp('^(?:(.*) )?— (' + HRS + ') غياب هذا الشهر$'), function (m, t) { return (m[1] ? m[1] + ' ' : '') + '— ' + t(m[2]) + " d'absence ce mois-ci"; }],
     [/^طُبع بتاريخ (.+)$/, 'Imprimé le $1'],
     [/^المجموع \((\d+) تلميذ\)$/, function (m) { return 'Total (' + pl(m[1], 'élève', 'élèves') + ')'; }],
     [/^الأسبوع من (\S+) إلى (\S+)$/, 'Semaine du $1 au $2'],
