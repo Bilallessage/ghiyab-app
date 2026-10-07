@@ -36,6 +36,7 @@ header{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:s
 h1{font-size:20px;font-weight:900;margin:0;color:var(--teal)}
 .sub{color:var(--ink-soft);font-size:12.5px;margin-top:2px}
 .week input{font-family:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 8px;font-size:13px}
+.btncol{display:inline-flex;vertical-align:middle;flex-direction:column;gap:6px;align-items:stretch}
 .week label{font-size:12px;color:var(--ink-soft);margin-inline-start:6px}
 .btn{display:inline-block;text-decoration:none;border:1px solid var(--teal);background:var(--teal);color:#fff;padding:7px 14px;border-radius:6px;font-family:inherit;font-size:13px;cursor:pointer;font-weight:500}
 .btn.ghost{background:transparent;color:var(--teal)}
@@ -167,7 +168,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
     <label>إلى</label><input type="date" id="wTo">
     <span class="userchip" id="userChip" style="display:none"></span>
     <button class="btn ghost" id="logoutBtn" style="display:none" onclick="logout()">خروج</button>
-    <button class="btn ghost" id="statsBtn" onclick="openStats()">📊 الإحصائيات</button>
+    <div class="btncol"><button class="btn ghost" id="statsBtn" onclick="openStats()">📊 الإحصائيات</button><button class="btn ghost" id="usersBtn" style="display:none" onclick="usersDialog()" title="الموافقة على طلبات حسابات الاطلاع">👥 طلبات الحسابات <span id="usersBadge" style="display:none;background:var(--absent);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-inline-start:4px">0</span></button></div>
     <button class="btn ghost" onclick="triggerPrint()">طباعة</button>
   </div>
 </header>
@@ -209,16 +210,12 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
   <button class="btn ghost" id="logoBtn" style="display:none" onclick="logoDialog()" title="تغيير شعار المؤسسة الظاهر في أعلى الصفحة وفي الطباعة">🖼️ شعار المؤسسة</button>
   <button class="btn ghost" id="periodsBtn" style="display:none" onclick="periodsDialog()" title="إضافة حصة أو حذفها صباحا أو مساء لتلائم النظام الدراسي للمؤسسة">🧮 عدد الحصص</button>
   <button class="btn ghost" id="timesBtn" style="display:none" onclick="editPeriodTimes()" title="بداية كل حصة، لمنع تسجيل غياب حصة لم يحن وقتها">⏰ توقيت الحصص</button>
-  <button class="btn ghost" id="usersBtn" style="display:none" onclick="usersDialog()" title="الموافقة على طلبات حسابات الاطلاع">👥 طلبات الحسابات <span id="usersBadge" style="display:none;background:var(--absent);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-inline-start:4px">0</span></button>
   <button class="btn ghost" id="prevWeekBtn" style="display:none" onclick="toggleOtherWeek()" title="عرض الأسبوع الماضي لتصحيح غياب سُجّل بالخطأ">⏪ الأسبوع الماضي</button>
   <button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()">🗓️ أسبوع جديد</button>
   <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
 </div>
 <div class="tabs" id="tabs"></div>
-<div class="toolbar" id="importRow">
-  <button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
-  <input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this.files[0])">
-</div>
+<input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this.files[0])">
 <div class="panel" id="tableHost"></div>
 
 <div class="panel" id="autoPanel">
@@ -433,10 +430,6 @@ function applyPermissionUI(){
   if(lgImg){ lgImg.style.cursor=canWrite?'pointer':''; lgImg.title=canWrite?'تغيير الشعار':''; lgImg.onclick=canWrite?logoDialog:null; }
   const nwBtn=document.getElementById('newWeekBtn');
   if(nwBtn) nwBtn.style.display=canWrite?'inline-block':'none';
-  const importBtn=document.getElementById('importBtn');
-  if(importBtn) importBtn.style.display=canWrite?'inline-block':'none';
-  const importRow=document.getElementById('importRow');
-  if(importRow) importRow.style.display=canWrite?'flex':'none';
   const instEdit=document.getElementById('instEditIcon');
   if(instEdit) instEdit.style.display=canWrite?'inline':'none';
   ['wFrom','wTo'].forEach(id=>{ const el=document.getElementById(id); if(el) el.disabled=ro; });
@@ -941,6 +934,7 @@ function renderTable(){
     html+=`<div class="addbar">
       <input id="newName" placeholder="اسم التلميذ الجديد" onkeydown="if(event.key==='Enter')addStudent()">
       <button class="btn" onclick="addStudent()">إضافة تلميذ</button>
+      <button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
     </div>`;
   }
   host.innerHTML=html;
