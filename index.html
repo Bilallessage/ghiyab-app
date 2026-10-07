@@ -63,6 +63,8 @@ th.day{background:var(--teal-soft);color:var(--teal);font-weight:700;font-size:1
 th.per{background:var(--panel);font-weight:500;color:var(--ink-soft)}
 td.name{text-align:right;padding-inline-start:8px;font-weight:500;position:sticky;right:0;background:var(--panel);min-width:150px}
 td.num{color:var(--ink-soft);width:26px}
+/* a clear, thick vertical line between the morning and the evening periods of every day */
+.sep{border-inline-start:3px solid var(--teal)!important}
 .meta input{width:78px;border:1px dashed var(--line);background:transparent;color:var(--ink);font-family:inherit;font-size:11px;text-align:center;border-radius:4px;padding:2px}
 .meta input:first-child{margin-bottom:2px}
 .cell{cursor:pointer;width:30px;height:26px;user-select:none}
@@ -317,6 +319,9 @@ function pcount(){ return validPc(state&&state.pc); }
 function totalCols(pc){ pc=pc||pcount(); return 5*(pc[0]+pc[1]); }
 function colInfo(i,pc){ pc=pc||pcount(); const W=pc[0]+pc[1], d=Math.floor(i/W), r=i%W; return r<pc[0]?{d,s:0,p:r}:{d,s:1,p:r-pc[0]}; }
 function colIndex(d,s,p,pc){ pc=pc||pcount(); return d*(pc[0]+pc[1])+(s?pc[0]:0)+p; }
+// first evening column of a day (when the day also has morning periods): carries the thick separator
+function sepCol(i,pc){ pc=pc||pcount(); if(!pc[0]||!pc[1]) return ''; const o=colInfo(i,pc); return (o.s===1&&o.p===0)?' sep':''; }
+function sepDay(j,pc){ pc=pc||pcount(); return ((j&1)&&pc[0]&&pc[1])?' sep':''; }
 function colLabelPc(i,pc){ const o=colInfo(i,pc); return DAYS[o.d*2+o.s]+" ح"+(o.p+1); }
 // DAYS[j] (day + shift) -> {start, n} columns of that half-day
 function shiftSpan(j,pc){ pc=pc||pcount(); return {start:colIndex(j>>1,j&1,0,pc),n:pc[j&1]}; }
@@ -917,13 +922,13 @@ function renderTable(){
   const selAllCell=canWrite?'<input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)">':'';
   let html=`<table><thead><tr><th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th><th class="hl" rowspan="2">م</th><th class="hl" rowspan="2">الاسم الكامل</th><th class="hl" rowspan="2">هاتف ولي الأمر</th>`;
   const pc=pcount(), NC=totalCols(pc);
-  DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day" colspan="${pc[j&1]}">${d}</th>`; });
+  DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
-  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per">ح${p+1}</th>`; });
+  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${p===0?sepDay(j,pc):''}">ح${p+1}</th>`; });
   html+='</tr><tr><th class="hl" colspan="5"></th>';
   const dis=canWrite?'':'disabled';
   for(let i=0;i<NC;i++){
-    html+=`<th class="meta"><input ${dis} placeholder="المادة" value="${cls.columns[i].subject}" oninput="setMeta(${i},'subject',this.value)">
+    html+=`<th class="meta${sepCol(i,pc)}"><input ${dis} placeholder="المادة" value="${cls.columns[i].subject}" oninput="setMeta(${i},'subject',this.value)">
       <input ${dis} placeholder="الأستاذ(ة)" value="${cls.columns[i].teacher}" oninput="setMeta(${i},'teacher',this.value)"></th>`;
   }
   html+='</tr></thead><tbody>';
@@ -934,21 +939,21 @@ function renderTable(){
     for(let i=0;i<NC;i++){
       const ab=cls.absences[si][i];
       const click=canWrite?` onclick="toggleCell(${si},${i})"`:'';
-      html+=`<td class="cell${ab?' absent':''}${canWrite?'':' readonly'}${colIsFuture(i)?' future':''}" data-ci="${i}"${click}>${ab?'غ':''}</td>`;
+      html+=`<td class="cell${ab?' absent':''}${canWrite?'':' readonly'}${colIsFuture(i)?' future':''}${sepCol(i,pc)}" data-ci="${i}"${click}>${ab?'غ':''}</td>`;
     }
     html+='</tr>';
   });
   html+='<tr class="foot"><td colspan="5">عدد الغياب في الحصة</td>';
   for(let i=0;i<NC;i++){
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
-    html+=`<td>${sum}</td>`;
+    html+=`<td class="${sepCol(i,pc).trim()}">${sum}</td>`;
   }
   html+='</tr></tbody>';
   // the days / periods rows again at the bottom of the list
   html+='<tfoot><tr><th colspan="5" rowspan="2">أيام الأسبوع والحصص</th>';
-  DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day" colspan="${pc[j&1]}">${d}</th>`; });
+  DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
-  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per">ح${p+1}</th>`; });
+  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${p===0?sepDay(j,pc):''}">ح${p+1}</th>`; });
   html+='</tr></tfoot></table>';
   if(canWrite){
     html+=`<div class="addbar">
@@ -979,20 +984,20 @@ function triggerPrint(){
     const total=cls.absences[si].filter(Boolean).length;
     grandTotal+=total;
     rows+=`<tr><td class="pnum">${si+1}</td><td class="pname">${name}</td>`;
-    for(let i=0;i<NC;i++) rows+=`<td class="pcell">${cls.absences[si][i]?'غ':''}</td>`;
+    for(let i=0;i<NC;i++) rows+=`<td class="pcell${sepCol(i,pc)}">${cls.absences[si][i]?'غ':''}</td>`;
     rows+=`<td class="ptotal">${total}</td></tr>`;
   });
   let footRow='<tr class="pfoot"><td colspan="2">مجموع غياب القسم في كل حصة</td>';
   for(let i=0;i<NC;i++){
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
-    footRow+=`<td>${sum}</td>`;
+    footRow+=`<td class="${sepCol(i,pc).trim()}">${sum}</td>`;
   }
   footRow+=`<td>${grandTotal}</td></tr>`;
   let metaRow='';
-  for(let i=0;i<NC;i++) metaRow+=`<th class="pmeta">${(cls.columns[i].subject||'').trim()||'—'}<br><span class="pteacher">${(cls.columns[i].teacher||'').trim()||'—'}</span></th>`;
+  for(let i=0;i<NC;i++) metaRow+=`<th class="pmeta${sepCol(i,pc)}">${(cls.columns[i].subject||'').trim()||'—'}<br><span class="pteacher">${(cls.columns[i].teacher||'').trim()||'—'}</span></th>`;
   let dayHeader='',perHeader='';
-  DAYS.forEach((d,j)=>{ if(pc[j&1]) dayHeader+=`<th colspan="${pc[j&1]}">${d}</th>`; });
-  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) perHeader+=`<th>ح${p+1}</th>`; });
+  DAYS.forEach((d,j)=>{ if(pc[j&1]) dayHeader+=`<th class="${sepDay(j,pc).trim()}" colspan="${pc[j&1]}">${d}</th>`; });
+  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) perHeader+=`<th class="${p===0?sepDay(j,pc).trim():''}">ح${p+1}</th>`; });
   const weekInfo=(state.weekFrom&&state.weekTo)?`الأسبوع من ${state.weekFrom} إلى ${state.weekTo}`:'';
   const fr=LANG==='fr', pdir=fr?'ltr':'rtl', palign=fr?'left':'right';
   const html=Th(`<!DOCTYPE html><html lang="${fr?'fr':'ar'}" dir="${pdir}"><head><meta charset="UTF-8">
@@ -1010,6 +1015,7 @@ th.pmeta{font-size:8px}
 .pteacher{color:#5B6664}
 .pname{text-align:${palign}}
 .ptotal{font-weight:700;background:#eef4f3}
+.sep{border-inline-start:2.5px solid #0F4C46!important}
 .pfoot{background:#eef4f3;font-weight:700}
 </style></head>
 <body onload="window.print()">
