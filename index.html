@@ -148,7 +148,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
     <input type="password" id="authPass2" class="modal-input" placeholder="أعيدوا كتابة كلمة المرور" autocomplete="new-password" dir="ltr" style="display:none">
     <div id="authError" role="alert" style="color:var(--absent);font-size:12.5px;min-height:16px;margin-bottom:10px;line-height:1.5"></div>
     <button class="btn" id="authSubmit" type="submit" style="width:100%">دخول</button>
-    <p class="sub" id="authHint" style="margin:12px 0 0;text-align:center;line-height:1.6">الحسابات الجديدة تُنشأ للاطلاع فقط. التعديل مخصّص للمسؤول.</p>
+    <p class="sub" id="authHint" style="margin:12px 0 0;text-align:center;line-height:1.6">حسابات الاطلاع الجديدة تحتاج إلى موافقة المسؤول قبل الدخول. التعديل مخصّص للمسؤول.</p>
   </form>
 </div>
 
@@ -211,6 +211,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
   <input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this.files[0])">
   <button class="btn ghost" id="timesBtn" style="display:none" onclick="editPeriodTimes()" title="بداية كل حصة، لمنع تسجيل غياب حصة لم يحن وقتها">⏰ توقيت الحصص</button>
   <button class="btn ghost" id="periodsBtn" style="display:none" onclick="periodsDialog()" title="إضافة حصة أو حذفها صباحا أو مساء لتلائم النظام الدراسي للمؤسسة">🧮 عدد الحصص</button>
+  <button class="btn ghost" id="usersBtn" style="display:none" onclick="usersDialog()" title="الموافقة على طلبات حسابات الاطلاع">👥 طلبات الحسابات <span id="usersBadge" style="display:none;background:var(--absent);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-inline-start:4px">0</span></button>
   <button class="btn ghost" id="logoBtn" style="display:none" onclick="logoDialog()" title="تغيير شعار المؤسسة الظاهر في أعلى الصفحة وفي الطباعة">🖼️ شعار المؤسسة</button>
   <button class="btn ghost" id="prevWeekBtn" style="display:none" onclick="toggleOtherWeek()" title="عرض الأسبوع الماضي لتصحيح غياب سُجّل بالخطأ">⏪ الأسبوع الماضي</button>
   <button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()">🗓️ أسبوع جديد</button>
@@ -251,6 +252,15 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
   </div>
 </div>
 </div>
+</div>
+
+<div class="modal-overlay" id="usersOverlay" style="display:none">
+  <div class="modal-box" style="max-width:520px;max-height:85vh;overflow:auto">
+    <h3 style="margin:0 0 6px;color:var(--teal);font-size:15px">حسابات الاطلاع</h3>
+    <p class="sub" style="margin:0 0 12px;line-height:1.6">من يسجّل حسابا جديدا من صفحة الدخول لا يستطيع الدخول حتى توافقوا على طلبه هنا. الحسابات المقبولة تطلع على الجدول والإحصائيات فقط دون تعديل.</p>
+    <div id="usersBody" style="margin-bottom:12px"></div>
+    <div class="modal-actions"><button class="btn ghost" type="button" onclick="usersClose()">إغلاق</button></div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="modalOverlay" style="display:none">
@@ -413,6 +423,8 @@ function applyPermissionUI(){
   if(tmBtn) tmBtn.style.display=canWrite?'inline-block':'none';
   const pdBtn=document.getElementById('periodsBtn');
   if(pdBtn) pdBtn.style.display=canWrite?'inline-block':'none';
+  const usBtn=document.getElementById('usersBtn');
+  if(usBtn) usBtn.style.display=canWrite?'inline-block':'none';
   const lgBtn=document.getElementById('logoBtn');
   if(lgBtn) lgBtn.style.display=canWrite?'inline-block':'none';
   const lgImg=document.querySelector('.logo');
@@ -466,8 +478,8 @@ function setAuthMode(m,keepMsg){
   document.getElementById('authPass').autocomplete=reg?'new-password':'current-password';
   document.getElementById('authSubmit').textContent=reg?'إنشاء الحساب':'دخول';
   document.getElementById('authHint').textContent=reg
-    ? 'سيُنشأ حساب للاطلاع فقط (كلمة المرور 8 أحرف على الأقل).'
-    : 'الحسابات الجديدة تُنشأ للاطلاع فقط. التعديل مخصّص للمسؤول.';
+    ? 'سيُرسَل طلب حساب للاطلاع فقط (كلمة المرور 8 أحرف على الأقل). لا يعمل الحساب إلا بعد موافقة المسؤول.'
+    : 'حسابات الاطلاع الجديدة تحتاج إلى موافقة المسؤول قبل الدخول. التعديل مخصّص للمسؤول.';
   if(!keepMsg) document.getElementById('authError').textContent='';
 }
 function showGate(msg){
@@ -490,7 +502,7 @@ async function submitAuth(ev){
   const btn=document.getElementById('authSubmit');
   const email=document.getElementById('authEmail').value.trim();
   const pass=document.getElementById('authPass').value;
-  err.textContent='';
+  err.textContent=''; err.style.color='';
   if(authMode==='register' && pass!==document.getElementById('authPass2').value){
     err.textContent='كلمتا المرور غير متطابقتين'; return false;
   }
@@ -500,7 +512,16 @@ async function submitAuth(ev){
     const res=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({action:authMode,email:email,password:pass})});
     let data={}; try{ data=await res.json(); }catch(e){}
+    if(res.ok && data.pending){
+      // sign-up request filed: no session yet, the admin must approve it first
+      authMode='login'; setAuthMode('login');
+      document.getElementById('authPass').value=''; document.getElementById('authPass2').value='';
+      err.style.color='var(--teal)';
+      err.textContent=data.message||'تم إرسال طلبكم إلى المسؤول.';
+      btn.disabled=false; return false;
+    }
     if(!res.ok || !data.token){
+      err.style.color='';
       err.textContent=data.message||'تعذر إتمام العملية، أعيدوا المحاولة';
       btn.disabled=false; btn.textContent=label; return false;
     }
@@ -1850,6 +1871,67 @@ async function toggleOtherWeek(){
   swap(a,'سيُعرض الأسبوع الماضي ('+a.weekFrom+') من سجل الإحصائيات: يظهر فيه التلاميذ الذين سُجّل غيابهم (أسماء المواد والأساتذة تبقى كما هي في الجدول). صحّحوا ما يلزم ثم عودوا إلى الأسبوع الحالي.\n\nالمتابعة؟');
 }
 
+// ---- approving viewer accounts (admin) ---------------------------------------
+async function usersFetch(all){
+  const r=await fetch('/api/users'+(all?'?all=1':''),{headers:authHeaders()});
+  if(r.status===401){ onAuthRejected(); return null; }
+  if(!r.ok) return null;
+  return r.json();
+}
+function usersBadge(n){
+  const b=document.getElementById('usersBadge'); if(!b) return;
+  b.textContent=n; b.style.display=n?'inline-block':'none';
+}
+async function usersRefreshCount(){
+  if(!canWrite) return;
+  try{ const d=await usersFetch(false); if(d) usersBadge(d.pending.length); }catch(e){ /* try again next minute */ }
+}
+function usersClose(){ document.getElementById('usersOverlay').style.display='none'; }
+async function usersDialog(){
+  if(!canWrite) return;
+  const body=document.getElementById('usersBody');
+  body.textContent='جارٍ التحميل…';
+  document.getElementById('usersOverlay').style.display='flex';
+  let d=null; try{ d=await usersFetch(true); }catch(e){}
+  if(!d){ body.textContent='تعذر تحميل القائمة، تحقّقوا من الاتصال وأعيدوا المحاولة.'; return; }
+  usersBadge(d.pending.length);
+  body.innerHTML='';
+  const day=t=>t?new Date(t).toISOString().slice(0,10):'';
+  const section=(title,list,buttons,empty)=>{
+    const h=document.createElement('div'); h.style.cssText='font-weight:700;font-size:13px;color:var(--teal);margin:10px 0 6px';
+    h.textContent=title+' ('+list.length+')'; body.appendChild(h);
+    if(!list.length){ const e=document.createElement('div'); e.className='sub'; e.textContent=empty; body.appendChild(e); return; }
+    list.forEach(u=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--line)';
+      const em=document.createElement('span'); em.dir='ltr'; em.textContent=u.email; em.style.cssText='flex:1;min-width:160px;font-size:13px;word-break:break-all;text-align:right';
+      const dt=document.createElement('span'); dt.className='sub'; dt.textContent=day(u.createdAt);
+      row.appendChild(em); row.appendChild(dt);
+      buttons.forEach(b=>{
+        const bt=document.createElement('button'); bt.className=b.cls; bt.textContent=b.label; bt.type='button';
+        bt.onclick=()=>b.go(u.email,bt); row.appendChild(bt);
+      });
+      body.appendChild(row);
+    });
+  };
+  section('طلبات بانتظار موافقتكم',d.pending,[
+    {label:'✔ قبول',cls:'btn',go:(e,bt)=>usersAct('approve',e,bt)},
+    {label:'✖ رفض',cls:'btn danger',go:(e,bt)=>usersAct('reject',e,bt)},
+  ],'لا توجد طلبات معلّقة.');
+  section('حسابات الاطلاع المقبولة',d.viewers||[],[
+    {label:'إزالة',cls:'btn ghost',go:(e)=>showConfirm('ستُزال إمكانية دخول هذا الحساب ('+e+') فورا. المتابعة؟',()=>usersAct('remove',e))},
+  ],'لا توجد حسابات مقبولة بعد.');
+}
+async function usersAct(action,email,btn){
+  if(btn) btn.disabled=true;
+  try{
+    const r=await fetch('/api/users',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({action,email})});
+    if(r.status===401){ onAuthRejected(); return; }
+    if(!r.ok && r.status!==404){ showAlert('تعذر تنفيذ العملية، أعيدوا المحاولة.'); if(btn) btn.disabled=false; return; }
+  }catch(e){ showAlert('تعذر الاتصال بالخادم.'); if(btn) btn.disabled=false; return; }
+  usersDialog();
+}
+
 // ---- institution logo ------------------------------------------------------
 // Order of precedence: the logo uploaded by the admin (kept on the server, so
 // every device shows it) > LOGO_FILE from /logos > the built-in default.
@@ -1972,6 +2054,7 @@ function logoReset(){
 async function startApp(){
   updateInstName();
   applyPermissionUI();      // sets controls for the current role and renders
+  if(canWrite){ usersRefreshCount(); setInterval(usersRefreshCount,60000); }
   const branding=applyBranding();
   await initSync();         // read the shared sheet first...
   await branding;

@@ -145,6 +145,40 @@ function getSession(req) {
   return m ? verifyToken(m[1].trim()) : null;
 }
 
+// ---- viewer accounts need the admin's approval -------------------------------
+// A record without `status` is an old, already-approved account. New sign-ups are
+// stored as status:'pending' (and listed in USERS_PENDING) until the admin approves.
+const userKey = (email) => PREFIX + ':user:' + email;
+const PENDING_KEY = PREFIX + ':pending';
+
+// Does this viewer still have an approved account? (A removed or still-pending
+// account must not keep working with a token it already holds.) The answer is
+// cached for a minute per server instance, so polling does not double the Redis traffic.
+const viewerCache = new Map();
+async function viewerActive(email) {
+  const now = Date.now();
+  const c = viewerCache.get(email);
+  if (c && now - c.t < 60000) return c.ok;
+  let ok;
+  try {
+    const u = await getRedis().get(userKey(email));
+    ok = !!(u && u.status !== 'pending');
+  } catch (e) { return true; } // Redis hiccup: the data call itself would fail anyway
+  if (viewerCache.size > 500) viewerCache.clear();
+  viewerCache.set(email, { ok, t: now });
+  return ok;
+}
+function forgetViewer(email) { viewerCache.delete(email); }
+
+// Session from the Authorization header, or null when missing / invalid / a
+// viewer whose account was removed.
+async function getActiveSession(req) {
+  const s = getSession(req);
+  if (!s) return null;
+  if (s.role === 'viewer' && !(await viewerActive(s.email))) return null;
+  return s;
+}
+
 // ---- rate limiting (fixed window, counted in Redis) ------------------------
 async function allow(key, limit, windowSec) {
   const redis = getRedis();
@@ -157,5 +191,6 @@ module.exports = {
   ADMIN_EMAIL, ADMIN_PASSWORD, PREFIX,
   configProblem, getRedis, send, parseBody, clientIp, normalizeEmail, validEmail,
   safeEqual, hashPassword, verifyPassword, dummyVerify,
-  signToken, verifyToken, getSession, allow,
+  signToken, verifyToken, getSession, getActiveSession, allow,
+  userKey, PENDING_KEY, viewerActive, forgetViewer,
 };

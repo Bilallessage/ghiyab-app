@@ -10,7 +10,7 @@ module.exports = async function handler(req, res) {
   const problem = L.configProblem();
   if (problem) return L.send(res, 503, { error: 'not_configured', message: problem });
 
-  const session = L.getSession(req);
+  const session = await L.getActiveSession(req);
   if (!session) return L.send(res, 401, { error: 'unauthorized' });
 
   const redis = L.getRedis();
