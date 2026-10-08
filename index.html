@@ -95,6 +95,7 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
 .row .muted{color:var(--ink-soft);font-size:12px;margin-inline-start:6px}
 .phone{width:110px;border:1px dashed var(--line);background:transparent;color:var(--ink);font-family:inherit;font-size:12px;text-align:center;border-radius:4px;padding:3px}
 .addbar{display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);min-width:900px}
+.addbar input.need{outline:2px solid var(--absent);outline-offset:1px}
 .addbar input{font-family:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:7px 10px;font-size:13px;flex:1;max-width:260px}
 @media print{.tabs,.btn,header .week{display:none}}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;align-items:center;justify-content:center;padding:20px}
@@ -502,7 +503,7 @@ function loadState(){
 let state=loadState();
 let currentClass=state.classNames[0];
 
-let dbNS=null, tableFocused=false, pendingRemoteState=null, pendingRemoteStr=null, lastAppliedStr=null, dbWriteTimer=null, writeInFlight=false;
+let lastWriteDone=0, dbNS=null, tableFocused=false, pendingRemoteState=null, pendingRemoteStr=null, lastAppliedStr=null, dbWriteTimer=null, writeInFlight=false;
 // ---- roles --------------------------------------------------------------
 // admin  : can read AND edit (only the admin email, decided by the server).
 // viewer : read only. The server enforces this on every request; canWrite
@@ -640,7 +641,7 @@ function onAuthRejected(){
 
 function save(){
   if(!canWrite) return; // viewers never write (the server refuses it anyway)
-  localStorage.setItem(KEY, JSON.stringify(state));
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} // a full / blocked browser storage must never stop the save
   if(!syncedOnce){ setSyncStatus('error'); return; } // never push before we have read the server's copy
   lastAppliedStr=JSON.stringify(state);
   writeInFlight=true; // block incoming polls from clobbering this edit until our own save actually lands
@@ -658,7 +659,7 @@ function save(){
           return;
         }
         if(!r.ok) throw new Error('bad status');
-        writeInFlight=false; setSyncStatus('online');
+        writeInFlight=false; lastWriteDone=Date.now(); setSyncStatus('online');
       })
       .catch(()=>{ writeInFlight=false; lastAppliedStr=null; setSyncStatus('error'); });
   },400);
@@ -703,6 +704,7 @@ async function initSync(){
 }
 async function pollRemote(){
   try{
+    const startedAt=Date.now();
     const res=await fetch('/api/state',{headers:authHeaders()});
     if(res.status===401){ onAuthRejected(); return; }
     if(!res.ok) throw new Error('bad status');
@@ -710,6 +712,7 @@ async function pollRemote(){
     lanServerOk=true;
     if(!raw || raw==='null' || raw===lastAppliedStr) { syncedOnce=true; return; }
     if(writeInFlight) return; // a local edit hasn't finished saving yet — never let a stale poll undo it
+    if(startedAt<=lastWriteDone) return; // this answer was requested before our last save landed: it may predate it
     const incoming=JSON.parse(raw);
     if(!incoming || !incoming.classNames || !incoming.classNames.length) return;
     syncedOnce=true;
@@ -1048,7 +1051,7 @@ function renderTable(){
   if(canWrite){
     html+=`<div class="addbar">
       <input id="newName" placeholder="اسم التلميذ الجديد" onkeydown="if(event.key==='Enter')addStudent()">
-      <button class="btn" onclick="addStudent()">إضافة تلميذ</button>
+      <button class="btn" id="addStuBtn" type="button" onmousedown="event.preventDefault()" onclick="addStudent()">إضافة تلميذ</button>
       <button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
     </div>`;
   }
@@ -1161,8 +1164,9 @@ function bulkDelete(){
 function addStudent(){
   if(!canWrite) return;
   const input=document.getElementById('newName');
+  if(!input) return;
   const name=input.value.trim();
-  if(!name) return;
+  if(!name){ input.focus(); input.classList.add('need'); setTimeout(()=>input.classList.remove('need'),1200); return; }
   const cls=state.data[currentClass];
   cls.names.push(name);
   cls.absences.push(blankRow());
@@ -1170,6 +1174,8 @@ function addStudent(){
   save();
   renderTable();
   renderStats();
+  const again=document.getElementById('newName');
+  if(again){ again.value=''; again.focus(); } // ready for the next name
 }
 function deleteStudent(si){
   if(!canWrite) return;
@@ -2191,7 +2197,7 @@ async function saveNow(){
     writeInFlight=false;
     if(r.status===401){ onAuthRejected(); return false; }
     if(!r.ok){ lastAppliedStr=null; return false; }
-    setSyncStatus('online'); return true;
+    lastWriteDone=Date.now(); setSyncStatus('online'); return true;
   }catch(e){ writeInFlight=false; lastAppliedStr=null; return false; }
 }
 
