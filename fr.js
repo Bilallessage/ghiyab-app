@@ -170,6 +170,13 @@
 
     // catch-up list
     '📚 قائمة التعويض': '📚 Liste de rattrapage',
+    '📲 إبلاغ الأولياء': '📲 Informer les parents',
+    '📲 إبلاغ': '📲 Informer',
+    'إبلاغ ولي الأمر بموعد حصة التعويض': 'Informer les parents de la séance de rattrapage',
+    'الساعة': 'Heure',
+    'المكان (اختياري)': 'Lieu (facultatif)',
+    'مثال: القاعة 3': 'Exemple : salle 3',
+    'معاينة الرسالة': 'Aperçu du message',
     'التلاميذ المتغيبون والمواد التي فاتتهم، لبرمجة حصص التعويض والدعم': 'Élèves absents et matières manquées, pour programmer les séances de rattrapage et de soutien',
     'حسب المادة': 'Par matière',
     'حسب التلميذ': 'Par élève',

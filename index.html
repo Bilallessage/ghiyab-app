@@ -128,6 +128,17 @@ table.sv td.svn{text-align:right;font-weight:700}
 table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--teal)}
 #statsView input[type=date],#statsView select,#catchView input[type=date],#catchView select{font-family:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 8px;font-size:13px}
 /* catch-up list */
+.cu-form{display:flex;flex-wrap:wrap;gap:10px}
+.cu-form label{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--ink-soft);flex:1;min-width:130px}
+.cu-form label.wide{flex-basis:100%}
+.cu-form input{font-family:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:7px 9px;font-size:14px}
+.cu-prev{white-space:pre-line;font-size:13px;line-height:1.7;background:var(--teal-soft);border-radius:8px;padding:8px 10px}
+.cu-rcp{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.cu-rcp .nm{flex:1;font-weight:700}.cu-rcp .nn{color:var(--ink-soft);font-size:12px}
+a.btn.wa.off{opacity:.45;pointer-events:none}
+a.btn.wa.done{background:var(--teal);border-color:var(--teal)}
+.cu-head .cu-act{padding:4px 11px;font-size:12px}
+table.cu td.act,table.cu th.act{width:92px;white-space:nowrap}
 .cu-sum{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
 .cu-sum span{background:var(--teal-soft);color:var(--teal);border-radius:14px;padding:3px 12px;font-size:12.5px;font-weight:700}
 .cu-block{border:1px solid var(--line);border-radius:10px;margin:0 0 14px;overflow:hidden;background:var(--panel)}
@@ -342,6 +353,23 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
   </div>
 </div>
 </div>
+</div>
+
+<div class="modal-overlay" id="cuMsgOverlay" style="display:none">
+  <div class="modal-box" style="max-width:560px;max-height:88vh;overflow:auto">
+    <h3 style="margin:0 0 4px;color:var(--teal);font-size:15px">إبلاغ ولي الأمر بموعد حصة التعويض</h3>
+    <div class="sub" id="cuMsgFor" style="margin-bottom:10px"></div>
+    <div class="cu-form">
+      <label>التاريخ <input type="date" id="cuMsgDate"></label>
+      <label>الساعة <input type="time" id="cuMsgTime"></label>
+      <label class="wide">المكان (اختياري) <input type="text" id="cuMsgPlace" placeholder="مثال: القاعة 3" maxlength="60"></label>
+    </div>
+    <div class="sub" id="cuMsgHint" style="margin:6px 0 8px"></div>
+    <div id="cuMsgList"></div>
+    <div class="sub" style="margin:10px 0 4px;font-weight:700">معاينة الرسالة</div>
+    <div id="cuMsgPrev" class="cu-prev"></div>
+    <div class="modal-actions" style="margin-top:12px"><button class="btn ghost" type="button" onclick="cuMsgClose()">إغلاق</button></div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="usersOverlay" style="display:none">
@@ -2027,10 +2055,11 @@ function cuHtml(m,pr){
     +(cuView==='subject'?'<span>'+svEsc(f?(m.nSubj===1?'1 matière':m.nSubj+' matières'):(m.nSubj===1?'مادة واحدة':m.nSubj===2?'مادتان':m.nSubj<=10?m.nSubj+' مواد':m.nSubj+' مادة'))+'</span>':'')+'</div>';
   let h=sum;
   if(cuView==='subject'){
-    m.subjects.forEach(s=>{
+    m.subjects.forEach((s,si)=>{
       h+='<div class="cu-block"><div class="cu-head"><b>'+svEsc(s.label)+'</b>'
         +(s.teachers.length?'<span class="cu-t">'+svEsc(f?'Professeur(e) :':'الأستاذ(ة):')+' '+svEsc(s.teachers.join(f?', ':'، '))+'</span>':'')
-        +'<span class="cu-n">'+svEsc(cuStuTxt(s.rows.length)+' · '+cuHrTxt(s.hours))+'</span></div>'
+        +'<span class="cu-n">'+svEsc(cuStuTxt(s.rows.length)+' · '+cuHrTxt(s.hours))+'</span>'
+        +(pr?'':'<button type="button" class="btn wa cu-act" onclick="cuMsgOpen(\'s\','+si+')">'+L('📲 إبلاغ الأولياء')+'</button>')+'</div>'
         +'<table class="sv cu"><thead><tr><th>'+L('التلميذ')+'</th><th>'+L('القسم')+'</th><th>'+L('الساعات')+'</th><th>'+L('الحصص الفائتة')+'</th>'
         +(pr?'<th class="bl">'+L('موعد التعويض')+'</th><th class="bl">'+L('ملاحظات')+'</th>':'')+'</tr></thead><tbody>'
         +s.rows.map(e=>'<tr><td class="svn">'+svEsc(e.name)+'</td><td>'+svEsc(e.cls)+'</td><td class="cuh">'+e.hours+'</td><td class="cus">'+svEsc(cuSessText(e.sess))+'</td>'
@@ -2038,9 +2067,9 @@ function cuHtml(m,pr){
         +'</tbody></table></div>';
     });
   }else{
-    h+='<table class="sv cu"><thead><tr><th>'+L('التلميذ')+'</th><th>'+L('القسم')+'</th><th>'+L('مجموع الساعات')+'</th><th>'+L('المواد الفائتة')+'</th>'+(pr?'<th class="bl">'+L('ملاحظات')+'</th>':'')+'</tr></thead><tbody>'
-      +m.students.map(g=>'<tr><td class="svn">'+svEsc(g.name)+'</td><td>'+svEsc(g.cls)+'</td><td class="cuh">'+g.hours+'</td><td class="cus">'
-        +svEsc(g.subj.map(x=>x.label+' ('+x.hours+')').join(' · '))+'</td>'+(pr?'<td class="blank"></td>':'')+'</tr>').join('')
+    h+='<table class="sv cu"><thead><tr><th>'+L('التلميذ')+'</th><th>'+L('القسم')+'</th><th>'+L('مجموع الساعات')+'</th><th>'+L('المواد الفائتة')+'</th>'+(pr?'<th class="bl">'+L('ملاحظات')+'</th>':'<th class="act"></th>')+'</tr></thead><tbody>'
+      +m.students.map((g,gi)=>'<tr><td class="svn">'+svEsc(g.name)+'</td><td>'+svEsc(g.cls)+'</td><td class="cuh">'+g.hours+'</td><td class="cus">'
+        +svEsc(g.subj.map(x=>x.label+' ('+x.hours+')').join(' · '))+'</td>'+(pr?'<td class="blank"></td>':'<td class="act"><button type="button" class="btn wa cu-act" onclick="cuMsgOpen(\'t\','+gi+')">'+L('📲 إبلاغ')+'</button></td>')+'</tr>').join('')
       +'</tbody></table>';
   }
   return h+'<div class="sub" style="margin-top:8px">'+cuNotes(m).map(x=>svEsc(x)).join('<br>')+'</div>';
@@ -2062,11 +2091,13 @@ function cuSync(m){
   document.getElementById('cuDates').style.display=cuPreset==='custom'?'':'none';
   document.querySelectorAll('#cuViewSeg .tab').forEach(b=>b.classList.toggle('active',b.dataset.v===cuView));
 }
+let cuLastM=null;
 function cuRender(){
   let m=cuBuild();
   const before=[cuClsF,cuLvlF,cuSubjF].join('|');
   cuSync(m);
   if([cuClsF,cuLvlF,cuSubjF].join('|')!==before) m=cuBuild(); // a chosen filter no longer exists -> reset and rebuild
+  cuLastM=m;
   const body=document.getElementById('cuBody'), ok=!m.empty;
   ['cuPrintBtn','cuXlsBtn'].forEach(id=>{ document.getElementById(id).disabled=!ok; });
   if(!cuWeeks.length){ body.innerHTML='<div class="empty">'+svEsc(T('لا توجد أسابيع مسجّلة بعد.'))+'</div>'; return; }
@@ -2117,6 +2148,55 @@ function closeCatch(){
   cuOpen=false;
   document.getElementById('catchView').style.display='none';
   document.getElementById('mainView').style.display='block';
+}
+
+// ---- tell the parents the date and time of the catch-up session (WhatsApp, same mechanism as the absence notices) ----
+// Nothing is stored: a read-only account (the support coordinator) can use it, the phone numbers come from the sheet.
+let cuMsgT=null, cuMsgVals={date:'',time:'',place:''};
+const CU_DAYS_AR=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const CU_DAYS_FR=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+function cuNextSchoolDay(){ let d=addDaysIso(todayIso(),1); for(let i=0;i<3;i++){ const w=new Date(d+'T00:00:00Z').getUTCDay(); if(w>=1&&w<=5) break; d=addDaysIso(d,1); } return d; }
+function cuPhone(cls,name){
+  const c=state.data&&state.data[cls]; if(!c) return '';
+  const i=(c.names||[]).findIndex(n=>String(n==null?'':n).trim()===name);
+  return i<0?'':normalizePhone((c.phones||[])[i]);
+}
+function cuMsgText(t,v){
+  const f=cuFr(), w=new Date(v.date+'T00:00:00Z').getUTCDay();
+  const dm=v.date.slice(8,10)+'/'+v.date.slice(5,7)+'/'+v.date.slice(0,4);
+  const subj=t.subjects.join(f?', ':'، ');
+  if(f) return "Bonjour, nous vous informons qu'une séance de rattrapage est programmée pour votre enfant « "+t.name+" » ("+frClass(t.cls)+")"
+    +(t.subjects.length?(t.subjects.length>1?' dans les matières : ':' en '+'matière : ')+subj:'')+', le '+CU_DAYS_FR[w]+' '+dm+' à '+v.time+(v.place?' ('+v.place+')':'')
+    +", afin de rattraper les séances manquées pour cause d'absence. Merci de veiller à sa présence.\nL'administration — "+instDisplay();
+  return 'السلام عليكم، نحيطكم علما بأنه تقررت حصة تعويض لابنكم/ابنتكم "'+t.name+'" (القسم '+t.cls+')'
+    +(t.subjects.length?(t.subjects.length>1?' في المواد التالية: ':' في مادة ')+subj:'')+'، وذلك يوم '+CU_DAYS_AR[w]+' '+dm+' على الساعة '+v.time+(v.place?' ('+v.place+')':'')
+    +'، لتدارك الحصص التي فاتته بسبب الغياب. المرجو التزامه بالحضور.\nإدارة '+state.instName;
+}
+function cuMsgOpen(kind,i){
+  const m=cuLastM; if(!m) return;
+  if(kind==='s'){ const s=m.subjects[i]; if(!s) return; cuMsgT={label:s.label,list:s.rows.map(e=>({name:e.name,cls:e.cls,subjects:[s.label]}))}; }
+  else{ const g=m.students[i]; if(!g) return; cuMsgT={label:g.name,list:[{name:g.name,cls:g.cls,subjects:g.subj.map(x=>x.label)}]}; }
+  if(!isoOk(cuMsgVals.date)||cuMsgVals.date<todayIso()) cuMsgVals.date=cuNextSchoolDay();
+  const f=cuFr();
+  document.getElementById('cuMsgFor').textContent=kind==='s'?(f?'Matière : ':'المادة: ')+cuMsgT.label+' — '+cuStuTxt(cuMsgT.list.length):(f?'Élève : ':'التلميذ: ')+cuMsgT.label;
+  const d=document.getElementById('cuMsgDate'), tm=document.getElementById('cuMsgTime'), pl=document.getElementById('cuMsgPlace');
+  d.value=cuMsgVals.date; tm.value=cuMsgVals.time; pl.value=cuMsgVals.place;
+  d.oninput=tm.oninput=pl.oninput=()=>{ cuMsgVals={date:d.value,time:tm.value,place:pl.value.trim()}; cuMsgRender(); };
+  document.getElementById('cuMsgOverlay').style.display='flex';
+  cuMsgRender();
+}
+function cuMsgClose(){ document.getElementById('cuMsgOverlay').style.display='none'; }
+function cuMsgRender(){
+  const f=cuFr(), v=cuMsgVals, ready=isoOk(v.date)&&/^\d\d:\d\d$/.test(v.time||'');
+  document.getElementById('cuMsgHint').textContent=ready?(f?"WhatsApp s'ouvre avec un message prêt pour chaque parent ; il suffit de cliquer sur « Envoyer ». Les numéros viennent du tableau.":'يُفتح واتساب برسالة جاهزة لكل ولي أمر، ويكفي الضغط على «إرسال». أرقام الهواتف مأخوذة من الجدول.')
+    :(f?"Choisissez la date et l'heure pour activer les boutons d'envoi.":'اختاروا التاريخ والساعة لتفعيل أزرار الإرسال.');
+  document.getElementById('cuMsgList').innerHTML=cuMsgT.list.map(t=>{
+    const ph=cuPhone(t.cls,t.name);
+    const act=!ph?'<span class="sub">'+svEsc(f?'Pas de numéro':'لا يوجد رقم هاتف')+'</span>'
+      :'<a class="btn wa'+(ready?'':' off')+'" target="_blank" rel="noopener noreferrer" href="'+(ready?'https://wa.me/'+ph+'?text='+encodeURIComponent(cuMsgText(t,v)):'#')+'" onclick="this.classList.add(\'done\');this.textContent=\''+(f?'✓ Envoyé':'✓ أُرسل')+'\'">'+svEsc(f?'📲 Envoyer':'📲 إرسال')+'</a>';
+    return '<div class="cu-rcp"><span class="nm">'+svEsc(t.name)+'</span><span class="nn">'+svEsc(t.cls)+'</span>'+act+'</div>';
+  }).join('');
+  document.getElementById('cuMsgPrev').textContent=ready?cuMsgText(cuMsgT.list[0],v):'';
 }
 
 function cuPrint(){
