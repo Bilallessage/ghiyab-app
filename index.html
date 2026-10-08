@@ -125,7 +125,22 @@ table.sv{min-width:0;width:100%}
 table.sv th{background:var(--teal-soft);color:var(--teal);font-weight:700}
 table.sv td.svn{text-align:right;font-weight:700}
 table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--teal)}
-#statsView input[type=date],#statsView select{font-family:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 8px;font-size:13px}
+#statsView input[type=date],#statsView select,#catchView input[type=date],#catchView select{font-family:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 8px;font-size:13px}
+/* catch-up list */
+.cu-sum{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+.cu-sum span{background:var(--teal-soft);color:var(--teal);border-radius:14px;padding:3px 12px;font-size:12.5px;font-weight:700}
+.cu-block{border:1px solid var(--line);border-radius:10px;margin:0 0 14px;overflow:hidden;background:var(--panel)}
+.cu-head{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;padding:8px 12px;background:color-mix(in srgb,var(--c-amber) 16%,var(--panel));border-bottom:1px solid var(--line)}
+.cu-head b{font-size:15px}
+.cu-head .cu-t{font-size:12.5px;color:var(--ink-soft)}
+.cu-head .cu-n{margin-inline-start:auto;font-size:12.5px;font-weight:700;color:var(--ink-soft)}
+.cu-block table.sv{margin:0}
+table.cu td{white-space:normal;word-break:break-word}table.cu td:nth-child(2){white-space:nowrap}
+@media(min-width:701px){table.cu{table-layout:fixed}}
+@media(max-width:700px){table.cu th,table.cu td{padding:5px 4px;font-size:12px}}
+table.cu th:nth-child(1){width:24%}table.cu th:nth-child(2){width:13%}table.cu th:nth-child(3){width:10%}
+.cu-block table.sv td.cus,table.cu td.cus{text-align:start;font-size:12.5px;line-height:1.7}
+.cu-block table.sv td.cuh,table.sv td.cuh{font-weight:700}
 .lvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
 .lvgrid label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--ink-soft)}
 .lvgrid input{font-family:inherit;border:1px dashed var(--line);background:transparent;color:var(--ink);border-radius:6px;padding:6px 8px;font-size:13px}
@@ -166,7 +181,7 @@ table.sv tr.svtot td{background:var(--teal-soft);font-weight:700;color:var(--tea
 .btn.ghost{--bc:var(--teal);color:var(--bc);border-color:color-mix(in srgb,var(--bc) 55%,transparent);background:color-mix(in srgb,var(--bc) 8%,transparent);transition:background .15s}
 .btn.ghost:hover:not(:disabled){background:color-mix(in srgb,var(--bc) 17%,transparent)}
 #logoBtn{--bc:var(--c-violet)} #periodsBtn{--bc:var(--c-blue)} #timesBtn{--bc:var(--c-amber)} #prevWeekBtn{--bc:var(--c-slate)} #newWeekBtn{--bc:var(--c-green)}
-#statsBtn{--bc:var(--c-indigo)} #usersBtn{--bc:var(--c-rose)} #printBtn{--bc:var(--c-slate)} #importBtn{--bc:var(--c-green)} #svXlsBtn{--bc:var(--c-green)} #svPngBtn{--bc:var(--c-violet)}
+#statsBtn{--bc:var(--c-indigo)} #catchBtn,#cuXlsBtn{--bc:var(--c-amber)} #cuXlsBtn{--bc:var(--c-green)} #usersBtn{--bc:var(--c-rose)} #printBtn{--bc:var(--c-slate)} #importBtn{--bc:var(--c-green)} #svXlsBtn{--bc:var(--c-green)} #svPngBtn{--bc:var(--c-violet)}
 .langBtn{--bc:var(--c-slate)}
 /* a week ribbon under the header: Monday to Friday */
 header{position:relative;padding-bottom:14px}
@@ -219,7 +234,7 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
     <label>إلى</label><input type="date" id="wTo">
     <span class="userchip" id="userChip" style="display:none"></span>
     <button class="btn ghost" id="logoutBtn" style="display:none" onclick="logout()">خروج</button>
-    <div class="btncol"><button class="btn ghost" id="statsBtn" onclick="openStats()">📊 الإحصائيات</button><button class="btn ghost" id="usersBtn" style="display:none" onclick="usersDialog()" title="الموافقة على طلبات حسابات الاطلاع">👥 الموافقة على حساب جديد <span id="usersBadge" style="display:none;background:var(--absent);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-inline-start:4px">0</span></button></div>
+    <div class="btncol"><button class="btn ghost" id="statsBtn" onclick="openStats()">📊 الإحصائيات</button><button class="btn ghost" id="catchBtn" onclick="openCatch()" title="التلاميذ المتغيبون والمواد التي فاتتهم، لبرمجة حصص التعويض والدعم">📚 قائمة التعويض</button><button class="btn ghost" id="usersBtn" style="display:none" onclick="usersDialog()" title="الموافقة على طلبات حسابات الاطلاع">👥 الموافقة على حساب جديد <span id="usersBadge" style="display:none;background:var(--absent);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-inline-start:4px">0</span></button></div>
     <button class="btn ghost" id="printBtn" onclick="triggerPrint()">طباعة</button>
     <button class="btn ghost langBtn" type="button" onclick="setLang(LANG==='fr'?'ar':'fr')">Français</button>
   </div>
@@ -255,6 +270,29 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
   </div>
   <div class="panel" id="svBody"></div>
   <div id="svTools"><div id="svLevels"></div><div id="svDelBox"></div></div>
+</div>
+
+<div id="catchView" style="display:none">
+  <div class="panel">
+    <div class="sv-bar">
+      <button class="btn ghost" onclick="closeCatch()">↩ رجوع إلى الجدول</button>
+      <div class="seg" id="cuViewSeg">
+        <button type="button" class="tab" data-v="subject" onclick="cuPick('view','subject')">حسب المادة</button>
+        <button type="button" class="tab" data-v="student" onclick="cuPick('view','student')">حسب التلميذ</button>
+      </div>
+      <select id="cuPreset"></select>
+      <span id="cuDates" style="display:none"><label>من <input type="date" id="cuFromIn"></label> <label>إلى <input type="date" id="cuToIn"></label></span>
+      <button class="btn" id="cuPrintBtn" onclick="cuPrint()">🖨️ طباعة القائمة</button>
+    </div>
+    <div class="sv-filters">
+      <label>القسم <select id="cuClsSel"></select></label>
+      <label>المستوى <select id="cuLvlSel"></select></label>
+      <label>المادة <select id="cuSubjSel"></select></label>
+      <label>الحد الأدنى للغياب <select id="cuMinSel"></select></label>
+      <button class="btn ghost" id="cuXlsBtn" onclick="cuExportXls()">📗 تصدير إلى إكسيل</button>
+    </div>
+  </div>
+  <div class="panel" id="cuBody"></div>
 </div>
 
 <div id="mainView">
@@ -1856,6 +1894,289 @@ function svExportXls(){
     const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
     const csv=main.concat(tr?[[],...tr]:[]).map(r=>r.map(q).join(';')).join('\r\n');
     svDownload(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),svFileBase()+'.csv');
+  }
+}
+
+// ================= قائمة التعويض (catch-up list) =================
+// Who missed which subject, so the support team can plan catch-up sessions.
+// Built from the weekly archive (GET /api/history): every absent hour is one column, whose subject/teacher
+// the archive keeps (cs.subj / cs.tch). Weeks archived before that existed use the current timetable (flagged).
+let cuWeeks=[], cuView='subject', cuPreset='month', cuFrom='', cuTo='', cuClsF='', cuLvlF='', cuSubjF='', cuMin=1, cuOpen=false, cuReady=false;
+const CU_NONE='~';
+function cuFr(){ return LANG==='fr'; }
+function cuMonday(iso){ const dow=new Date(iso+'T00:00:00Z').getUTCDay(); return addDaysIso(iso,-((dow+6)%7)); }
+function cuMonthEnd(y,m0){ return new Date(Date.UTC(y,m0+1,0)).toISOString().slice(0,10); }
+function cuRange(){
+  const t=todayIso(), y=+t.slice(0,4), m0=+t.slice(5,7)-1, pad=n=>String(n).padStart(2,'0');
+  const mon=cuMonday(t);
+  if(cuPreset==='week') return {from:mon,to:addDaysIso(mon,6)};
+  if(cuPreset==='lastweek') return {from:addDaysIso(mon,-7),to:addDaysIso(mon,-1)};
+  if(cuPreset==='lastmonth'){ const d=new Date(Date.UTC(y,m0-1,1)); return {from:d.toISOString().slice(0,10),to:cuMonthEnd(d.getUTCFullYear(),d.getUTCMonth())}; }
+  if(cuPreset==='all') return {from:'0000-01-01',to:'9999-12-31'};
+  if(cuPreset==='custom' && isoOk(cuFrom) && isoOk(cuTo)) return cuFrom<=cuTo?{from:cuFrom,to:cuTo}:{from:cuTo,to:cuFrom};
+  return {from:y+'-'+pad(m0+1)+'-01',to:cuMonthEnd(y,m0)};
+}
+function cuRangeLabel(r){
+  if(cuPreset==='all') return cuFr()?'Toute la période enregistrée':'كل الفترة المسجّلة';
+  return cuFr()?('Du '+r.from+' au '+r.to):('من '+r.from+' إلى '+r.to);
+}
+function cuNorm(s){ return String(s==null?'':s).replace(/\s+/g,' ').trim(); }
+function cuNoSubj(){ return cuFr()?'Matière non précisée':'مادة غير محدّدة'; }
+function cuStuTxt(n){ return cuFr()?(n===1?'1 élève':n+' élèves'):(n===1?'تلميذ واحد':n===2?'تلميذان':n<=10?n+' تلاميذ':n+' تلميذا'); }
+function cuHrTxt(n){ return cuFr()?ntHoursFr(n):ntHoursText(n); }
+function cuMinTxt(n){ return cuFr()?(n===1?'1 heure ou plus':n+' heures ou plus'):(n===1?'ساعة واحدة فأكثر':n===2?'ساعتان فأكثر':n+' ساعات فأكثر'); }
+function cuDm(date){ return date.slice(8,10)+'/'+date.slice(5,7); }
+function cuSessText(list){ // [{date,d,s,p}] -> "الاثنين 05/10 (ص1 ص2) · …"
+  const by=new Map();
+  list.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.s-b.s)||(a.p-b.p)).forEach(x=>{
+    if(!by.has(x.date)) by.set(x.date,{d:x.d,c:[]});
+    by.get(x.date).c.push((cuFr()?(x.s?'A':'M'):(x.s?'م':'ص'))+(x.p+1));
+  });
+  return [...by.entries()].map(([date,v])=>(cuFr()?T(DAY_NAMES[v.d]):DAY_NAMES[v.d])+' '+cuDm(date)+' ('+v.c.join(' ')+')').join(' · ');
+}
+
+// every absent hour inside the range: {date,cls,lvl,name,key,subject,teacher,d,s,p}
+function cuCollect(r){
+  const out={recs:[],approx:new Set(),unknown:new Set()}, curPc=pcount();
+  cuWeeks.forEach(w=>{
+    if(addDaysIso(w.weekStart,6)<r.from||w.weekStart>r.to) return;
+    Object.keys(w.classes||{}).forEach(c=>{
+      const cs=w.classes[c], cur=state.data&&state.data[c];
+      if(!cs||!cur||!Array.isArray(cs.abs)||!cs.abs.length) return; // class no longer exists -> nothing to catch up
+      const names=new Set((cur.names||[]).map(n=>String(n==null?'':n).trim()));
+      const pc=validPc(cs.pc), lvl=levelOf(c,cs.level);
+      let subj=Array.isArray(cs.subj)?cs.subj:null, tch=Array.isArray(cs.tch)?cs.tch:null, approx=false;
+      if(!subj && pc[0]===curPc[0] && pc[1]===curPc[1]){ // archived before subjects were kept: use today's timetable
+        const cl=cur.columns||[]; subj=cl.map(x=>x&&x.subject); tch=cl.map(x=>x&&x.teacher); approx=true;
+      }
+      cs.abs.forEach(a=>{
+        const name=String(a[0]==null?'':a[0]).trim(), bits=String(a[1]||'');
+        if(!names.has(name)) return; // the student left the class
+        for(let i=0;i<bits.length;i++){
+          if(bits[i]!=='1') continue;
+          const o=colInfo(i,pc), date=addDaysIso(w.weekStart,o.d);
+          if(date<r.from||date>r.to) continue;
+          const sj=cuNorm(subj&&subj[i]);
+          if(!subj) out.unknown.add(w.weekStart); else if(approx&&sj) out.approx.add(w.weekStart);
+          out.recs.push({date,cls:c,lvl,name,key:sj?sj.toLowerCase():CU_NONE,subject:sj,teacher:cuNorm(tch&&tch[i]),d:o.d,s:o.s,p:o.p});
+        }
+      });
+    });
+  });
+  return out;
+}
+
+function cuBuild(){
+  const r=cuRange(), col=cuCollect(r);
+  const base=col.recs.filter(x=>(!cuClsF||x.cls===cuClsF)&&(!cuLvlF||x.lvl===cuLvlF));
+  const subjOpts=new Map(); base.forEach(x=>{ if(!subjOpts.has(x.key)) subjOpts.set(x.key,x.subject||cuNoSubj()); });
+  const recs=base.filter(x=>!cuSubjF||x.key===cuSubjF);
+  const bySj=new Map(), byStu=new Map();
+  recs.forEach(x=>{
+    let s=bySj.get(x.key); if(!s){ s={key:x.key,label:x.subject||cuNoSubj(),stu:new Map()}; bySj.set(x.key,s); }
+    const sk=x.cls+'\u0001'+x.name;
+    let e=s.stu.get(sk); if(!e){ e={name:x.name,cls:x.cls,lvl:x.lvl,hours:0,sess:[],t:new Set()}; s.stu.set(sk,e); }
+    e.hours++; e.sess.push(x); if(x.teacher) e.t.add(x.teacher);
+    let g=byStu.get(sk); if(!g){ g={name:x.name,cls:x.cls,lvl:x.lvl,hours:0,sj:new Map()}; byStu.set(sk,g); }
+    g.hours++;
+    let q=g.sj.get(x.key); if(!q){ q={label:x.subject||cuNoSubj(),hours:0}; g.sj.set(x.key,q); }
+    q.hours++;
+  });
+  const cmp=(a,b)=>(b.hours-a.hours)||String(a.cls).localeCompare(String(b.cls),'ar')||String(a.name).localeCompare(String(b.name),'ar');
+  const subjects=[...bySj.values()].map(s=>{
+    const rows=[...s.stu.values()].filter(e=>e.hours>=cuMin).sort(cmp);
+    const t=[]; rows.forEach(e=>e.t.forEach(n=>{ if(!t.includes(n)) t.push(n); }));
+    return {key:s.key,label:s.label,teachers:t,rows,hours:rows.reduce((a,e)=>a+e.hours,0)};
+  }).filter(s=>s.rows.length).sort((a,b)=>((a.key===CU_NONE)-(b.key===CU_NONE))||(b.hours-a.hours)||a.label.localeCompare(b.label,'ar'));
+  const students=[...byStu.values()].filter(g=>g.hours>=cuMin).sort(cmp).map(g=>({name:g.name,cls:g.cls,lvl:g.lvl,hours:g.hours,
+    subj:[...g.sj.values()].sort((a,b)=>(b.hours-a.hours)||a.label.localeCompare(b.label,'ar'))}));
+  const stuSet=new Set(); subjects.forEach(s=>s.rows.forEach(e=>stuSet.add(e.cls+'\u0001'+e.name)));
+  return {r,label:cuRangeLabel(r),subjects,students,subjOpts,
+    nStu:cuView==='subject'?stuSet.size:students.length,
+    nHours:cuView==='subject'?subjects.reduce((a,s)=>a+s.hours,0):students.reduce((a,g)=>a+g.hours,0),
+    nSubj:subjects.length,approx:col.approx.size,unknown:col.unknown.size,
+    empty:cuView==='subject'?!subjects.length:!students.length,anyData:col.recs.length>0};
+}
+
+function cuFilterLabel(){
+  const p=[], f=cuFr();
+  if(cuClsF) p.push((f?'Classe : ':'القسم: ')+cuClsF);
+  if(cuLvlF) p.push((f?'Niveau : ':'المستوى: ')+cuLvlF);
+  if(cuSubjF){ const o=[...document.getElementById('cuSubjSel').options].find(x=>x.value===cuSubjF); p.push((f?'Matière : ':'المادة: ')+(o?(o.dataset.raw||o.textContent):cuSubjF)); }
+  if(cuMin>1) p.push((f?'Absence ≥ ':'الغياب ≥ ')+cuHrTxt(cuMin));
+  return p.join(' — ');
+}
+function cuNotes(m){
+  const f=cuFr(), n=[];
+  n.push(f?"M = matin, A = après-midi, le chiffre = numéro de la séance. Chaque séance manquée = 1 heure d'absence.":'ص = صباحا، م = مساء، والرقم هو رقم الحصة. كل حصة فائتة = ساعة غياب.');
+  if(m.approx) n.push(f?(m.approx===1?'1 semaine enregistrée':m.approx+' semaines enregistrées')+" avant la conservation des matières : l'emploi du temps actuel est utilisé pour elle(s) et peut ne pas correspondre exactement.":'ملاحظة: '+(m.approx===1?'أسبوع واحد':m.approx+' أسابيع')+' سُجّلت قبل حفظ المواد في السجل، فاعتُمد جدول المواد الحالي لها وقد لا يطابق الواقع تماما.');
+  if(m.unknown) n.push(f?(m.unknown===1?'1 semaine':m.unknown+' semaines')+" sans matière connue (l'organisation des séances a changé) : regroupée(s) sous « Matière non précisée ».":(m.unknown===1?'أسبوع واحد':m.unknown+' أسابيع')+' بلا مواد معروفة (تغيّر عدد الحصص): جُمعت تحت «مادة غير محدّدة».');
+  return n;
+}
+
+// the lists as HTML; `pr` adds blank handwriting columns for the printed copy
+function cuHtml(m,pr){
+  const f=cuFr(), L=a=>f?T(a):a;
+  const sum='<div class="cu-sum"><span>'+svEsc(cuStuTxt(m.nStu))+'</span><span>'+svEsc(cuHrTxt(m.nHours))+'</span>'
+    +(cuView==='subject'?'<span>'+svEsc(f?(m.nSubj===1?'1 matière':m.nSubj+' matières'):(m.nSubj===1?'مادة واحدة':m.nSubj===2?'مادتان':m.nSubj<=10?m.nSubj+' مواد':m.nSubj+' مادة'))+'</span>':'')+'</div>';
+  let h=sum;
+  if(cuView==='subject'){
+    m.subjects.forEach(s=>{
+      h+='<div class="cu-block"><div class="cu-head"><b>'+svEsc(s.label)+'</b>'
+        +(s.teachers.length?'<span class="cu-t">'+svEsc(f?'Professeur(e) :':'الأستاذ(ة):')+' '+svEsc(s.teachers.join(f?', ':'، '))+'</span>':'')
+        +'<span class="cu-n">'+svEsc(cuStuTxt(s.rows.length)+' · '+cuHrTxt(s.hours))+'</span></div>'
+        +'<table class="sv cu"><thead><tr><th>'+L('التلميذ')+'</th><th>'+L('القسم')+'</th><th>'+L('الساعات')+'</th><th>'+L('الحصص الفائتة')+'</th>'
+        +(pr?'<th class="bl">'+L('موعد التعويض')+'</th><th class="bl">'+L('ملاحظات')+'</th>':'')+'</tr></thead><tbody>'
+        +s.rows.map(e=>'<tr><td class="svn">'+svEsc(e.name)+'</td><td>'+svEsc(e.cls)+'</td><td class="cuh">'+e.hours+'</td><td class="cus">'+svEsc(cuSessText(e.sess))+'</td>'
+          +(pr?'<td class="blank"></td><td class="blank"></td>':'')+'</tr>').join('')
+        +'</tbody></table></div>';
+    });
+  }else{
+    h+='<table class="sv cu"><thead><tr><th>'+L('التلميذ')+'</th><th>'+L('القسم')+'</th><th>'+L('مجموع الساعات')+'</th><th>'+L('المواد الفائتة')+'</th>'+(pr?'<th class="bl">'+L('ملاحظات')+'</th>':'')+'</tr></thead><tbody>'
+      +m.students.map(g=>'<tr><td class="svn">'+svEsc(g.name)+'</td><td>'+svEsc(g.cls)+'</td><td class="cuh">'+g.hours+'</td><td class="cus">'
+        +svEsc(g.subj.map(x=>x.label+' ('+x.hours+')').join(' · '))+'</td>'+(pr?'<td class="blank"></td>':'')+'</tr>').join('')
+      +'</tbody></table>';
+  }
+  return h+'<div class="sub" style="margin-top:8px">'+cuNotes(m).map(x=>svEsc(x)).join('<br>')+'</div>';
+}
+
+function cuFill(sel,items,cur){ // items: [[value,label]]
+  sel.innerHTML=items.map(([v,l])=>'<option value="'+svEsc(v)+'" data-raw="'+svEsc(l)+'">'+svEsc(l)+'</option>').join('');
+  sel.value=items.some(x=>x[0]===cur)?cur:items[0][0];
+  return sel.value;
+}
+function cuSync(m){
+  const cls=(state.classNames||[]).slice(), lv=[...new Set(cls.map(c=>levelOf(c)))];
+  cuClsF=cuFill(document.getElementById('cuClsSel'),[['','كل الأقسام']].concat(cls.map(c=>[c,c])),cuClsF);
+  cuLvlF=cuFill(document.getElementById('cuLvlSel'),[['','كل المستويات']].concat(lv.map(c=>[c,c])),cuLvlF);
+  const so=[...m.subjOpts.entries()].sort((a,b)=>((a[0]===CU_NONE)-(b[0]===CU_NONE))||a[1].localeCompare(b[1],'ar'));
+  cuSubjF=cuFill(document.getElementById('cuSubjSel'),[['','كل المواد']].concat(so),cuSubjF);
+  cuMin=+cuFill(document.getElementById('cuMinSel'),[1,2,3,5,10].map(n=>[String(n),cuMinTxt(n)]),String(cuMin));
+  document.getElementById('cuPreset').value=cuPreset;
+  document.getElementById('cuDates').style.display=cuPreset==='custom'?'':'none';
+  document.querySelectorAll('#cuViewSeg .tab').forEach(b=>b.classList.toggle('active',b.dataset.v===cuView));
+}
+function cuRender(){
+  let m=cuBuild();
+  const before=[cuClsF,cuLvlF,cuSubjF].join('|');
+  cuSync(m);
+  if([cuClsF,cuLvlF,cuSubjF].join('|')!==before) m=cuBuild(); // a chosen filter no longer exists -> reset and rebuild
+  const body=document.getElementById('cuBody'), ok=!m.empty;
+  ['cuPrintBtn','cuXlsBtn'].forEach(id=>{ document.getElementById(id).disabled=!ok; });
+  if(!cuWeeks.length){ body.innerHTML='<div class="empty">'+svEsc(T('لا توجد أسابيع مسجّلة بعد.'))+'</div>'; return; }
+  const head='<h3 style="margin:0 0 2px;font-size:15px;color:var(--teal)">'+svEsc(T('📚 قائمة التعويض'))+' — '+svEsc(m.label)+'</h3>';
+  if(!ok){
+    body.innerHTML=head+'<div class="empty">'+svEsc(T(m.anyData?'لا توجد نتائج مطابقة للمرشّحات المختارة.':'لا يوجد غياب مسجّل في الفترة المختارة.'))+'</div>';
+    return;
+  }
+  const flt=cuFilterLabel();
+  body.innerHTML=head+(flt?'<div class="sub">'+svEsc(flt)+'</div>':'')+cuHtml(m,false);
+}
+async function cuLoad(){
+  document.getElementById('cuBody').innerHTML='<div class="empty">'+svEsc(T('جارٍ التحميل…'))+'</div>';
+  try{
+    const res=await fetch('/api/history',{headers:authHeaders()});
+    if(res.status===401){ onAuthRejected(); return; }
+    if(!res.ok) throw new Error('bad status');
+    cuWeeks=(await res.json()).weeks||[];
+    cuRender();
+  }catch(e){
+    document.getElementById('cuBody').innerHTML='<div class="empty">'+svEsc(T('تعذر تحميل قائمة التعويض، تحقّقوا من الاتصال ثم أعيدوا فتح الصفحة.'))+'</div>';
+  }
+}
+function cuPick(kind,v){ if(kind==='view') cuView=v; cuRender(); }
+function cuInit(){
+  if(cuReady) return; cuReady=true;
+  const pr=document.getElementById('cuPreset');
+  pr.innerHTML=[['week','هذا الأسبوع'],['lastweek','الأسبوع الماضي'],['month','هذا الشهر'],['lastmonth','الشهر الماضي'],['all','كل الفترة المسجّلة'],['custom','فترة مخصّصة']]
+    .map(([v,l])=>'<option value="'+v+'">'+l+'</option>').join('');
+  const t=todayIso(); cuFrom=t.slice(0,8)+'01'; cuTo=t;
+  document.getElementById('cuFromIn').value=cuFrom; document.getElementById('cuToIn').value=cuTo;
+  pr.onchange=()=>{ cuPreset=pr.value; cuRender(); };
+  document.getElementById('cuFromIn').onchange=e=>{ cuFrom=e.target.value; cuRender(); };
+  document.getElementById('cuToIn').onchange=e=>{ cuTo=e.target.value; cuRender(); };
+  document.getElementById('cuClsSel').onchange=e=>{ cuClsF=e.target.value; if(cuClsF) cuLvlF=''; cuRender(); };
+  document.getElementById('cuLvlSel').onchange=e=>{ cuLvlF=e.target.value; if(cuLvlF&&cuClsF&&levelOf(cuClsF)!==cuLvlF) cuClsF=''; cuRender(); };
+  document.getElementById('cuSubjSel').onchange=e=>{ cuSubjF=e.target.value; cuRender(); };
+  document.getElementById('cuMinSel').onchange=e=>{ cuMin=+e.target.value||1; cuRender(); };
+}
+function openCatch(){
+  cuInit(); cuOpen=true;
+  document.getElementById('mainView').style.display='none';
+  document.getElementById('catchView').style.display='block';
+  window.scrollTo(0,0);
+  cuLoad();
+}
+function closeCatch(){
+  cuOpen=false;
+  document.getElementById('catchView').style.display='none';
+  document.getElementById('mainView').style.display='block';
+}
+
+function cuPrint(){
+  const m=cuBuild(); if(m.empty) return;
+  const logoEl=document.querySelector('.logo'); const logoSrc=logoEl.src; const logoWide=logoEl.classList.contains('wide');
+  const fr=cuFr(), flt=cuFilterLabel();
+  const title=T('📚 قائمة التعويض').replace(/^📚\s*/,'');
+  const html=Th(`<!DOCTYPE html><html lang="${fr?'fr':'ar'}" dir="${fr?'ltr':'rtl'}"><head><meta charset="UTF-8">
+<title>${svEsc(title)} - ${svEsc(m.label)}</title>
+<style>
+@page{size:A4;margin:12mm}
+body{font-family:Arial,Tahoma,sans-serif;margin:0;padding:16px;color:#1E2A28}
+.phead{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.phead img{width:46px;height:46px;border-radius:50%}${logoWide?'.phead img{width:auto;height:46px;max-width:170px;border-radius:6px;object-fit:contain}':''}
+h1{font-size:16px;margin:0}
+.psub{font-size:12px;color:#5B6664;margin-top:2px}
+.cu-sum{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px}
+.cu-sum span{border:1px solid #999;border-radius:12px;padding:2px 10px;font-size:12px;font-weight:700}
+.cu-block{margin:0 0 14px;page-break-inside:avoid}
+.cu-head{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;padding:5px 8px;background:#F6E7C5;border:1px solid #999;border-bottom:0}
+.cu-head b{font-size:14px}.cu-head .cu-t{font-size:12px}.cu-head .cu-n{margin-inline-start:auto;font-size:12px;font-weight:700}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{border:1px solid #999;padding:5px 6px;text-align:center}
+th{background:#E4EFEC}
+td.svn{text-align:${fr?'left':'right'};font-weight:700}
+td.cus{text-align:${fr?'left':'right'};font-size:11px;line-height:1.6}
+td.cuh{font-weight:700}
+table.cu{table-layout:fixed}table.cu th:nth-child(1){width:20%}table.cu th:nth-child(2){width:11%}table.cu th:nth-child(3){width:8%}table.cu th.bl{width:16%}
+td.blank{height:26px}
+tr{page-break-inside:avoid}thead{display:table-header-group}
+.note{font-size:11px;color:#5B6664;margin-top:6px}
+</style></head>
+<body onload="window.print()">
+<div class="phead"><img src="${logoSrc}"><div><h1>${svEsc(title)} — ${svEsc(m.label)}</h1><div class="psub">${svEsc(fr?instDisplay():state.instName)}${flt?' — '+svEsc(flt):''}</div></div></div>
+${cuHtml(m,true).replace(/<div class="sub"[^>]*>/,'<div class="note">')}
+<div class="note">طُبع بتاريخ ${svEsc(todayIso())}</div>
+</body></html>`);
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.target='_blank'; a.rel='noopener noreferrer';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
+function cuExportXls(){
+  const m=cuBuild(); if(m.empty) return;
+  const f=cuFr(), flt=cuFilterLabel();
+  const info=[[(f?instDisplay():state.instName)||''],[T('📚 قائمة التعويض').replace(/^📚\s*/,'')+' — '+m.label]].concat(flt?[[flt]]:[]).concat([[]]);
+  const hs=['المادة','الأستاذ(ة)','التلميذ','القسم','المستوى','الساعات','الحصص الفائتة'];
+  const rs=[]; m.subjects.forEach(s=>s.rows.forEach(e=>rs.push([s.label,e.t.size?[...e.t].join(f?', ':'، '):'',e.name,e.cls,e.lvl,e.hours,cuSessText(e.sess)])));
+  const hs2=['التلميذ','القسم','المستوى','مجموع الساعات','المواد الفائتة'];
+  const rs2=m.students.map(g=>[g.name,g.cls,g.lvl,g.hours,g.subj.map(x=>x.label+' ('+x.hours+')').join(' · ')]);
+  const a1=info.concat([hs.map(T)],rs), a2=info.concat([hs2.map(T)],rs2);
+  const base='catch-up-list-'+(cuPreset==='all'?'all':m.r.from+'_'+m.r.to);
+  if(typeof XLSX!=='undefined'){
+    const wb=XLSX.utils.book_new();
+    const w1=XLSX.utils.aoa_to_sheet(a1); w1['!cols']=[{wch:22},{wch:22},{wch:28},{wch:12},{wch:12},{wch:9},{wch:50}];
+    const w2=XLSX.utils.aoa_to_sheet(a2); w2['!cols']=[{wch:28},{wch:12},{wch:12},{wch:14},{wch:60}];
+    XLSX.utils.book_append_sheet(wb,w1,T('حسب المادة')); XLSX.utils.book_append_sheet(wb,w2,T('حسب التلميذ'));
+    wb.Workbook={Views:[{RTL:!f}]};
+    XLSX.writeFile(wb,base+'.xlsx');
+  }else{
+    const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+    const csv=(cuView==='subject'?a1:a2).map(r=>r.map(q).join(';')).join('\r\n');
+    svDownload(new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}),base+'.csv');
   }
 }
 

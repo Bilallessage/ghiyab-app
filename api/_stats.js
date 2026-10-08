@@ -82,6 +82,15 @@ function summarizeState(state) {
         absList.push([String(names[si] == null ? '' : names[si]).trim().slice(0, 80), bits]);
       }
     }
+    // subject / teacher of every column (the timetable of that week), so the catch-up list knows which subject was missed
+    const colsInfo = Array.isArray(cls.columns) ? cls.columns : [];
+    const clean = (v) => String(v == null ? '' : v).replace(/\s+/g, ' ').trim().slice(0, 40);
+    const subj = [], tch = [];
+    for (let i = 0; i < COLS; i++) {
+      const ci = colsInfo[i] && typeof colsInfo[i] === 'object' ? colsInfo[i] : {};
+      subj.push(clean(ci.subject));
+      tch.push(clean(ci.teacher));
+    }
     const custom = state.levels && typeof state.levels[c] === 'string' ? state.levels[c].trim() : '';
     classes[c] = {
       pc,
@@ -91,6 +100,8 @@ function summarizeState(state) {
       dayStudents,
       weekStudents,
       abs: absList,
+      subj,
+      tch,
     };
   }
   return {
