@@ -546,6 +546,8 @@ function applyPermissionUI(){
   const ro=!canWrite;
   const banner=document.getElementById('viewBanner');
   if(banner) banner.style.display=ro?'block':'none';
+  // sending absence notices / summons to parents is for the administrator only
+  ['autoPanel','notifyPanel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=canWrite?'':'none'; });
   const tmBtn=document.getElementById('timesBtn');
   if(tmBtn) tmBtn.style.display=canWrite?'inline-block':'none';
   const pdBtn=document.getElementById('periodsBtn');
@@ -918,6 +920,7 @@ function ntAfterRecord(c,name){
 }
 
 function renderNotify(){
+  if(!canWrite){ const h=document.getElementById('notifyHost'); if(h) h.innerHTML=''; const a=document.getElementById('autoHost'); if(a) a.innerHTML=''; return; } // administrator only
   ntRender();
   document.getElementById('notifyClassName').textContent=LANG==='fr'?frClass(currentClass):currentClass;
   const host=document.getElementById('notifyHost');
