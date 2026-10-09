@@ -95,8 +95,9 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
 .row .muted{color:var(--ink-soft);font-size:12px;margin-inline-start:6px}
 .phone{width:110px;border:1px dashed var(--line);background:transparent;color:var(--ink);font-family:inherit;font-size:12px;text-align:center;border-radius:4px;padding:3px}
 .addbar{display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);min-width:900px}
-.addbar input.need{outline:2px solid var(--absent);outline-offset:1px}
-.addbar input{font-family:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:7px 10px;font-size:13px;flex:1;max-width:260px}
+.addbar input{font-family:inherit;border:1.5px solid color-mix(in srgb,var(--teal) 78%,var(--line));background:var(--panel);color:var(--ink);border-radius:6px;padding:7px 10px;font-size:13px;flex:1;max-width:260px}
+.addbar input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px color-mix(in srgb,var(--teal) 22%,transparent)}
+.addbar input.need{border-color:var(--absent);box-shadow:0 0 0 3px color-mix(in srgb,var(--absent) 25%,transparent)}
 @media print{.tabs,.btn,header .week{display:none}}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;align-items:center;justify-content:center;padding:20px}
 .modal-box{background:var(--panel);color:var(--ink);border-radius:12px;padding:20px;max-width:360px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.25)}
