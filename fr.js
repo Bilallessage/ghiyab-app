@@ -215,10 +215,13 @@
     'إضافة حصة أو حذفها صباحا أو مساء لتلائم النظام الدراسي للمؤسسة': "Ajouter ou supprimer une séance le matin ou l'après-midi selon l'organisation de l'établissement",
     '⏰ توقيت الحصص': '⏰ Horaires des séances',
     'بداية كل حصة، لمنع تسجيل غياب حصة لم يحن وقتها': "Heure de début de chaque séance, pour empêcher d'enregistrer l'absence d'une séance qui n'a pas encore commencé",
-    '⏪ الأسبوع الماضي': '⏪ Semaine précédente',
+    '⏪ السابق': '⏪ Précédente',
+    '⏩ التالي': '⏩ Suivante',
+    '📍 الأسبوع الجاري': '📍 Semaine en cours',
+    'العودة إلى الأسبوع الجاري بعد عرض الأسبوع السابق': 'Revenir à la semaine en cours après avoir affiché la semaine précédente',
+    'بدء الأسبوع التالي: يُحفظ غياب الأسبوع الجاري ثم يُمسح الجدول': "Commencer la semaine suivante : les absences de la semaine en cours sont enregistrées puis le tableau est vidé",
+    'عرض الأسبوع السابق لتصحيح غياب سُجّل بالخطأ': 'Afficher la semaine précédente pour corriger une absence enregistrée par erreur',
     'عرض الأسبوع الماضي لتصحيح غياب سُجّل بالخطأ': 'Afficher la semaine précédente pour corriger une absence enregistrée par erreur',
-    '⏩ العودة إلى الأسبوع الحالي': '⏩ Retour à la semaine en cours',
-    '🗓️ أسبوع جديد': '🗓️ Nouvelle semaine',
     'حذف المحددين (': 'Supprimer la sélection (',
 
     // automatic notices / WhatsApp
@@ -331,7 +334,7 @@
     'نعم، تابعوا': 'Oui, continuer',
     'تعذر حفظ الأسبوع الحالي في السجل، تحقّقوا من الاتصال وأعيدوا المحاولة. لم يتغيّر شيء.': "Impossible d'enregistrer la semaine en cours dans l'historique : vérifiez la connexion et réessayez. Rien n'a changé.",
     'تعذر حفظ الأسبوع المعروض قبل التبديل، تحقّقوا من الاتصال وأعيدوا المحاولة. لم يتغيّر شيء.': "Impossible d'enregistrer la semaine affichée avant le changement : vérifiez la connexion et réessayez. Rien n'a changé.",
-    'أنتم تعرضون الأسبوع الماضي. عودوا أولا إلى الأسبوع الحالي قبل بدء أسبوع جديد.': "Vous affichez la semaine précédente. Revenez d'abord à la semaine en cours avant de commencer une nouvelle semaine.",
+    'أنتم تعرضون الأسبوع السابق. اضغطوا أولا على «الأسبوع الجاري» قبل الانتقال إلى «التالي».': "Vous affichez la semaine précédente. Cliquez d'abord sur « Semaine en cours » avant de passer à « Suivante ».",
     'حدّدوا أولا تواريخ الأسبوع الحالي (من / إلى) في أعلى الصفحة، حتى يُحفظ غيابه في سجل الإحصائيات.': "Définissez d'abord les dates de la semaine en cours (Du / Au) en haut de la page, afin que ses absences soient enregistrées dans l'historique des statistiques.",
     'حدّدوا أولا تواريخ الأسبوع الحالي (من / إلى).': "Définissez d'abord les dates de la semaine en cours (Du / Au).",
     'لا يوجد أسبوع سابق في سجل الإحصائيات.': "Il n'y a pas de semaine précédente dans l'historique des statistiques.",
@@ -408,8 +411,8 @@
 
     // new week / previous week
     [/^سيُحفظ غياب الأسبوع الحالي \((.*)\) في سجل الإحصائيات، ثم يُمسح الغياب من الجدول وتُقدَّم التواريخ 7 أيام\. أسماء التلاميذ والمواد والأساتذة تبقى كما هي\.$/, "Les absences de la semaine en cours ($1) seront enregistrées dans l'historique des statistiques, puis effacées du tableau, et les dates avancées de 7 jours. Les noms des élèves, les matières et les professeurs restent inchangés."],
-    [/^⏪ تعرضون الآن الأسبوع الماضي \(من (\S+?)(?: إلى (\S+))?\)\. أي تصحيح هنا يُحدِّث سجل الإحصائيات؛ ثم اضغطوا «العودة إلى الأسبوع الحالي»\.$/, function (m) {
-      return '⏪ Vous affichez la semaine précédente (' + (m[2] ? 'du ' + m[1] + ' au ' + m[2] : 'à partir du ' + m[1]) + "). Toute correction faite ici met à jour l'historique des statistiques ; cliquez ensuite sur « Retour à la semaine en cours ».";
+    [/^⏪ تعرضون الآن الأسبوع الماضي \(من (\S+?)(?: إلى (\S+))?\)\. أي تصحيح هنا يُحدِّث سجل الإحصائيات؛ ثم اضغطوا «الأسبوع الجاري»\.$/, function (m) {
+      return '⏪ Vous affichez la semaine précédente (' + (m[2] ? 'du ' + m[1] + ' au ' + m[2] : 'à partir du ' + m[1]) + "). Toute correction faite ici met à jour l'historique des statistiques ; cliquez ensuite sur « Semaine en cours ».";
     }],
     [/^سيُحفظ ما عدّلتموه في الأسبوع الماضي، ثم يُعرض الأسبوع الحالي \((.*)\) كما تركتموه\.$/, "Vos modifications de la semaine précédente seront enregistrées, puis la semaine en cours ($1) s'affichera telle que vous l'avez laissée."],
     [/^سيُعرض الأسبوع الماضي \((.*)\) لتصحيح أي ساعة غياب سُجّلت بالخطأ\. الأسبوع الحالي يُحفظ كما هو ويمكنكم الرجوع إليه بنقرة\.$/, "La semaine précédente ($1) sera affichée pour corriger toute heure d'absence enregistrée par erreur. La semaine en cours est conservée telle quelle et vous pourrez y revenir d'un clic."],

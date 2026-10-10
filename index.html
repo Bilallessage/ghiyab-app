@@ -40,6 +40,8 @@ h1{font-size:20px;font-weight:900;margin:0;color:var(--teal)}
 .wkbox{display:inline-flex;vertical-align:middle;flex-direction:column;gap:6px;align-items:stretch}
 .wkdates{display:flex;align-items:center;gap:4px}
 .wkbtns{display:flex;gap:6px}
+.wkdates .btn{padding:5px 10px;font-size:12px;white-space:nowrap;margin-inline-end:4px}
+#curWeekBtn{--bc:var(--c-blue)}
 .wkbtns .btn{flex:1;padding:5px 8px;font-size:12px;white-space:nowrap}
 .btncol{display:inline-flex;vertical-align:middle;flex-direction:column;gap:6px;align-items:stretch}
 .week label{font-size:12px;color:var(--ink-soft);margin-inline-start:6px}
@@ -248,8 +250,8 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
   </div>
   <div class="week">
     <div class="wkbox">
-      <div class="wkdates"><label>من</label><input type="date" id="wFrom"><label>إلى</label><input type="date" id="wTo"></div>
-      <div class="wkbtns"><button class="btn ghost" id="prevWeekBtn" style="display:none" onclick="toggleOtherWeek()" title="عرض الأسبوع الماضي لتصحيح غياب سُجّل بالخطأ">⏪ الأسبوع الماضي</button><button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()">🗓️ أسبوع جديد</button></div>
+      <div class="wkdates"><button class="btn ghost" id="curWeekBtn" style="display:none" onclick="goCurrentWeek()" title="العودة إلى الأسبوع الجاري بعد عرض الأسبوع السابق">📍 الأسبوع الجاري</button><label>من</label><input type="date" id="wFrom"><label>إلى</label><input type="date" id="wTo"></div>
+      <div class="wkbtns"><button class="btn ghost" id="prevWeekBtn" style="display:none" onclick="goPrevWeek()" title="عرض الأسبوع السابق لتصحيح غياب سُجّل بالخطأ">⏪ السابق</button><button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()" title="بدء الأسبوع التالي: يُحفظ غياب الأسبوع الجاري ثم يُمسح الجدول">⏩ التالي</button></div>
     </div>
     <span class="userchip" id="userChip" style="display:none"></span>
     <button class="btn ghost" id="logoutBtn" style="display:none" onclick="logout()">خروج</button>
@@ -2374,7 +2376,7 @@ async function saveNow(){
 // ---- start a new week: the finished week stays in the statistics ----------
 function startNewWeek(){
   if(!canWrite) return;
-  if(weekNavInfo().kind==='cur'){ showAlert('أنتم تعرضون الأسبوع الماضي. عودوا أولا إلى الأسبوع الحالي قبل بدء أسبوع جديد.'); return; }
+  if(weekNavInfo().kind==='cur'){ showAlert('أنتم تعرضون الأسبوع السابق. اضغطوا أولا على «الأسبوع الجاري» قبل الانتقال إلى «التالي».'); return; }
   if(!isoOk(state.weekFrom)){
     showAlert('حدّدوا أولا تواريخ الأسبوع الحالي (من / إلى) في أعلى الصفحة، حتى يُحفظ غيابه في سجل الإحصائيات.');
     return;
@@ -2425,10 +2427,12 @@ function renderWeekNav(){
   if(!btn||!bar) return;
   const info=weekNavInfo();
   btn.style.display=canWrite?'inline-block':'none';
-  btn.textContent=info.kind==='cur'?'⏩ العودة إلى الأسبوع الحالي':'⏪ الأسبوع الماضي';
+  btn.disabled=info.kind==='cur';                         // already showing the previous week
+  const cb=document.getElementById('curWeekBtn');
+  if(cb){ cb.style.display=canWrite?'inline-block':'none'; cb.disabled=info.kind!=='cur'; } // nothing to go back to while the current week is shown
   if(info.kind==='cur'){
     bar.style.display='block';
-    bar.textContent='⏪ تعرضون الآن الأسبوع الماضي (من '+state.weekFrom+(state.weekTo?' إلى '+state.weekTo:'')+'). أي تصحيح هنا يُحدِّث سجل الإحصائيات؛ ثم اضغطوا «العودة إلى الأسبوع الحالي».';
+    bar.textContent='⏪ تعرضون الآن الأسبوع الماضي (من '+state.weekFrom+(state.weekTo?' إلى '+state.weekTo:'')+'). أي تصحيح هنا يُحدِّث سجل الإحصائيات؛ ثم اضغطوا «الأسبوع الجاري».';
   }else bar.style.display='none';
 }
 // the previous week rebuilt from the statistics archive (absent students only)
@@ -2444,6 +2448,8 @@ function archivedPreviousWeek(){
   });
   return detailed?{weekFrom:w.weekStart,weekTo:addDaysIso(w.weekStart,4),classes}:{old:true};
 }
+function goPrevWeek(){ if(weekNavInfo().kind==='cur') return; toggleOtherWeek(); }
+function goCurrentWeek(){ if(weekNavInfo().kind!=='cur') return; toggleOtherWeek(); }
 async function toggleOtherWeek(){
   if(!canWrite) return;
   const info=weekNavInfo();
