@@ -40,7 +40,10 @@ h1{font-size:20px;font-weight:900;margin:0;color:var(--teal)}
 .wkbox{display:inline-flex;vertical-align:middle;flex-direction:column;gap:6px;align-items:stretch}
 .wkdates{display:flex;align-items:center;gap:4px}
 .wkbtns{display:flex;gap:6px}
-.wkdates .btn{padding:5px 10px;font-size:12px;white-space:nowrap;margin-inline-end:4px}
+.wkdates .btn{padding:5px 10px;font-size:12px;white-space:nowrap}
+.wkside{display:inline-flex;flex-direction:column;gap:4px;align-items:stretch;margin-inline-end:4px}
+.wkside .btn{padding:5px 10px;font-size:12px;white-space:nowrap}
+@media(max-width:700px){.wkbox{display:flex;max-width:100%}.wkdates{flex-wrap:wrap}.wkbtns{flex-wrap:wrap}.wkside{flex-direction:row;flex-wrap:wrap}}
 #curWeekBtn{--bc:var(--c-blue)}
 .wkbtns .btn{flex:1;padding:5px 8px;font-size:12px;white-space:nowrap}
 .btncol{display:inline-flex;vertical-align:middle;flex-direction:column;gap:6px;align-items:stretch}
@@ -250,7 +253,7 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
   </div>
   <div class="week">
     <div class="wkbox">
-      <div class="wkdates"><button class="btn ghost" id="curWeekBtn" style="display:none" onclick="goCurrentWeek()" title="العودة إلى الأسبوع الجاري بعد عرض الأسبوع السابق">📍 الأسبوع الجاري</button><label>من</label><input type="date" id="wFrom"><label>إلى</label><input type="date" id="wTo"></div>
+      <div class="wkdates"><span class="wkside"><button class="btn ghost" id="logoBtn" style="display:none" onclick="logoDialog()" title="تغيير شعار المؤسسة الظاهر في أعلى الصفحة وفي الطباعة">🖼️ شعار المؤسسة</button><button class="btn ghost" id="curWeekBtn" style="display:none" onclick="goCurrentWeek()" title="العودة إلى الأسبوع الجاري بعد عرض الأسبوع السابق">📍 الأسبوع الجاري</button></span><label>من</label><input type="date" id="wFrom"><label>إلى</label><input type="date" id="wTo"></div>
       <div class="wkbtns"><button class="btn ghost" id="prevWeekBtn" style="display:none" onclick="goPrevWeek()" title="عرض الأسبوع السابق لتصحيح غياب سُجّل بالخطأ">⏪ السابق</button><button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()" title="بدء الأسبوع التالي: يُحفظ غياب الأسبوع الجاري ثم يُمسح الجدول">⏩ التالي</button></div>
     </div>
     <span class="userchip" id="userChip" style="display:none"></span>
@@ -318,7 +321,6 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
 
 <div id="mainView">
 <div class="toolbar">
-  <button class="btn ghost" id="logoBtn" style="display:none" onclick="logoDialog()" title="تغيير شعار المؤسسة الظاهر في أعلى الصفحة وفي الطباعة">🖼️ شعار المؤسسة</button>
   <button class="btn ghost" id="periodsBtn" style="display:none" onclick="periodsDialog()" title="إضافة حصة أو حذفها صباحا أو مساء لتلائم النظام الدراسي للمؤسسة">🧮 عدد الحصص</button>
   <button class="btn ghost" id="timesBtn" style="display:none" onclick="editPeriodTimes()" title="بداية كل حصة، لمنع تسجيل غياب حصة لم يحن وقتها">⏰ توقيت الحصص</button>
   <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
