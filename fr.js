@@ -168,6 +168,16 @@
     'تعذر إنشاء الصورة.': "Impossible de créer l'image.",
     '(الحالي)': '(en cours)',
 
+    // working without internet
+    '🟠 دون اتصال — يمكنكم متابعة تسجيل الغياب، وستُرسَل التعديلات تلقائيا عند عودة الإنترنت': '🟠 Hors connexion — vous pouvez continuer à enregistrer les absences ; les modifications seront envoyées automatiquement au retour d\'Internet',
+    '🔴 دون اتصال — تُعرض آخر بيانات محفوظة على هذا الجهاز': '🔴 Hors connexion — les dernières données enregistrées sur cet appareil sont affichées',
+    'تم تعديل الجدول من جهاز آخر أثناء عملكم دون اتصال، فنسخة هذا الجهاز تختلف عن نسخة الخادم. أيّهما تعتمدون؟': "Le tableau a été modifié depuis un autre appareil pendant que vous travailliez hors connexion : la copie de cet appareil diffère de celle du serveur. Laquelle retenir ?",
+    'الاحتفاظ بتعديلات هذا الجهاز (تستبدل نسخة الخادم)': 'Garder les modifications de cet appareil (elles remplacent la copie du serveur)',
+    'اعتماد نسخة الخادم (تُحذف تعديلات هذا الجهاز)': 'Retenir la copie du serveur (les modifications de cet appareil sont supprimées)',
+    'توجد تعديلات لم تُرسَل إلى الخادم بعد (عمل دون اتصال). الخروج الآن يحذفها نهائيا من هذا الجهاز. هل تريدون الخروج؟': "Des modifications n'ont pas encore été envoyées au serveur (travail hors connexion). Se déconnecter maintenant les supprime définitivement de cet appareil. Voulez-vous vous déconnecter ?",
+    'نعم، اخرج وأحذفها': 'Oui, me déconnecter et les supprimer',
+    'البقاء': 'Rester',
+    'انتهت الجلسة، سجّلوا الدخول من جديد. تعديلاتكم غير المرسلة محفوظة على هذا الجهاز وستُرسَل بعد الدخول.': 'La session a expiré, reconnectez-vous. Vos modifications non envoyées sont conservées sur cet appareil et seront envoyées après la connexion.',
     // catch-up list
     '📚 قائمة التعويض': '📚 Liste de rattrapage',
     '📲 إبلاغ الأولياء': '📲 Informer les parents',

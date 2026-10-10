@@ -590,7 +590,7 @@ function cachedUser(){
 function clearSession(){
   try{
     localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(KEY); localStorage.removeItem('ghiyab_v1');
+    localStorage.removeItem(KEY); localStorage.removeItem('ghiyab_v1'); localStorage.removeItem(DIRTY_KEY); localStorage.removeItem(BASE_KEY);
   }catch(e){}
 }
 
@@ -661,38 +661,82 @@ async function submitAuth(ev){
   }
   return false;
 }
-function logout(){ clearSession(); location.reload(); }
+function logout(){
+  if(canWrite && isDirty()){
+    showModal('توجد تعديلات لم تُرسَل إلى الخادم بعد (عمل دون اتصال). الخروج الآن يحذفها نهائيا من هذا الجهاز. هل تريدون الخروج؟',[
+      {label:'نعم، اخرج وأحذفها',className:'btn danger',onClick:()=>{ setDirty(false); clearSession(); location.reload(); }},
+      {label:'البقاء',className:'btn ghost',onClick:null}
+    ]);
+    return;
+  }
+  clearSession(); location.reload();
+}
 function onAuthRejected(){
   // The server no longer accepts our token (expired / invalid): stop syncing and ask again.
   clearInterval(pollTimer); clearTimeout(dbWriteTimer);
+  if(isDirty()){
+    // unsent edits must survive: only the login is dropped, they are sent after signing in again as the administrator
+    try{ localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); }catch(e){}
+    showGate('انتهت الجلسة، سجّلوا الدخول من جديد. تعديلاتكم غير المرسلة محفوظة على هذا الجهاز وستُرسَل بعد الدخول.');
+    return;
+  }
   clearSession();
   showGate('انتهت الجلسة، سجّلوا الدخول من جديد');
 }
 // ------------------------------------------------------------------------
 
+// ---- working without internet ------------------------------------------------
+// Every edit is written to this browser first (ghiyab_dirty = "not confirmed by the server yet").
+// When the connection returns: if nobody changed the sheet meanwhile (hash of the server copy == the copy our
+// edits started from) the edits are sent automatically; otherwise the administrator chooses.
+const DIRTY_KEY='ghiyab_dirty', BASE_KEY='ghiyab_base';
+function hashStr(s){ // cyrb53: a short fingerprint of the sheet text
+  let h1=0xdeadbeef,h2=0x41c6ce57;
+  for(let i=0;i<s.length;i++){ const ch=s.charCodeAt(i); h1=Math.imul(h1^ch,2654435761); h2=Math.imul(h2^ch,1597334677); }
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return (4294967296*(2097151&h2)+(h1>>>0)).toString(36)+'-'+s.length;
+}
+function isDirty(){ try{ return localStorage.getItem(DIRTY_KEY)==='1'; }catch(e){ return false; } }
+function setDirty(v){ try{ if(v) localStorage.setItem(DIRTY_KEY,'1'); else localStorage.removeItem(DIRTY_KEY); }catch(e){} }
+let lastBaseRaw='';
+function setBase(raw){ if(raw===lastBaseRaw) return; lastBaseRaw=raw; try{ localStorage.setItem(BASE_KEY,hashStr(raw)); }catch(e){} }
+function getBase(){ try{ return localStorage.getItem(BASE_KEY)||''; }catch(e){ return ''; } }
+function cacheState(){ try{ localStorage.setItem(KEY,JSON.stringify(state)); }catch(e){} } // a full / blocked browser storage must never stop the app
+function hasCachedState(){ try{ return !!localStorage.getItem(KEY); }catch(e){ return false; } }
+function fetchT(url,opts,ms){ // fetch that gives up instead of hanging on a dead connection
+  const ac=new AbortController(), t=setTimeout(()=>ac.abort(),ms||12000);
+  return fetch(url,Object.assign({},opts||{},{signal:ac.signal})).finally(()=>clearTimeout(t));
+}
+window.addEventListener('online',()=>{ if(typeof pollRemote==='function'&&syncedOnce!==undefined) pollRemote(); });
+
 function save(){
   if(!canWrite) return; // viewers never write (the server refuses it anyway)
-  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} // a full / blocked browser storage must never stop the save
-  if(!syncedOnce){ setSyncStatus('error'); return; } // never push before we have read the server's copy
+  cacheState();
+  setDirty(true);       // stays set until the server confirms this exact copy
   lastAppliedStr=JSON.stringify(state);
+  if(!syncedOnce){ writeInFlight=false; clearTimeout(dbWriteTimer); setSyncStatus('pending'); return; } // opened offline: kept here, sent when the connection returns
   writeInFlight=true; // block incoming polls from clobbering this edit until our own save actually lands
   clearTimeout(dbWriteTimer);
+  const body=lastAppliedStr;
   dbWriteTimer=setTimeout(()=>{
-    fetch('/api/state',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:lastAppliedStr})
+    fetchT('/api/state',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body},20000)
       .then(r=>{
         if(r.status===401){ writeInFlight=false; onAuthRejected(); return; }
         if(r.status===403){
           // The server says this account cannot edit: fall back to read-only and reload the real data.
-          writeInFlight=false; lastAppliedStr=null; canWrite=false;
+          writeInFlight=false; lastAppliedStr=null; canWrite=false; setDirty(false);
           if(currentUser) currentUser.role='viewer';
           applyPermissionUI();
           showAlert('حسابكم لا يملك صلاحية التعديل، لم يُحفظ هذا التغيير.');
           return;
         }
         if(!r.ok) throw new Error('bad status');
-        writeInFlight=false; lastWriteDone=Date.now(); setSyncStatus('online');
+        writeInFlight=false; lastWriteDone=Date.now();
+        if(body===lastAppliedStr){ setDirty(false); setBase(body); } // nothing newer is waiting
+        setSyncStatus('online');
       })
-      .catch(()=>{ writeInFlight=false; lastAppliedStr=null; setSyncStatus('error'); });
+      .catch(()=>{ writeInFlight=false; setSyncStatus('pending'); }); // no connection: the edit stays on this device and is retried by the next poll
   },400);
 }
 
@@ -703,6 +747,8 @@ function setSyncStatus(s){
     el.textContent=canWrite
       ? '🟢 متصل — تعديلاتكم تظهر فورًا لدى كل المستخدمين'
       : '🟢 متصل — تُحدَّث البيانات تلقائيًا (اطلاع فقط)';
+  }else if(s==='pending'){
+    el.textContent=canWrite?'🟠 دون اتصال — يمكنكم متابعة تسجيل الغياب، وستُرسَل التعديلات تلقائيا عند عودة الإنترنت':'🔴 دون اتصال — تُعرض آخر بيانات محفوظة على هذا الجهاز';
   }else if(s==='error'){
     el.textContent='🔴 تعذر الاتصال بالخادم — تأكدوا من اتصال هذا الجهاز بالإنترنت وأعيدوا المحاولة';
   }else{
@@ -712,38 +758,49 @@ function setSyncStatus(s){
 
 async function initSync(){
   try{
-    const res=await fetch('/api/state',{headers:authHeaders()});
+    const res=await fetchT('/api/state',{headers:authHeaders()},10000);
     if(res.status===401){ onAuthRejected(); return false; }
     if(!res.ok) throw new Error('bad status');
-    const remote=JSON.parse(await res.text());
+    const rawText=await res.text();
+    const remote=JSON.parse(rawText);
     if(remote && remote.classNames && remote.classNames.length){
-      state=remote;
-      lastAppliedStr=JSON.stringify(state);
-      currentClass=state.classNames.includes(currentClass)?currentClass:state.classNames[0];
-    }
-    syncedOnce=true;
+      if(canWrite && isDirty()){
+        // edits made on this device that the server has not confirmed: keep them, the next poll reconciles
+        lastAppliedStr=JSON.stringify(state);
+      }else{
+        state=remote;
+        lastAppliedStr=JSON.stringify(state);
+        setDirty(false); cacheState(); setBase(rawText);
+        currentClass=state.classNames.includes(currentClass)?currentClass:state.classNames[0];
+        syncedOnce=true;
+      }
+    }else syncedOnce=true;
     lanServerOk=true;
-    setSyncStatus('online');
+    setSyncStatus(canWrite&&isDirty()?'pending':'online');
   }catch(e){
     lanServerOk=false;
-    setSyncStatus('offline');
+    setSyncStatus('pending'); // offline: the administrator keeps working, a viewer sees the last saved data
   }
   noteLogoVersion();
   renderAll(); updateInstName();
   pollTimer=setInterval(pollRemote,1500);
   return true;
 }
+let polling=false, reconciling=false, conflictOpen=false;
 async function pollRemote(){
+  if(polling) return; polling=true;
   try{
     const startedAt=Date.now();
-    const res=await fetch('/api/state',{headers:authHeaders()});
+    const res=await fetchT('/api/state',{headers:authHeaders()},10000);
     if(res.status===401){ onAuthRejected(); return; }
     if(!res.ok) throw new Error('bad status');
     const raw=await res.text();
     lanServerOk=true;
-    if(!raw || raw==='null' || raw===lastAppliedStr) { syncedOnce=true; return; }
+    if(!raw || raw==='null') { return; }
     if(writeInFlight) return; // a local edit hasn't finished saving yet — never let a stale poll undo it
     if(startedAt<=lastWriteDone) return; // this answer was requested before our last save landed: it may predate it
+    if(canWrite && isDirty()){ await reconcile(raw); return; }
+    if(raw===lastAppliedStr){ syncedOnce=true; setBase(raw); setSyncStatus('online'); return; }
     const incoming=JSON.parse(raw);
     if(!incoming || !incoming.classNames || !incoming.classNames.length) return;
     syncedOnce=true;
@@ -752,11 +809,34 @@ async function pollRemote(){
     setSyncStatus('online');
   }catch(e){
     lanServerOk=false;
-    setSyncStatus('error');
-  }
+    setSyncStatus('pending');
+  }finally{ polling=false; }
+}
+// Edits made without a connection meet the server's copy again.
+async function reconcile(raw){
+  if(reconciling||conflictOpen) return; reconciling=true;
+  try{
+    const local=JSON.stringify(state);
+    if(raw===local){ setDirty(false); setBase(raw); syncedOnce=true; setSyncStatus('online'); return; }
+    if(getBase() && hashStr(raw)===getBase()){ // the server copy is still the one our edits started from -> send them
+      syncedOnce=true;
+      const ok=await saveNow();
+      setSyncStatus(ok?'online':'pending');
+      return;
+    }
+    conflictOpen=true;
+    showModal('تم تعديل الجدول من جهاز آخر أثناء عملكم دون اتصال، فنسخة هذا الجهاز تختلف عن نسخة الخادم. أيّهما تعتمدون؟',[
+      {label:'الاحتفاظ بتعديلات هذا الجهاز (تستبدل نسخة الخادم)',className:'btn',onClick:async()=>{ conflictOpen=false; syncedOnce=true; const ok=await saveNow(); setSyncStatus(ok?'online':'pending'); }},
+      {label:'اعتماد نسخة الخادم (تُحذف تعديلات هذا الجهاز)',className:'btn danger',onClick:()=>{
+        conflictOpen=false; setDirty(false); syncedOnce=true;
+        try{ applyRemoteState(JSON.parse(raw),raw); setBase(raw); setSyncStatus('online'); }catch(e){}
+      }}
+    ]);
+  }finally{ reconciling=false; }
 }
 function applyRemoteState(incoming,incomingStr){
   state=incoming; lastAppliedStr=incomingStr;
+  cacheState(); setBase(incomingStr); // a copy for working offline later
   currentClass=state.classNames.includes(currentClass)?currentClass:state.classNames[0];
   selected.clear();
   noteLogoVersion();
@@ -2277,12 +2357,14 @@ async function saveNow(){
   const body=JSON.stringify(state);
   lastAppliedStr=body; writeInFlight=true;
   try{
-    const r=await fetch('/api/state',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body});
+    const r=await fetchT('/api/state',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body},20000);
     writeInFlight=false;
     if(r.status===401){ onAuthRejected(); return false; }
-    if(!r.ok){ lastAppliedStr=null; return false; }
-    lastWriteDone=Date.now(); setSyncStatus('online'); return true;
-  }catch(e){ writeInFlight=false; lastAppliedStr=null; return false; }
+    if(!r.ok) return false;   // the edit stays marked as unsent and is retried
+    lastWriteDone=Date.now();
+    if(body===lastAppliedStr){ setDirty(false); setBase(body); }
+    setSyncStatus('online'); return true;
+  }catch(e){ writeInFlight=false; return false; }
 }
 
 // ---- start a new week: the finished week stays in the statistics ----------
@@ -2570,12 +2652,15 @@ async function startApp(){
   setInterval(ntLoad,10*60*1000);
 }
 
+// the page itself opens without internet (the shell is kept by a service worker; data never goes through it)
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ try{ navigator.serviceWorker.register('/sw.js').catch(()=>{}); }catch(e){} }); }
+
 (async function boot(){
   if(!getToken()){ showGate(); return; }
   let me=null;
   try{
-    const res=await fetch('/api/auth',{headers:authHeaders()});
-    if(res.status===401){ clearSession(); showGate('انتهت الجلسة، سجّلوا الدخول من جديد'); return; }
+    const res=await fetchT('/api/auth',{headers:authHeaders()},8000);
+    if(res.status===401){ if(isDirty()){ onAuthRejected(); } else { clearSession(); showGate('انتهت الجلسة، سجّلوا الدخول من جديد'); } return; }
     if(res.status===503){
       let d={}; try{ d=await res.json(); }catch(e){}
       showGate(d.message||'الخادم غير مهيّأ بعد'); return;
@@ -2585,7 +2670,7 @@ async function startApp(){
     saveSession({token:getToken(),email:me.email,role:me.role});
   }catch(e){
     me=cachedUser(); // offline: fall back to the identity remembered on this device
-    if(!me){ showGate('تعذر الاتصال بالخادم، تأكدوا من الإنترنت وأعيدوا المحاولة'); return; }
+    if(!me || !hasCachedState()){ showGate('تعذر الاتصال بالخادم، تأكدوا من الإنترنت وأعيدوا المحاولة'); return; }
   }
   currentUser=me;
   canWrite=(me.role==='admin');
