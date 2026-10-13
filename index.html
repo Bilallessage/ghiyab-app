@@ -325,7 +325,6 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
 <div id="mainView">
 <div class="toolbar">
   <button class="btn ghost" id="periodsBtn" style="display:none" onclick="periodsDialog()" title="إضافة حصة أو حذفها صباحا أو مساء لتلائم النظام الدراسي للمؤسسة">🧮 عدد الحصص</button>
-  <button class="btn ghost" id="seasonBtn" style="display:none" onclick="seasonDialog()" title="حفظ غياب الموسم الدراسي كاملا في الأرشيف وبدء موسم جديد">🗄️ أرشفة الموسم</button>
   <button class="btn ghost" id="timesBtn" style="display:none" onclick="editPeriodTimes()" title="بداية كل حصة في القسم المعروض، لمنع تسجيل غياب حصة لم يحن وقتها">⏰ توقيت الحصص</button>
   <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
 </div>
@@ -563,8 +562,6 @@ function applyPermissionUI(){
   ['autoPanel','notifyPanel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=canWrite?'':'none'; });
   const tmBtn=document.getElementById('timesBtn');
   if(tmBtn) tmBtn.style.display=canWrite?'inline-block':'none';
-  const seBtn=document.getElementById('seasonBtn');
-  if(seBtn) seBtn.style.display=canWrite?'inline-block':'none';
   const pdBtn=document.getElementById('periodsBtn');
   if(pdBtn) pdBtn.style.display=canWrite?'inline-block':'none';
   const usBtn=document.getElementById('usersBtn');
@@ -1183,6 +1180,7 @@ function renderTable(){
       <input id="newName" placeholder="اسم التلميذ الجديد" onkeydown="if(event.key==='Enter')addStudent()">
       <button class="btn" id="addStuBtn" type="button" onmousedown="event.preventDefault()" onclick="addStudent()">إضافة تلميذ</button>
       <button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
+      <button class="btn ghost" id="seasonBtn" onclick="seasonDialog()" title="حفظ غياب الموسم الدراسي كاملا في الأرشيف وبدء موسم جديد">🗄️ أرشفة الموسم</button>
     </div>`;
   }
   host.innerHTML=html;
