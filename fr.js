@@ -214,7 +214,7 @@
     '🧮 عدد الحصص': '🧮 Nombre de séances',
     'إضافة حصة أو حذفها صباحا أو مساء لتلائم النظام الدراسي للمؤسسة': "Ajouter ou supprimer une séance le matin ou l'après-midi selon l'organisation de l'établissement",
     '⏰ توقيت الحصص': '⏰ Horaires des séances',
-    'بداية كل حصة، لمنع تسجيل غياب حصة لم يحن وقتها': "Heure de début de chaque séance, pour empêcher d'enregistrer l'absence d'une séance qui n'a pas encore commencé",
+    'بداية كل حصة في القسم المعروض، لمنع تسجيل غياب حصة لم يحن وقتها': "Heure de début de chaque séance de la classe affichée, pour empêcher d'enregistrer l'absence d'une séance qui n'a pas encore commencé",
     '⏪ السابق': '⏪ Précédente',
     '⏩ التالي': '⏩ Suivante',
     '📍 الأسبوع الجاري': '📍 Semaine en cours',
@@ -396,6 +396,7 @@
     [/^العمود (\S+)، بدءًا من الصف (\d+) — تم العثور على (\d+) اسم$/, function (m) { return 'Colonne ' + m[1] + ', à partir de la ligne ' + m[2] + ' — ' + pl(m[3], 'nom trouvé', 'noms trouvés'); }],
 
     // periods
+    [/^توقيت حصص القسم «(.*)» وحده — بداية كل حصة \(الساعة:الدقيقة\): (\d+) حصص صباحا \| (\d+) حصص مساء، تفصل بينها العلامة \| \. مثال: (.*)$/, "Horaires des séances de la classe « $1 » uniquement — heure de début de chaque séance (heures:minutes) : $2 séances le matin | $3 séances l'après-midi, séparées par le signe | . Exemple : $4"],
     [/^بداية كل حصة \(الساعة:الدقيقة\): (\d+) حصص صباحا \| (\d+) حصص مساء، تفصل بينها العلامة \| \. مثال: (.*)$/, "Heure de début de chaque séance (heures:minutes) : $1 séances le matin | $2 séances l'après-midi, séparées par le signe | . Exemple : $3"],
     [/^الصيغة غير صحيحة\. عدد الحصص الحالي: (\d+) صباحا و(\d+) مساء\. اكتبوا الساعات هكذا: (.*)$/, "Format incorrect. Nombre de séances actuel : $1 le matin et $2 l'après-midi. Écrivez les heures ainsi : $3"],
     [/^➕ إضافة حصة (صباحا|مساء)$/, '➕ Ajouter une séance (%1)'],
