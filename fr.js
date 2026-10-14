@@ -362,12 +362,31 @@
     'تبقى لوائح التلاميذ والأقسام والمواد والتوقيت كما هي، وتحدّدون تواريخ الأسبوع الأول من جديد.': "Les listes d'élèves, les classes, les matières et les horaires restent inchangés ; vous fixerez de nouveau les dates de la première semaine.",
     'لا يمكن التراجع عن مسح الغياب من الجدول.': "L'effacement des absences du tableau est irréversible.",
     'موسم مؤرشف، للاطلاع والطباعة فقط': "année archivée, consultation et impression uniquement",
+    '📅 استيراد التنظيم التربوي': "📅 Importer l'organisation pédagogique",
+    'ملء اسم المادة واسم الأستاذ لكل قسم من ملف إكسيل «التنظيم التربوي»': "Remplir la matière et le professeur de chaque classe à partir du fichier Excel « organisation pédagogique »",
+    'استيراد التنظيم التربوي من إكسيل': "Importer l'organisation pédagogique depuis Excel",
+    'القسم في الملف': "Classe dans le fichier",
+    'الحصص المعبّأة': "Séances remplies",
+    'يُطبَّق على': "Appliquer à",
+    '⛔ تجاهل هذا القسم': "⛔ Ignorer cette classe",
+    'سيُستبدل اسم المادة واسم الأستاذ في كل حصص الأقسام المحددة، وتُفرَّغ الحصص الفارغة في الملف. لا يتغير الغياب ولا لوائح التلاميذ.': "La matière et le professeur seront remplacés dans toutes les séances des classes choisies ; les séances vides du fichier seront vidées. Les absences et les listes d'élèves ne changent pas.",
+    'تطبيق': "Appliquer",
+    'لم نجد في الملف جدول الأقسام (أيام الأسبوع والحصص) مع رموز المواد. تأكدوا أنه ملف «التنظيم التربوي».': "Le fichier ne contient pas de tableau des classes (jours et séances) avec les codes des matières. Vérifiez qu'il s'agit du fichier « organisation pédagogique ».",
+    'تعذر تحميل مكتبة قراءة إكسيل، تحقّقوا من الاتصال بالإنترنت ثم أعيدوا المحاولة.': "Impossible de charger la bibliothèque de lecture Excel, vérifiez la connexion Internet puis réessayez.",
+    'اختاروا قسما واحدا على الأقل.': "Choisissez au moins une classe.",
     'الصيغة غير صحيحة.': 'Format incorrect.'
   };
 
   /* ---------- sentence patterns: [regex, template or function] ----------
    * template: $n = group n as it is, %n = group n translated again.  */
   var SENT = [
+    [/^تم العثور على (\d+) (?:قسم|أقسام) و(\d+) (?:أستاذ|أساتذة) في الملف\. اختاروا القسم الذي يُطبَّق عليه كل جدول:$/, 'Trouvé dans le fichier : $1 classe(s) et $2 professeur(s). Choisissez la classe à laquelle appliquer chaque emploi du temps :'],
+    [/^➕ إنشاء قسم «(.*)»$/, '➕ Créer la classe « $1 »'],
+    [/^لا يمكن تطبيق قسمين من الملف على القسم نفسه «(.*)»\.$/, 'Impossible d\'appliquer deux classes du fichier à la même classe « $1 ».'],
+    [/^تم تحديث المادة والأستاذ في (\d+) (?:قسم|أقسام) \((\d+) حصة\)(?:، منها (\d+) (?:قسم جديد|أقسام جديدة))?\.$/, function (m) { return 'Matière et professeur mis à jour dans ' + m[1] + ' classe(s) (' + m[2] + ' séances)' + (m[3] ? ', dont ' + m[3] + ' nouvelle(s) classe(s)' : '') + '.'; }],
+    [/^رموز بلا أستاذ في الملف: (.*) \(كُتبت كما هي في خانة المادة\)\.$/, 'Codes sans professeur dans le fichier : $1 (écrits tels quels dans la case matière).'],
+    [/^في (\d+) حصة تختلف المادة في جدول الأستاذ عن جدول القسم \(مثال: (.*)\)، واعتُمدت مادة الأستاذ\.$/, 'Dans $1 séance(s), la matière du tableau du professeur diffère de celle de la classe (exemple : $2) ; la matière du professeur a été retenue.'],
+    [/^الملف يحتوي على (\d+) حصص صباحا و(\d+) مساء بينما الجدول الحالي (\d+) صباحا و(\d+) مساء: تُهمَل الحصص الزائدة \(عدّلوا «عدد الحصص» ثم أعيدوا الاستيراد إن لزم\)\.$/, 'Le fichier contient $1 séances le matin et $2 l\'après-midi alors que le tableau actuel en a $3 et $4 : les séances en trop sont ignorées (modifiez « Nombre de séances » puis réimportez si nécessaire).'],
     [/^الموسم الدراسي (\d{4}\/\d{4})$/, 'Année scolaire $1'],
     [/^الموسم الدراسي (\d{4}\/\d{4}) \(الجاري\)$/, 'Année scolaire $1 (en cours)'],
     [/^الموسم الدراسي (\d{4}\/\d{4}) \(مؤرشف\)$/, 'Année scolaire $1 (archivée)'],

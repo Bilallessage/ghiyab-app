@@ -123,6 +123,16 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
 .import-box{max-width:680px;text-align:right}
 .import-controls{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .import-preview-wrap{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-bottom:12px}
+#orgTable{width:100%;min-width:0;border-collapse:collapse;font-size:12.5px;table-layout:fixed}
+#orgTable th:nth-child(2),#orgTable td:nth-child(2){width:62px;text-align:center}
+#orgTable th:nth-child(3),#orgTable td:nth-child(3){width:176px}
+#orgTable td{white-space:normal;overflow-wrap:anywhere}
+#orgTable th,#orgTable td{border:1px solid var(--line);padding:5px 8px;text-align:right;vertical-align:top}
+#orgTable th{background:var(--teal-soft);color:var(--teal);position:sticky;top:0}
+#orgTable .orgprev{font-size:11px;color:var(--ink-soft);margin-top:2px;line-height:1.5}
+#orgTable select{width:100%}
+@media(max-width:600px){#orgTable th:nth-child(2),#orgTable td:nth-child(2){display:none}#orgTable th:nth-child(3),#orgTable td:nth-child(3){width:128px}#orgTable select{font-size:11.5px}}
+#orgBtn{--bc:var(--c-green)}
 #importPreview{width:100%;border-collapse:collapse;font-size:11.5px}
 #importPreview th,#importPreview td{border:1px solid var(--line);padding:3px 6px;white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis}
 #importPreview th.colbtn{cursor:pointer;background:var(--teal-soft);color:var(--teal);font-weight:700;position:sticky;top:0}
@@ -325,6 +335,7 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
 <div id="mainView">
 <div class="toolbar">
   <button class="btn ghost" id="periodsBtn" style="display:none" onclick="periodsDialog()" title="إضافة حصة أو حذفها صباحا أو مساء لتلائم النظام الدراسي للمؤسسة">🧮 عدد الحصص</button>
+  <button class="btn ghost" id="orgBtn" style="display:none" onclick="document.getElementById('orgFile').click()" title="ملء اسم المادة واسم الأستاذ لكل قسم من ملف إكسيل «التنظيم التربوي»">📅 استيراد التنظيم التربوي</button>
   <button class="btn ghost" id="timesBtn" style="display:none" onclick="editPeriodTimes()" title="بداية كل حصة في القسم المعروض، لمنع تسجيل غياب حصة لم يحن وقتها">⏰ توقيت الحصص</button>
   <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
 </div>
@@ -415,6 +426,18 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
       <button class="btn danger" type="button" id="logoResetBtn" onclick="logoReset()">استرجاع الشعار الأصلي</button>
       <button class="btn ghost" type="button" onclick="logoClose()">إغلاق</button>
     </div>
+  </div>
+</div>
+
+<input type="file" id="orgFile" accept=".xlsx,.xls" style="display:none" onchange="importOrg(this.files[0])">
+<div class="modal-overlay" id="orgOverlay" style="display:none">
+  <div class="modal-box import-box" style="max-width:760px">
+    <h3 style="margin:0 0 8px;color:var(--teal);font-size:15px">استيراد التنظيم التربوي من إكسيل</h3>
+    <p class="sub" id="orgSummary" style="margin:0 0 8px"></p>
+    <div class="import-preview-wrap" style="max-height:340px"><table id="orgTable"></table></div>
+    <div class="sub" id="orgWarn" style="margin:0 0 8px"></div>
+    <div class="sub" style="margin-bottom:10px">سيُستبدل اسم المادة واسم الأستاذ في كل حصص الأقسام المحددة، وتُفرَّغ الحصص الفارغة في الملف. لا يتغير الغياب ولا لوائح التلاميذ.</div>
+    <div class="modal-actions" id="orgActions"></div>
   </div>
 </div>
 
@@ -562,6 +585,8 @@ function applyPermissionUI(){
   ['autoPanel','notifyPanel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=canWrite?'':'none'; });
   const tmBtn=document.getElementById('timesBtn');
   if(tmBtn) tmBtn.style.display=canWrite?'inline-block':'none';
+  const orBtn=document.getElementById('orgBtn');
+  if(orBtn) orBtn.style.display=canWrite?'inline-block':'none';
   const pdBtn=document.getElementById('periodsBtn');
   if(pdBtn) pdBtn.style.display=canWrite?'inline-block':'none';
   const usBtn=document.getElementById('usersBtn');
@@ -2501,6 +2526,182 @@ function svDeleteSeason(){
       svSeasonPick('');
     }catch(e){ showAlert('تعذر حذف الموسم، أعيدوا المحاولة.'); }
   });
+}
+
+// ================= import the school timetable («التنظيم التربوي») from Excel =================
+// Fills the subject and teacher of every period of every section. The file is read like this:
+//  - a block per teacher: a cell «مادة : …» with the teacher's name just above it and a short code
+//    (FR1, M2, …) just below it  -> code => teacher + subject;
+//  - a grid with the weekdays on one row, the hours under them («9 - 8») and, one row per section,
+//    the code of the lesson in each hour;
+//  - optionally the Arabic timetable of each section («استعمال الزمن لقسم …»), used for the lessons that
+//    have no single teacher code (e.g. «أنشطة / اللغة العربية», «أنشطة - دعم وتقوية»).
+const orgState={res:null};
+function orgNorm(v){ return String(v==null?'':v).replace(/[إأآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/\s+/g,' ').trim(); }
+const ORG_DAYS=['الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'].map(orgNorm);
+function orgStr(v){ return typeof v==='string'?v.replace(/\u0640/g,'').replace(/[\s\u00a0]+/g,' ').trim():(typeof v==='number'?String(v):''); }
+// 0..1 similarity of two names (to tell a typo from a really different subject)
+function orgSim(a,b){
+  a=orgNorm(a).replace(/\s/g,''); b=orgNorm(b).replace(/\s/g,'');
+  if(!a||!b) return 0;
+  const d=[]; for(let i=0;i<=a.length;i++){ d[i]=[i]; } for(let j=0;j<=b.length;j++) d[0][j]=j;
+  for(let i=1;i<=a.length;i++) for(let j=1;j<=b.length;j++) d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));
+  return 1-d[a.length][b.length]/Math.max(a.length,b.length);
+}
+function orgPeriodCols(row,withDay,dayCols){
+  const per=[];
+  row.forEach((v,c)=>{ const m=orgStr(v).replace(/\s/g,'').match(/^(\d{1,2})(?::\d{2})?[-–](\d{1,2})(?::\d{2})?$/); if(m) per.push({c,start:Math.min(+m[1],+m[2])}); });
+  per.sort((a,b)=>a.c-b.c);
+  const cnt={};
+  per.forEach(x=>{
+    x.d=-1; if(withDay) dayCols.forEach(dc=>{ if(dc.c<=x.c) x.d=dc.d; });
+    x.s=x.start<13?0:1;
+    const k=x.d+'/'+x.s; x.p=cnt[k]=(cnt[k]==null?0:cnt[k]+1);
+  });
+  return per;
+}
+function parseOrgWorkbook(wb){
+  const sheets=wb.SheetNames.map(n=>({name:n,rows:XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:''})}));
+  const teachers={}, warnings=[];
+  // 1) one block per teacher
+  sheets.forEach(sh=>sh.rows.forEach((row,r)=>row.forEach((v,c)=>{
+    const m=orgStr(v).match(/^مادة\s*[:：]\s*(.+)$/); if(!m) return;
+    let name='';
+    for(let k=r-1;k>=Math.max(0,r-3)&&!name;k--){ const t=orgStr((sh.rows[k]||[])[c]); if(t&&!/جدول\s*حصص/.test(t)) name=t; }
+    let code='';
+    for(let k=r+1;k<=r+2&&!code;k++) (sh.rows[k]||[]).some(x=>{ const t=orgStr(x); if(/^[A-Za-z][A-Za-z0-9\/\-_]{0,11}$/.test(t)){ code=t; return true; } return false; });
+    name=name.replace(/^الاست(?:اذ|اذه|اذ\(ة\))\s*[:：]\s*/,'').replace(/^الأست(?:اذ|اذة|اذ\(ة\))\s*[:：]\s*/,'').trim();
+    if(code) teachers[code.toUpperCase()]={code,name,subject:m[1].trim()};
+  })));
+  // 2) the grid: sections x (day, hour) -> code
+  const classes=[];
+  sheets.forEach(sh=>{
+    if(classes.length) return;
+    for(let hr=0;hr<sh.rows.length-1;hr++){
+      const dayCols=[]; sh.rows[hr].forEach((v,c)=>{ const d=ORG_DAYS.indexOf(orgNorm(v)); if(d>=0) dayCols.push({d,c}); });
+      if(dayCols.length<3) continue;
+      const per=orgPeriodCols(sh.rows[hr+1]||[],true,dayCols);
+      if(per.length<3) continue;
+      const firstC=per[0].c;
+      for(let r=hr+2;r<sh.rows.length;r++){
+        const rw=sh.rows[r]||[]; let name='';
+        for(let c=0;c<firstC&&!name;c++) name=orgStr(rw[c]);
+        if(!name||name.length>30) continue;
+        const slots=per.map(x=>({d:x.d,s:x.s,p:x.p,code:orgStr(rw[x.c])}));
+        if(slots.some(x=>x.code)) classes.push({name,slots});
+      }
+      break;
+    }
+  });
+  // 3) Arabic timetable of each section (same order as the grid), when present
+  const et=[];
+  sheets.forEach(sh=>sh.rows.forEach((row,r)=>row.forEach((v)=>{
+    const m=orgStr(v).match(/^استعمال\s+الزمن\s+ل?قسم\s*(.*)$/); if(!m) return;
+    let hr=-1; for(let k=r+1;k<=r+4&&hr<0;k++) if(orgPeriodCols(sh.rows[k]||[],false,[]).length>=3) hr=k;
+    if(hr<0) return;
+    const per=orgPeriodCols(sh.rows[hr],false,[]), cells={};
+    for(let k=hr+1;k<=hr+7&&k<sh.rows.length;k++){
+      const rw=sh.rows[k]||[]; let d=-1; rw.some(x=>{ const i=ORG_DAYS.indexOf(orgNorm(x)); if(i>=0){ d=i; return true; } return false; });
+      if(d<0) break;
+      per.forEach(x=>{ const t=orgStr(rw[x.c]); if(t){ ((cells[d]=cells[d]||{})[x.s]=cells[d][x.s]||{})[x.p]=t; } });
+    }
+    et.push({title:m[1].trim(),cells});
+  })));
+  const useEt=et.length>0&&et.length===classes.length;
+  const unknown=new Set(), mism=[];
+  const out=classes.map((cl,i)=>{
+    const cells={}; let filled=0;
+    cl.slots.forEach(sl=>{
+      const eText=useEt?((((et[i].cells[sl.d]||{})[sl.s])||{})[sl.p]||''):'';
+      let subject='', teacher='';
+      if(sl.code){
+        const parts=sl.code.split(/\s*[\/+&،,]\s*/).filter(Boolean), known=parts.map(x=>teachers[x.toUpperCase()]);
+        if(parts.length===1&&known[0]){
+          subject=known[0].subject; teacher=known[0].name;
+          // the section's own Arabic timetable spells the subject correctly: use it unless it names something else
+          if(eText){ if(orgSim(eText,subject)>=0.75) subject=eText; else mism.push(subject+' ≠ '+eText); }
+        }
+        else{
+          const kt=known.filter(Boolean).pop();
+          teacher=kt?kt.name:'';
+          subject=eText||parts.map((x,j)=>known[j]?known[j].subject:x).join(' / ');
+          parts.forEach((x,j)=>{ if(!known[j]&&!eText) unknown.add(x); });
+        }
+      }else if(eText) subject=eText;
+      if(subject||teacher){ cells[sl.d+'/'+sl.s+'/'+sl.p]={subject,teacher}; filled++; }
+    });
+    return {name:cl.name,cells,filled};
+  });
+  if(mism.length) warnings.push('في '+mism.length+' حصة تختلف المادة في جدول الأستاذ عن جدول القسم (مثال: '+mism[0]+')، واعتُمدت مادة الأستاذ.');
+  if(unknown.size) warnings.push('رموز بلا أستاذ في الملف: '+[...unknown].join('، ')+' (كُتبت كما هي في خانة المادة).');
+  // hours per half-day found in the file vs. the sheet's layout
+  const fm=Math.max(0,...classes.map(c=>Math.max(-1,...c.slots.filter(x=>x.s===0).map(x=>x.p))+1)), fe=Math.max(0,...classes.map(c=>Math.max(-1,...c.slots.filter(x=>x.s===1).map(x=>x.p))+1));
+  const pc=pcount();
+  if(fm>pc[0]||fe>pc[1]) warnings.push('الملف يحتوي على '+fm+' حصص صباحا و'+fe+' مساء بينما الجدول الحالي '+pc[0]+' صباحا و'+pc[1]+' مساء: تُهمَل الحصص الزائدة (عدّلوا «عدد الحصص» ثم أعيدوا الاستيراد إن لزم).');
+  return {classes:out,teachers:Object.keys(teachers).length,warnings};
+}
+function importOrg(file){
+  const inp=document.getElementById('orgFile');
+  if(!canWrite||!file){ inp.value=''; return; }
+  if(typeof XLSX==='undefined'){ showAlert('تعذر تحميل مكتبة قراءة إكسيل، تحقّقوا من الاتصال بالإنترنت ثم أعيدوا المحاولة.'); inp.value=''; return; }
+  const reader=new FileReader();
+  reader.onload=e=>{
+    let res=null;
+    try{ res=parseOrgWorkbook(XLSX.read(new Uint8Array(e.target.result),{type:'array'})); }
+    catch(err){ showAlert('تعذر قراءة الملف. تأكدوا أنه ملف إكسيل صالح.'); inp.value=''; return; }
+    inp.value='';
+    if(!res.classes.length){ showAlert('لم نجد في الملف جدول الأقسام (أيام الأسبوع والحصص) مع رموز المواد. تأكدوا أنه ملف «التنظيم التربوي».'); return; }
+    orgState.res=res; orgRender();
+  };
+  reader.readAsArrayBuffer(file);
+}
+function orgKey(v){ return String(v||'').toUpperCase().replace(/[^A-Z0-9؀-ۿ]/g,''); }
+function orgRender(){
+  const res=orgState.res;
+  document.getElementById('orgSummary').textContent='تم العثور على '+res.classes.length+' '+(res.classes.length===1?'قسم':'أقسام')+' و'+res.teachers+' '+(res.teachers===1?'أستاذ':'أساتذة')+' في الملف. اختاروا القسم الذي يُطبَّق عليه كل جدول:';
+  const exist=state.classNames;
+  let html='<thead><tr><th>القسم في الملف</th><th>الحصص المعبّأة</th><th>يُطبَّق على</th></tr></thead><tbody>';
+  res.classes.forEach((c,i)=>{
+    const hit=exist.find(n=>orgKey(n)===orgKey(c.name));
+    const pairs=[...new Set(Object.values(c.cells).map(x=>x.subject+(x.teacher?' ('+x.teacher+')':'')))];
+    html+='<tr><td><b>'+svEsc(c.name)+'</b><div class="orgprev">'+svEsc(pairs.join(' · '))+'</div></td><td>'+c.filled+'</td><td><select data-i="'+i+'">'
+      +'<option value="+new"'+(hit?'':' selected')+'>➕ إنشاء قسم «'+svEsc(c.name)+'»</option>'
+      +exist.map(n=>'<option value="'+svEsc(n)+'"'+(n===hit?' selected':'')+'>'+svEsc(n)+'</option>').join('')
+      +'<option value="">⛔ تجاهل هذا القسم</option></select></td></tr>';
+  });
+  document.getElementById('orgTable').innerHTML=html+'</tbody>';
+  document.getElementById('orgWarn').textContent=res.warnings.join('\n');
+  document.getElementById('orgWarn').style.whiteSpace='pre-line';
+  const act=document.getElementById('orgActions'); act.innerHTML='';
+  const ok=document.createElement('button'); ok.className='btn'; ok.textContent='تطبيق'; ok.onclick=orgApply;
+  const no=document.createElement('button'); no.className='btn ghost'; no.textContent='إلغاء'; no.onclick=()=>{ document.getElementById('orgOverlay').style.display='none'; };
+  act.appendChild(ok); act.appendChild(no);
+  document.getElementById('orgOverlay').style.display='flex';
+}
+function orgApply(){
+  if(!canWrite||!orgState.res) return;
+  const res=orgState.res, sel=[...document.querySelectorAll('#orgTable select')], used={}, plan=[];
+  for(let i=0;i<sel.length;i++){
+    const v=sel[i].value; if(!v) continue;
+    const target=v==='+new'?res.classes[i].name:v;
+    if(used[target]){ showAlert('لا يمكن تطبيق قسمين من الملف على القسم نفسه «'+target+'».'); return; }
+    used[target]=1; plan.push({target,cls:res.classes[i]});
+  }
+  if(!plan.length){ showAlert('اختاروا قسما واحدا على الأقل.'); return; }
+  const pc=pcount(); let made=0, hours=0;
+  plan.forEach(({target,cls})=>{
+    if(!state.data[target]){ state.classNames.push(target); state.data[target]={names:[],columns:blankCols(),absences:[],phones:[]}; made++; }
+    const k=state.data[target];
+    k.columns=blankCols(totalCols(pc));
+    for(let d=0;d<5;d++) for(let sh=0;sh<2;sh++) for(let p=0;p<pc[sh];p++){
+      const x=cls.cells[d+'/'+sh+'/'+p];
+      if(x){ k.columns[colIndex(d,sh,p,pc)]={subject:x.subject,teacher:x.teacher}; hours++; }
+    }
+  });
+  document.getElementById('orgOverlay').style.display='none';
+  if(!state.classNames.includes(currentClass)) currentClass=state.classNames[0];
+  selected.clear(); save(); renderAll();
+  showAlert('تم تحديث المادة والأستاذ في '+plan.length+' '+(plan.length===1?'قسم':'أقسام')+' ('+hours+' حصة)'+(made?'، منها '+made+' '+(made===1?'قسم جديد':'أقسام جديدة'):'')+'.');
 }
 
 // ---- start a new week: the finished week stays in the statistics ----------
