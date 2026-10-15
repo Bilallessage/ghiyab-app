@@ -92,6 +92,9 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 #tableHost thead tr:nth-child(1) th{position:sticky;top:0;z-index:5;box-shadow:inset 0 -1px 0 var(--line)}
 #tableHost thead tr:nth-child(2) th{position:sticky;top:var(--hr1,30px);z-index:5;box-shadow:inset 0 -1px 0 var(--line)}
 #tableHost thead th.hl{background:var(--panel)}
+/* the subjects / teachers row stays under the days and periods rows (--hr12 = height of those two rows) */
+#tableHost thead tr:nth-child(3) th{position:sticky;top:var(--hr12,60px);z-index:5;box-shadow:inset 0 -1px 0 var(--line)}
+#tableHost thead tr:nth-child(3) th.stk{right:0;z-index:7}
 #tableHost thead tr th.nmh{right:0;z-index:7}
 #tableHost thead tr th.phh{right:var(--namew,150px);z-index:7}
 #tableHost tfoot th{background:var(--teal-soft);color:var(--teal);font-weight:700;font-size:12px}
@@ -99,9 +102,10 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 /* the absence-count row and the days / periods rows at the bottom stay in view, just above the pinned add bar (--b0/--b1/--b2 are measured in syncHeaderOffset) */
 #tableHost tfoot th{position:sticky;z-index:6;bottom:var(--b1,0px)}
 #tableHost tfoot tr:nth-child(2) th{bottom:var(--b0,0px)}
-#tableHost tfoot th[rowspan]{bottom:var(--b0,0px);right:0;z-index:7}
+#tableHost tfoot th[rowspan]{bottom:var(--b0,0px)}
+#tableHost tfoot th.stk{right:0;z-index:7}
 #tableHost tr.foot td{position:sticky;bottom:var(--b2,0px);z-index:6}
-#tableHost tr.foot td[colspan]{right:0;z-index:7}
+#tableHost tr.foot td.stk{right:0;z-index:7}
 @media(max-width:700px){#tableHost{max-height:66vh}}
 @media print{#tableHost{max-height:none;overflow:visible}.addbar{display:none}}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
@@ -1186,7 +1190,7 @@ function renderTable(){
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
-  html+='</tr><tr><th class="hl" colspan="5"></th>';
+  html+='</tr><tr><th class="hl" colspan="3"></th><th class="hl stk" colspan="2"></th>';
   const dis=canWrite?'':'disabled';
   for(let i=0;i<NC;i++){
     html+=`<th class="meta${colDayCl(i,pc)}${sepCol(i,pc)}"><input ${dis} placeholder="المادة" value="${cls.columns[i].subject}" oninput="setMeta(${i},'subject',this.value)">
@@ -1204,14 +1208,14 @@ function renderTable(){
     }
     html+='</tr>';
   });
-  html+='<tr class="foot"><td colspan="5">عدد الغياب في الحصة</td>';
+  html+='<tr class="foot"><td colspan="3"></td><td colspan="2" class="stk">عدد الغياب في الحصة</td>';
   for(let i=0;i<NC;i++){
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
     html+=`<td class="${sepCol(i,pc).trim()}">${sum}</td>`;
   }
   html+='</tr></tbody>';
   // the days / periods rows again at the bottom of the list
-  html+='<tfoot><tr><th colspan="5" rowspan="2">أيام الأسبوع والحصص</th>';
+  html+='<tfoot><tr><th colspan="3" rowspan="2"></th><th colspan="2" rowspan="2" class="stk">أيام الأسبوع والحصص</th>';
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
@@ -1240,7 +1244,8 @@ function syncHeaderOffset(retry){
   const bar=hh(host.querySelector('.addbar')), tr=host.querySelectorAll('tfoot tr');
   const t1=hh(tr[0]), t2=hh(tr[1]);
   host.style.setProperty('--b0',bar+'px'); host.style.setProperty('--b1',(bar+t2)+'px'); host.style.setProperty('--b2',(bar+t1+t2)+'px');
-  const h=r1.getBoundingClientRect().height;
+  const h=r1.getBoundingClientRect().height, h2=hh(host.querySelectorAll('thead tr')[1]);
+  if(h>0) host.style.setProperty('--hr12',(h+h2)+'px');
   if(h>0) host.style.setProperty('--hr1',h+'px');
   else if(!retry) requestAnimationFrame(()=>syncHeaderOffset(true));
 }
