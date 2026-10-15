@@ -86,7 +86,7 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 .cell.future{background:repeating-linear-gradient(45deg,#f3f1ea,#f3f1ea 4px,#e9e6dc 4px,#e9e6dc 8px);cursor:not-allowed}
 .foot td{background:var(--teal-soft);font-weight:700;color:var(--teal)}
 /* the sheet scrolls inside its own box so the days / periods rows stay visible while going down the list */
-#tableHost{max-height:82vh;overflow:auto;padding-top:0}
+#tableHost{max-height:82vh;overflow:auto;padding-top:0;padding-bottom:0}
 #tableHost th,#tableHost td.name,#tableHost td.num{cursor:grab}
 #tableHost.dragging,#tableHost.dragging *{cursor:grabbing!important;user-select:none}
 #tableHost thead tr:nth-child(1) th{position:sticky;top:0;z-index:5;box-shadow:inset 0 -1px 0 var(--line)}
@@ -96,6 +96,12 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 #tableHost thead tr th.phh{right:var(--namew,150px);z-index:7}
 #tableHost tfoot th{background:var(--teal-soft);color:var(--teal);font-weight:700;font-size:12px}
 #tableHost tfoot th.per{background:var(--panel);color:var(--ink-soft);font-weight:500}
+/* the absence-count row and the days / periods rows at the bottom stay in view, just above the pinned add bar (--b0/--b1/--b2 are measured in syncHeaderOffset) */
+#tableHost tfoot th{position:sticky;z-index:6;bottom:var(--b1,0px)}
+#tableHost tfoot tr:nth-child(2) th{bottom:var(--b0,0px)}
+#tableHost tfoot th[rowspan]{bottom:var(--b0,0px);right:0;z-index:7}
+#tableHost tr.foot td{position:sticky;bottom:var(--b2,0px);z-index:6}
+#tableHost tr.foot td[colspan]{right:0;z-index:7}
 @media(max-width:700px){#tableHost{max-height:66vh}}
 @media print{#tableHost{max-height:none;overflow:visible}.addbar{display:none}}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
@@ -114,7 +120,7 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
 .phone{width:110px;border:1px dashed var(--line);background:transparent;color:var(--ink);font-family:inherit;font-size:12px;text-align:center;border-radius:4px;padding:3px}
 .sheetwrap{width:max-content;min-width:100%}
 /* the add / import / archive bar stays in view whatever way the sheet is moved (--hostw = visible width, set in syncHeaderOffset) */
-.addbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;padding:12px 0 8px;border-top:1px solid var(--line);position:sticky;bottom:0;right:14px;width:var(--hostw,100%);background:var(--panel);z-index:8}
+.addbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:0;padding:12px 0 8px;border-top:1px solid var(--line);position:sticky;bottom:0;right:0;width:var(--hostw,100%);background:var(--panel);z-index:8}
 .addbar input{font-family:inherit;border:1.5px solid color-mix(in srgb,var(--teal) 78%,var(--line));background:var(--panel);color:var(--ink);border-radius:6px;padding:7px 10px;font-size:13px;flex:1;max-width:260px}
 .addbar input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px color-mix(in srgb,var(--teal) 22%,transparent)}
 .addbar input.need{border-color:var(--absent);box-shadow:0 0 0 3px color-mix(in srgb,var(--absent) 25%,transparent)}
@@ -1223,17 +1229,22 @@ function renderTable(){
   syncHeaderOffset();
 }
 // the second sticky header row sits right under the first one
-function syncHeaderOffset(){
+function syncHeaderOffset(retry){
   const host=document.getElementById('tableHost'), r1=host&&host.querySelector('thead tr');
   if(!r1) return;
   host.style.setProperty('--hostw',Math.max(200,host.clientWidth-28)+'px'); // visible width of the sheet box, minus its padding
   const nm=host.querySelector('td.name'); // width of the sticky name column = offset of the sticky phone column
   if(nm){ const w=nm.getBoundingClientRect().width; if(w>0) host.style.setProperty('--namew',w+'px'); }
+  // heights stacked up from the bottom: add bar, then the days/periods rows, then the absence-count row
+  const hh=e=>e?e.getBoundingClientRect().height:0;
+  const bar=hh(host.querySelector('.addbar')), tr=host.querySelectorAll('tfoot tr');
+  const t1=hh(tr[0]), t2=hh(tr[1]);
+  host.style.setProperty('--b0',bar+'px'); host.style.setProperty('--b1',(bar+t2)+'px'); host.style.setProperty('--b2',(bar+t1+t2)+'px');
   const h=r1.getBoundingClientRect().height;
   if(h>0) host.style.setProperty('--hr1',h+'px');
-  else requestAnimationFrame(()=>{ const h2=r1.getBoundingClientRect().height; if(h2>0) host.style.setProperty('--hr1',h2+'px'); });
+  else if(!retry) requestAnimationFrame(()=>syncHeaderOffset(true));
 }
-window.addEventListener('resize',syncHeaderOffset);
+window.addEventListener('resize',()=>syncHeaderOffset());
 
 // click and drag with the mouse to move the sheet sideways / up and down (touch screens already scroll natively)
 (function(){
