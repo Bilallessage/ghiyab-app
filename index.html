@@ -73,6 +73,9 @@ th.day{background:var(--teal-soft);color:var(--teal);font-weight:700;font-size:1
 th.per{background:var(--panel);font-weight:500;color:var(--ink-soft)}
 td.name{text-align:right;padding-inline-start:8px;font-weight:500;position:sticky;right:0;background:var(--panel);min-width:150px}
 td.num{color:var(--ink-soft);width:26px}
+/* the phone column stays beside the name column while moving between the days (--namew is measured in renderTable) */
+td.phcol{position:sticky;right:var(--namew,150px);background:var(--panel);z-index:1;box-shadow:inset 1px 0 var(--line),inset -1px 0 var(--line)}
+td.name{box-shadow:inset 1px 0 var(--line)}
 /* a clear, thick vertical line between the morning and the evening periods of every day */
 .sep{border-inline-start:3px solid var(--teal)!important}
 .dend{border-inline-end:3px solid var(--teal)!important}
@@ -87,6 +90,8 @@ td.num{color:var(--ink-soft);width:26px}
 #tableHost thead tr:nth-child(1) th{position:sticky;top:0;z-index:5;box-shadow:inset 0 -1px 0 var(--line)}
 #tableHost thead tr:nth-child(2) th{position:sticky;top:var(--hr1,30px);z-index:5;box-shadow:inset 0 -1px 0 var(--line)}
 #tableHost thead th.hl{background:var(--panel)}
+#tableHost thead tr th.nmh{right:0;z-index:7}
+#tableHost thead tr th.phh{right:var(--namew,150px);z-index:7}
 #tableHost tfoot th{background:var(--teal-soft);color:var(--teal);font-weight:700;font-size:12px}
 #tableHost tfoot th.per{background:var(--panel);color:var(--ink-soft);font-weight:500}
 @media print{#tableHost{max-height:none;overflow:visible}}
@@ -1165,7 +1170,7 @@ function renderTable(){
   const cls=state.data[currentClass];
   const names=cls.names;
   const selAllCell=canWrite?'<input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)">':'';
-  let html=`<table><thead><tr><th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th><th class="hl" rowspan="2">م</th><th class="hl" rowspan="2">الاسم الكامل</th><th class="hl" rowspan="2">هاتف ولي الأمر</th>`;
+  let html=`<table><thead><tr><th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th><th class="hl" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th><th class="hl phh" rowspan="2">هاتف ولي الأمر</th>`;
   const pc=pcount(), NC=totalCols(pc);
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
@@ -1180,7 +1185,7 @@ function renderTable(){
   names.forEach((name,si)=>{
     const checkCell=canWrite?`<input type="checkbox" ${selected.has(si)?'checked':''} onchange="toggleSelect(${si},this.checked)">`:'';
     const delCell=canWrite?`<button class="del" title="حذف التلميذ" onclick="deleteStudent(${si})">×</button>`:'';
-    html+=`<tr><td>${checkCell}</td><td>${delCell}</td><td class="num">${si+1}</td><td class="name">${name}</td><td><input class="phone" ${dis} placeholder="06XXXXXXXX" value="${cls.phones[si]||''}" oninput="setPhone(${si},this.value)"></td>`;
+    html+=`<tr><td>${checkCell}</td><td>${delCell}</td><td class="num">${si+1}</td><td class="name">${name}</td><td class="phcol"><input class="phone" ${dis} placeholder="06XXXXXXXX" value="${cls.phones[si]||''}" oninput="setPhone(${si},this.value)"></td>`;
     for(let i=0;i<NC;i++){
       const ab=cls.absences[si][i];
       const click=canWrite?` onclick="toggleCell(${si},${i})"`:'';
@@ -1215,6 +1220,8 @@ function renderTable(){
 function syncHeaderOffset(){
   const host=document.getElementById('tableHost'), r1=host&&host.querySelector('thead tr');
   if(!r1) return;
+  const nm=host.querySelector('td.name'); // width of the sticky name column = offset of the sticky phone column
+  if(nm){ const w=nm.getBoundingClientRect().width; if(w>0) host.style.setProperty('--namew',w+'px'); }
   const h=r1.getBoundingClientRect().height;
   if(h>0) host.style.setProperty('--hr1',h+'px');
   else requestAnimationFrame(()=>{ const h2=r1.getBoundingClientRect().height; if(h2>0) host.style.setProperty('--hr1',h2+'px'); });
