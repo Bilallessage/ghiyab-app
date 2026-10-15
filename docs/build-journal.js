@@ -8,9 +8,9 @@ catch (e) { ({ chromium } = require(path.join(cp.execSync('npm root -g').toStrin
 const root = path.join(__dirname, '..');
 const J = JSON.parse(fs.readFileSync(path.join(__dirname, 'journal.json'), 'utf8'));
 const sh = c => cp.execSync(c, { cwd: root }).toString().trim();
-const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const AR = '٠١٢٣٤٥٦٧٨٩';
-const num = n => String(n).replace(/\d/g, d => AR[d]);
+const latin = s => String(s).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)); // Arabic-Indic -> Latin digits
+const esc = s => latin(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const num = n => String(n); // Latin digits (0-9) everywhere, as requested
 const months = ['يناير','فبراير','مارس','أبريل','ماي','يونيو','يوليوز','غشت','شتنبر','أكتوبر','نونبر','دجنبر'];
 const dateAr = iso => { const [y, m, d] = iso.split('-').map(Number); return `${num(d)} ${months[m - 1]} ${num(y)}`; };
 
