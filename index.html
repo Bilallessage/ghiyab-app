@@ -96,7 +96,8 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 #tableHost thead tr th.phh{right:var(--namew,150px);z-index:7}
 #tableHost tfoot th{background:var(--teal-soft);color:var(--teal);font-weight:700;font-size:12px}
 #tableHost tfoot th.per{background:var(--panel);color:var(--ink-soft);font-weight:500}
-@media print{#tableHost{max-height:none;overflow:visible}}
+@media(max-width:700px){#tableHost{max-height:66vh}}
+@media print{#tableHost{max-height:none;overflow:visible}.addbar{display:none}}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
 .card h3{margin:0 0 10px;font-size:14px;color:var(--teal)}
 .big{font-size:30px;font-weight:900}
@@ -111,7 +112,9 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
 .btn.wa{background:#25D366;border-color:#25D366;padding:5px 12px;font-size:12.5px}
 .row .muted{color:var(--ink-soft);font-size:12px;margin-inline-start:6px}
 .phone{width:110px;border:1px dashed var(--line);background:transparent;color:var(--ink);font-family:inherit;font-size:12px;text-align:center;border-radius:4px;padding:3px}
-.addbar{display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);min-width:900px}
+.sheetwrap{width:max-content;min-width:100%}
+/* the add / import / archive bar stays in view whatever way the sheet is moved (--hostw = visible width, set in syncHeaderOffset) */
+.addbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;padding:12px 0 8px;border-top:1px solid var(--line);position:sticky;bottom:0;right:14px;width:var(--hostw,100%);background:var(--panel);z-index:8}
 .addbar input{font-family:inherit;border:1.5px solid color-mix(in srgb,var(--teal) 78%,var(--line));background:var(--panel);color:var(--ink);border-radius:6px;padding:7px 10px;font-size:13px;flex:1;max-width:260px}
 .addbar input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px color-mix(in srgb,var(--teal) 22%,transparent)}
 .addbar input.need{border-color:var(--absent);box-shadow:0 0 0 3px color-mix(in srgb,var(--absent) 25%,transparent)}
@@ -1172,7 +1175,7 @@ function renderTable(){
   const cls=state.data[currentClass];
   const names=cls.names;
   const selAllCell=canWrite?'<input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)">':'';
-  let html=`<table><thead><tr><th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th><th class="hl" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th><th class="hl phh" rowspan="2">هاتف ولي الأمر</th>`;
+  let html=`<div class="sheetwrap"><table><thead><tr><th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th><th class="hl" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th><th class="hl phh" rowspan="2">هاتف ولي الأمر</th>`;
   const pc=pcount(), NC=totalCols(pc);
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
@@ -1212,9 +1215,10 @@ function renderTable(){
       <input id="newName" placeholder="اسم التلميذ الجديد" onkeydown="if(event.key==='Enter')addStudent()">
       <button class="btn" id="addStuBtn" type="button" onmousedown="event.preventDefault()" onclick="addStudent()">إضافة تلميذ</button>
       <button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
-      <button class="btn ghost" id="seasonBtn" onclick="seasonDialog()" title="حفظ غياب الموسم الدراسي كاملا في الأرشيف وبدء موسم جديد">🗄️ أرشفة الموسم</button>
+      <button class="btn ghost" id="seasonBtn" style="margin-inline-start:auto" onclick="seasonDialog()" title="حفظ غياب الموسم الدراسي كاملا في الأرشيف وبدء موسم جديد">🗄️ أرشفة الموسم</button>
     </div>`;
   }
+  html+='</div>';
   host.innerHTML=html;
   syncHeaderOffset();
 }
@@ -1222,6 +1226,7 @@ function renderTable(){
 function syncHeaderOffset(){
   const host=document.getElementById('tableHost'), r1=host&&host.querySelector('thead tr');
   if(!r1) return;
+  host.style.setProperty('--hostw',Math.max(200,host.clientWidth-28)+'px'); // visible width of the sheet box, minus its padding
   const nm=host.querySelector('td.name'); // width of the sticky name column = offset of the sticky phone column
   if(nm){ const w=nm.getBoundingClientRect().width; if(w>0) host.style.setProperty('--namew',w+'px'); }
   const h=r1.getBoundingClientRect().height;
