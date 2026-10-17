@@ -79,7 +79,9 @@ function summarizeState(state) {
         weekStudents++;
         let bits = '';
         for (let i = 0; i < COLS; i++) bits += row[i] ? '1' : '0';
-        absList.push([String(names[si] == null ? '' : names[si]).trim().slice(0, 80), bits]);
+        const entry = [String(names[si] == null ? '' : names[si]).trim().slice(0, 80), bits];
+        if (Array.isArray(cls.just) && cls.just[si]) entry.push(1); // absences justified (مبرر)
+        absList.push(entry);
       }
     }
     // subject / teacher of every column (the timetable of that week), so the catch-up list knows which subject was missed

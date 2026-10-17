@@ -76,6 +76,11 @@ td.num{color:var(--ink-soft);width:26px}
 /* the phone column stays beside the name column while moving between the days (--namew is measured in renderTable) */
 td.phcol{position:sticky;right:var(--namew,150px);background:var(--panel);z-index:1;box-shadow:inset 1px 0 var(--line),inset -1px 0 var(--line)}
 td.name{box-shadow:inset 1px 0 var(--line)}
+td.jcol{position:sticky;right:calc(var(--namew,150px) + var(--phw,120px));background:var(--panel);z-index:1;box-shadow:inset 1px 0 var(--line),inset -1px 0 var(--line);width:84px}
+.jbtn{font-family:inherit;font-size:11.5px;font-weight:700;border-radius:12px;padding:3px 10px;min-width:70px;cursor:pointer;border:1px solid}
+.jbtn.no{background:var(--absent-soft);color:var(--absent);border-color:color-mix(in srgb,var(--absent) 45%,transparent)}
+.jbtn.yes{background:var(--teal-soft);color:var(--teal);border-color:color-mix(in srgb,var(--teal) 50%,transparent)}
+.jbtn:disabled{cursor:default;opacity:.85}
 /* a clear, thick vertical line between the morning and the evening periods of every day */
 .sep{border-inline-start:3px solid var(--teal)!important}
 .dend{border-inline-end:3px solid var(--teal)!important}
@@ -97,6 +102,7 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 #tableHost thead tr:nth-child(3) th.stk{right:0;z-index:7}
 #tableHost thead tr th.nmh{right:0;z-index:7}
 #tableHost thead tr th.phh{right:var(--namew,150px);z-index:7}
+#tableHost thead tr th.jh{right:calc(var(--namew,150px) + var(--phw,120px));z-index:7}
 #tableHost tfoot th{background:var(--teal-soft);color:var(--teal);font-weight:700;font-size:12px}
 #tableHost tfoot th.per{background:var(--panel);color:var(--ink-soft);font-weight:500}
 /* the absence-count row and the days / periods rows at the bottom stay in view, just above the pinned add bar (--b0/--b1/--b2 are measured in syncHeaderOffset) */
@@ -558,6 +564,8 @@ function showPrompt(msg,defVal,onSave){
 function blankCols(n){ return Array.from({length:n==null?totalCols():n},()=>({subject:"",teacher:""})); }
 function blankRow(n){ return Array(n==null?totalCols():n).fill(false); }
 function fitLen(arr,len,fill){ const a=arr.slice(0,len); while(a.length<len) a.push(fill()); return a; }
+// per-student flag next to the phone number: are the absences of the week justified (مبرر) or not? (kept in step with cls.names)
+function fitJust(cls){ cls.just=fitLen((cls.just||[]).map(Boolean),(cls.names||[]).length,()=>false); return cls.just; }
 
 function loadState(){
   let s=null;
@@ -580,6 +588,7 @@ function loadState(){
     cls.columns=fitLen(cls.columns||[],nCols,()=>({subject:"",teacher:""}));
     cls.absences=cls.names.map((_,i)=>fitLen((cls.absences||[])[i]||[],nCols,()=>false));
     cls.phones=fitLen(cls.phones||[],cls.names.length,()=>"");
+    fitJust(cls);
   });
   return s;
 }
@@ -904,6 +913,13 @@ function normalizePhone(p){
   if(d.startsWith('0')) d='212'+d.slice(1);
   return d;
 }
+function toggleJust(si,btn){
+  if(!canWrite) return;
+  const cls=state.data[currentClass], j=fitJust(cls);
+  j[si]=!j[si];
+  if(btn){ btn.classList.toggle('yes',j[si]); btn.classList.toggle('no',!j[si]); btn.textContent=j[si]?'مبرر':'غير مبرر'; }
+  save();
+}
 function setPhone(si,val){
   if(!canWrite) return;
   state.data[currentClass].phones[si]=val;
@@ -1185,12 +1201,12 @@ function renderTable(){
   const cls=state.data[currentClass];
   const names=cls.names;
   const selAllCell=canWrite?'<input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)">':'';
-  let html=`<div class="sheetwrap"><table><thead><tr><th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th><th class="hl" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th><th class="hl phh" rowspan="2">هاتف ولي الأمر</th>`;
+  let html=`<div class="sheetwrap"><table><thead><tr><th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th><th class="hl" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th><th class="hl phh" rowspan="2">هاتف ولي الأمر</th><th class="hl jh" rowspan="2" title="هل غياب هذا التلميذ مبرر؟">التبرير</th>`;
   const pc=pcount(), NC=totalCols(pc);
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
-  html+='</tr><tr><th class="hl" colspan="3"></th><th class="hl stk" colspan="2"></th>';
+  html+='</tr><tr><th class="hl" colspan="3"></th><th class="hl stk" colspan="3"></th>';
   const dis=canWrite?'':'disabled';
   for(let i=0;i<NC;i++){
     html+=`<th class="meta${colDayCl(i,pc)}${sepCol(i,pc)}"><input ${dis} placeholder="المادة" value="${cls.columns[i].subject}" oninput="setMeta(${i},'subject',this.value)">
@@ -1200,7 +1216,7 @@ function renderTable(){
   names.forEach((name,si)=>{
     const checkCell=canWrite?`<input type="checkbox" ${selected.has(si)?'checked':''} onchange="toggleSelect(${si},this.checked)">`:'';
     const delCell=canWrite?`<button class="del" title="حذف التلميذ" onclick="deleteStudent(${si})">×</button>`:'';
-    html+=`<tr><td>${checkCell}</td><td>${delCell}</td><td class="num">${si+1}</td><td class="name">${name}</td><td class="phcol"><input class="phone" ${dis} placeholder="06XXXXXXXX" value="${cls.phones[si]||''}" oninput="setPhone(${si},this.value)"></td>`;
+    html+=`<tr><td>${checkCell}</td><td>${delCell}</td><td class="num">${si+1}</td><td class="name">${name}</td><td class="phcol"><input class="phone" ${dis} placeholder="06XXXXXXXX" value="${cls.phones[si]||''}" oninput="setPhone(${si},this.value)"></td><td class="jcol">${(()=>{const y=!!fitJust(cls)[si];return `<button class="jbtn ${y?'yes':'no'}" ${canWrite?'':'disabled'} title="اضغطوا لتغيير الحالة: مبرر / غير مبرر" onclick="toggleJust(${si},this)">${y?'مبرر':'غير مبرر'}</button>`;})()}</td>`;
     for(let i=0;i<NC;i++){
       const ab=cls.absences[si][i];
       const click=canWrite?` onclick="toggleCell(${si},${i})"`:'';
@@ -1208,14 +1224,14 @@ function renderTable(){
     }
     html+='</tr>';
   });
-  html+='<tr class="foot"><td colspan="3"></td><td colspan="2" class="stk">عدد الغياب في الحصة</td>';
+  html+='<tr class="foot"><td colspan="3"></td><td colspan="3" class="stk">عدد الغياب في الحصة</td>';
   for(let i=0;i<NC;i++){
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
     html+=`<td class="${sepCol(i,pc).trim()}">${sum}</td>`;
   }
   html+='</tr></tbody>';
   // the days / periods rows again at the bottom of the list
-  html+='<tfoot><tr><th colspan="3" rowspan="2"></th><th colspan="2" rowspan="2" class="stk">أيام الأسبوع والحصص</th>';
+  html+='<tfoot><tr><th colspan="3" rowspan="2"></th><th colspan="3" rowspan="2" class="stk">أيام الأسبوع والحصص</th>';
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
@@ -1239,6 +1255,7 @@ function syncHeaderOffset(retry){
   host.style.setProperty('--hostw',Math.max(200,host.clientWidth-28)+'px'); // visible width of the sheet box, minus its padding
   const nm=host.querySelector('td.name'); // width of the sticky name column = offset of the sticky phone column
   if(nm){ const w=nm.getBoundingClientRect().width; if(w>0) host.style.setProperty('--namew',w+'px'); }
+  const ph=host.querySelector('td.phcol'); if(ph){ const w=ph.getBoundingClientRect().width; if(w>0) host.style.setProperty('--phw',w+'px'); }
   // heights stacked up from the bottom: add bar, then the days/periods rows, then the absence-count row
   const hh=e=>e?e.getBoundingClientRect().height:0;
   const bar=hh(host.querySelector('.addbar')), tr=host.querySelectorAll('tfoot tr');
@@ -1368,7 +1385,8 @@ function bulkDelete(){
   const idx=[...selected].sort((a,b)=>b-a);
   if(!idx.length) return;
   showConfirm('حذف '+idx.length+' تلميذ(ة) من لائحة القسم؟',()=>{
-    idx.forEach(i=>{ cls.names.splice(i,1); cls.absences.splice(i,1); cls.phones.splice(i,1); });
+    idx.forEach(i=>{ cls.names.splice(i,1); cls.absences.splice(i,1); cls.phones.splice(i,1); if(cls.just) cls.just.splice(i,1); });
+    fitJust(cls);
     selected.clear();
     save(); renderTable(); renderStats(); updateSelUI();
   });
@@ -1384,6 +1402,7 @@ function addStudent(){
   cls.names.push(name);
   cls.absences.push(blankRow());
   cls.phones.push('');
+  fitJust(cls);
   save();
   renderTable();
   renderStats();
@@ -1397,6 +1416,8 @@ function deleteStudent(si){
     cls.names.splice(si,1);
     cls.absences.splice(si,1);
     cls.phones.splice(si,1);
+    if(cls.just) cls.just.splice(si,1);
+    fitJust(cls);
     selected.delete(si);
     save();
     renderTable();
@@ -1506,8 +1527,10 @@ function confirmImport(mode){
     cls.names=names;
     cls.absences=names.map(()=>blankRow());
     cls.phones=names.map(()=>'');
+    cls.just=names.map(()=>false);
   }else{
     names.forEach(n=>{ cls.names.push(n); cls.absences.push(blankRow()); cls.phones.push(''); });
+    fitJust(cls);
   }
   selected.clear();
   save(); renderTable(); renderStats();
@@ -2524,7 +2547,7 @@ async function archiveSeason(){
   }catch(e){ showAlert('تعذر الاتصال بالخادم لأرشفة الموسم، أعيدوا المحاولة. لم يتغيّر شيء.'); return; }
   if(r.status===401){ onAuthRejected(); return; }
   if(!r.ok){ showAlert((j&&j.message)||'تعذرت أرشفة الموسم، أعيدوا المحاولة. لم يتغيّر شيء.'); return; }
-  state.classNames.forEach(c=>{ const cls=state.data[c]; cls.absences=cls.names.map(()=>blankRow()); });
+  state.classNames.forEach(c=>{ const cls=state.data[c]; cls.absences=cls.names.map(()=>blankRow()); cls.just=cls.names.map(()=>false); });
   state.other=null;
   state.weekFrom=''; state.weekTo='';
   state.season=nextSeason(l);
@@ -2776,7 +2799,7 @@ function startNewWeek(){
     const ok=await saveNow();
     if(!ok){ showAlert('تعذر حفظ الأسبوع الحالي في السجل، تحقّقوا من الاتصال وأعيدوا المحاولة. لم يتغيّر شيء.'); return; }
     state.other=snapshotWeek();   // the finished week stays available through «الأسبوع الماضي»
-    state.classNames.forEach(c=>{ const cls=state.data[c]; cls.absences=cls.names.map(()=>blankRow()); });
+    state.classNames.forEach(c=>{ const cls=state.data[c]; cls.absences=cls.names.map(()=>blankRow()); cls.just=cls.names.map(()=>false); });
     state.weekFrom=addDaysIso(state.weekFrom,7);
     if(isoOk(state.weekTo)) state.weekTo=addDaysIso(state.weekTo,7);
     document.getElementById('wFrom').value=state.weekFrom;
@@ -2793,16 +2816,17 @@ function startNewWeek(){
 function snapshotWeek(){
   const o={weekFrom:state.weekFrom,weekTo:state.weekTo,pc:pcount().slice(),classes:{}};
   state.classNames.forEach(c=>{ const k=state.data[c];
-    o.classes[c]={names:k.names.slice(),columns:JSON.parse(JSON.stringify(k.columns)),absences:k.absences.map(r=>r.slice())}; });
+    o.classes[c]={names:k.names.slice(),columns:JSON.parse(JSON.stringify(k.columns)),absences:k.absences.map(r=>r.slice()),just:fitJust(k).slice()}; });
   return o;
 }
 function applyWeek(w){
   state.weekFrom=w.weekFrom||''; state.weekTo=w.weekTo||'';
   state.classNames.forEach(c=>{
     const k=state.data[c], src=(w.classes||{})[c];
-    if(!src){ k.absences=k.names.map(()=>blankRow()); return; }
+    if(!src){ k.absences=k.names.map(()=>blankRow()); k.just=k.names.map(()=>false); return; }
     const from=validPc(src.pc||w.pc), to=pcount();       // the week may have been saved with another number of periods
     k.absences=k.names.map(n=>{ const i=src.names.indexOf(n); return i>=0?convertArr((src.absences[i]||[]).map(Boolean),from,to,()=>false):blankRow(); });
+    k.just=k.names.map(n=>{ const i=src.names.indexOf(n); return i>=0&&!!(src.just||[])[i]; });
     if(src.columns) k.columns=convertArr(JSON.parse(JSON.stringify(src.columns)),from,to,()=>({subject:'',teacher:''}));
   });
   document.getElementById('wFrom').value=state.weekFrom;
@@ -2835,7 +2859,7 @@ function archivedPreviousWeek(){
   const classes={}; let detailed=false;
   Object.keys(w.classes||{}).forEach(c=>{
     const abs=(w.classes[c]||{}).abs;
-    if(Array.isArray(abs)){ detailed=true; classes[c]={names:abs.map(a=>a[0]),absences:abs.map(a=>String(a[1]).split('').map(x=>x==='1')),columns:null,pc:(w.classes[c]||{}).pc||DEF_PC}; }
+    if(Array.isArray(abs)){ detailed=true; classes[c]={names:abs.map(a=>a[0]),absences:abs.map(a=>String(a[1]).split('').map(x=>x==='1')),just:abs.map(a=>!!a[2]),columns:null,pc:(w.classes[c]||{}).pc||DEF_PC}; }
   });
   return detailed?{weekFrom:w.weekStart,weekTo:addDaysIso(w.weekStart,4),classes}:{old:true};
 }
