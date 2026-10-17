@@ -12,6 +12,8 @@
 // saved with another number of periods are still read correctly.
 
 const DAYS = 5;
+// same default as DEFAULT_BREAKS in index.html (used while the saved state has no `breaks` list yet)
+const DEFAULT_BREAKS = [{ from: '2026-10-19', to: '2026-10-23', label: 'عطلة بينية' }];
 const DEFAULT_PC = [3, 3];
 const MAX_PC = 8;
 
@@ -54,6 +56,9 @@ function summarizeState(state) {
   if (!state || !Array.isArray(state.classNames)) return null;
   const weekStart = mondayOf(state.weekFrom);
   if (!weekStart) return null;
+  // an inter-term holiday week («عطلة بينية») holds nothing and stays out of the statistics
+  const breaks = Array.isArray(state.breaks) ? state.breaks : DEFAULT_BREAKS;
+  if (validIso(state.weekFrom) && breaks.some((b) => b && validIso(b.from) && validIso(b.to) && state.weekFrom >= b.from && state.weekFrom <= b.to)) return null;
   const classes = {};
   for (const c of state.classNames) {
     const cls = state.data && state.data[c];
