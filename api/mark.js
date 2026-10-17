@@ -23,10 +23,23 @@ function todayIso(now) {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(now || new Date());
 }
 
-// "أ. نعيمة  بداوي" vs "نعيمة بداوي": compare without spaces, dots, diacritics, case
-function norm(s) {
-  return String(s || '').normalize('NFKD').replace(/[ً-ٰٟـ]/g, '').replace(/[\s.\-_'’]+/g, '').toLowerCase();
+// Same teacher written differently on the sheet and on the account: "نعيمة بداوي" / "بداوي نعيمة" /
+// "ذ. نعيمة  بداوي" / "نعيمه بداوى". Compare word by word, ignoring order, spaces, dots, diacritics,
+// the alef / ya / ta-marbuta spellings and Latin accents. Every word of the shorter name must be in the other.
+function words(s) {
+  return String(s || '').normalize('NFKD')
+    .replace(/[\u064B-\u065F\u0670\u0640\u0300-\u036f]/g, '')
+    .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
+    .toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
 }
+function sameTeacher(a, b) {
+  const x = words(a), y = words(b);
+  if (!x.length || !y.length) return false;
+  const [small, big] = x.length <= y.length ? [x, y] : [y, x];
+  return small.every((w) => big.includes(w));
+}
+// student names: spaces / case only
+function norm(s) { return words(s).join(''); }
 
 function validTimes(t, pc) {
   return Array.isArray(t) && t.length === 2 && t.every((r, s) => Array.isArray(r) && r.length === pc[s] && r.every((x) => /^\d{1,2}:\d{2}$/.test(x)));
@@ -127,8 +140,7 @@ module.exports = async function handler(req, res) {
           return fail(res, 403, 'not_started', 'هذه الحصة لم يحن وقتها بعد');
         }
         if (session.teacher) {
-          const want = norm(session.teacher), have = norm(cls.columns && cls.columns[ci] && cls.columns[ci].teacher);
-          if (!want || !have || !(have.includes(want) || want.includes(have))) {
+          if (!sameTeacher(session.teacher, cls.columns && cls.columns[ci] && cls.columns[ci].teacher)) {
             return fail(res, 403, 'not_yours', 'هذه الحصة ليست من حصصكم');
           }
         }

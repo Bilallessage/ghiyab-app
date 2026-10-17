@@ -1610,15 +1610,17 @@ function colStart(ci,cname){
   return new Date(+date.slice(0,4),+date.slice(5,7)-1,+date.slice(8,10),hh,mm);
 }
 // ---- teacher accounts: record absences at roll call --------------------------------
-function tchNorm(x){ return String(x||'').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[\s.\-_'’]+/g,'').toLowerCase(); }
+function tchWords(x){ return String(x||'').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640\u0300-\u036f]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean); }
+// same rule as the server (api/mark.js): word by word, any order, every word of the shorter name found in the other
+function tchSame(a,b){ const x=tchWords(a), y=tchWords(b); if(!x.length||!y.length) return false; const [sm,bg]=x.length<=y.length?[x,y]:[y,x]; return sm.every(w=>bg.includes(w)); }
 // may this teacher tap column ci now? (the server repeats and enforces every check)
 function teacherCan(ci,cur){
   if(!canMark||breakNow()||cur==='j'||colIsFuture(ci)) return false;
   const wf=ntMonday(state.weekFrom); if(!wf) return false;
   if(addDaysIso(wf,colInfo(ci).d)!==todayIso()) return false;
   if(teacherName){
-    const cls=state.data[currentClass], want=tchNorm(teacherName), have=tchNorm(cls&&cls.columns&&cls.columns[ci]&&cls.columns[ci].teacher);
-    if(!want||!have||!(have.includes(want)||want.includes(have))) return false;
+    const cls=state.data[currentClass];
+    if(!tchSame(teacherName,cls&&cls.columns&&cls.columns[ci]&&cls.columns[ci].teacher)) return false;
   }
   return true;
 }
