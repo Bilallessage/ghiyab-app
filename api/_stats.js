@@ -64,6 +64,7 @@ function summarizeState(state) {
     const PER_DAY = pc[0] + pc[1];
     const COLS = DAYS * PER_DAY;
     const cols = Array(COLS).fill(0);
+    const colsJ = Array(COLS).fill(0); // of which justified (مبرر)
     const dayStudents = Array(DAYS).fill(0);
     let weekStudents = 0;
     const absList = []; // [name, "0102…" one digit per column: 0 present, 1 absent, 2 justified absence] for every student with at least one absence
@@ -72,7 +73,7 @@ function summarizeState(state) {
       const dayHit = Array(DAYS).fill(false);
       let any = false;
       for (let i = 0; i < COLS; i++) {
-        if (row[i]) { cols[i]++; dayHit[Math.floor(i / PER_DAY)] = true; any = true; }
+        if (row[i]) { cols[i]++; if (row[i] === 'j') colsJ[i]++; dayHit[Math.floor(i / PER_DAY)] = true; any = true; }
       }
       for (let d = 0; d < DAYS; d++) if (dayHit[d]) dayStudents[d]++;
       if (any) {
@@ -97,6 +98,7 @@ function summarizeState(state) {
       level: custom || deriveLevel(c),
       students: names.length,
       cols,
+      colsJ,
       dayStudents,
       weekStudents,
       abs: absList,

@@ -84,6 +84,11 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 .cell{cursor:pointer;width:30px;height:26px;user-select:none}
 .cell.absent{background:var(--absent-soft);color:var(--absent);font-weight:900}
 .cell.just small.jm{font-size:10.5px;font-weight:700;margin-inline-start:1px;vertical-align:super}
+.jsplit{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+.jchip{font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:12px;border:1px solid}
+.jchip.n{background:var(--absent-soft);color:var(--absent);border-color:color-mix(in srgb,var(--absent) 40%,transparent)}
+.jchip.y{background:var(--teal-soft);color:var(--teal);border-color:color-mix(in srgb,var(--teal) 45%,transparent)}
+.jn{font-size:10.5px;font-weight:600;color:var(--teal);margin-inline-start:6px}
 .btn.jbtn-yes{background:var(--teal-soft);color:var(--teal);border:1px solid var(--teal)}
 .cell.future{background:repeating-linear-gradient(45deg,#f3f1ea,#f3f1ea 4px,#e9e6dc 4px,#e9e6dc 8px);cursor:not-allowed}
 .foot td{background:var(--teal-soft);font-weight:700;color:var(--teal)}
@@ -383,11 +388,13 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
     <select id="daySel"></select>
     <div class="big" id="dayTotal" style="margin-top:8px">0</div>
     <div class="sub">ساعة غياب، لجميع الأقسام</div>
+    <div class="jsplit" id="dayJ"></div>
   </div>
   <div class="panel card">
     <h3>إجمالي غياب الأسبوع</h3>
     <div class="big" id="weekTotal">0</div>
     <div class="sub">ساعة غياب، لجميع الأقسام</div>
+    <div class="jsplit" id="weekJ"></div>
   </div>
   <div class="panel card">
     <h3>الغياب حسب المادة</h3>
@@ -1686,9 +1693,18 @@ function dayTotal(dayIdx){
   return sum;
 }
 function weekTotal(){ let s=0; for(let i=0;i<totalCols();i++) s+=allColumnSum(i); return s; }
+// justified absences (the cell holds 'j') are counted inside the totals above; these give the detail
+function allColumnJ(colIdx){
+  let sum=0;
+  for(const c of state.classNames) state.data[c].absences.forEach(r=>{if(r[colIdx]==='j')sum++;});
+  return sum;
+}
+function dayTotalJ(dayIdx){ const sp=shiftSpan(dayIdx); let sum=0; for(let p=0;p<sp.n;p++) sum+=allColumnJ(sp.start+p); return sum; }
+function weekTotalJ(){ let s=0; for(let i=0;i<totalCols();i++) s+=allColumnJ(i); return s; }
+function jSplit(total,j){ return total?'<span class="jchip n">'+(total-j)+' غير مبررة</span><span class="jchip y">'+j+' مبررة</span>':''; }
 
 function groupTotals(field){
-  const totals={};
+  const totals={}, jt={};
   for(const c of state.classNames){
     const cls=state.data[c];
     for(let i=0;i<totalCols();i++){
@@ -1696,10 +1712,11 @@ function groupTotals(field){
       if(!key) continue;
       const n=cls.absences.reduce((a,r)=>a+(r[i]?1:0),0);
       if(!n) continue;
-      totals[key]=(totals[key]||0)+n;
+      const nj=cls.absences.reduce((a,r)=>a+(r[i]==='j'?1:0),0);
+      totals[key]=(totals[key]||0)+n; jt[key]=(jt[key]||0)+nj;
     }
   }
-  return Object.entries(totals).sort((a,b)=>b[1]-a[1]);
+  return Object.entries(totals).sort((a,b)=>b[1]-a[1]).map(([k,v])=>[k,v,jt[k]||0]);
 }
 
 function renderStats(){
@@ -1713,17 +1730,20 @@ function renderStats(){
     daySel.dataset.sig=dsig;
     daySel.onchange=renderStats;
   }
-  document.getElementById('dayTotal').textContent=dayTotal(+daySel.value);
-  document.getElementById('weekTotal').textContent=weekTotal();
+  const dT=dayTotal(+daySel.value), wT=weekTotal();
+  document.getElementById('dayTotal').textContent=dT;
+  document.getElementById('weekTotal').textContent=wT;
+  document.getElementById('dayJ').innerHTML=jSplit(dT,dayTotalJ(+daySel.value));
+  document.getElementById('weekJ').innerHTML=jSplit(wT,weekTotalJ());
 
   const subj=groupTotals('subject');
-  document.getElementById('bySubject').innerHTML = subj.length? subj.map(([k,v],idx)=>
-    `<div class="row${idx===0?' top':''}"><span>${k}</span><span class="n">${v} س</span></div>`).join('')
+  document.getElementById('bySubject').innerHTML = subj.length? subj.map(([k,v,j],idx)=>
+    `<div class="row${idx===0?' top':''}"><span>${k}</span><span class="n">${v} س${j?`<span class="jn">(منها ${j} مبررة)</span>`:''}</span></div>`).join('')
     : '<div class="empty">لم تُدخل بعد رموز المواد</div>';
 
   const teach=groupTotals('teacher');
-  document.getElementById('byTeacher').innerHTML = teach.length? teach.map(([k,v],idx)=>
-    `<div class="row${idx===0?' top':''}"><span>${k}${idx===0?' — الأكثر غيابا':''}</span><span class="n">${v} س</span></div>`).join('')
+  document.getElementById('byTeacher').innerHTML = teach.length? teach.map(([k,v,j],idx)=>
+    `<div class="row${idx===0?' top':''}"><span>${k}${idx===0?' — الأكثر غيابا':''}</span><span class="n">${v} س${j?`<span class="jn">(منها ${j} مبررة)</span>`:''}</span></div>`).join('')
     : '<div class="empty">لم تُدخل بعد أسماء الأساتذة</div>';
   renderNotify();
 }
@@ -1813,9 +1833,10 @@ function svBuild(){
       const lvl=levelOf(c,s.level);
       if(!svPass(c,lvl)) return;
       if(!order.includes(c)) order.push(c);
-      if(!per.has(c)) per.set(c,{cls:c,level:lvl,students:0,hours:0,absent:0});
+      if(!per.has(c)) per.set(c,{cls:c,level:lvl,students:0,hours:0,hj:0,absent:0});
       const r=per.get(c), W=(validPc(s.pc)[0]+validPc(s.pc)[1]), a=it.d*W, h=sumRange(s.cols,a,a+W);
-      r.students=s.students; r.level=lvl; r.hours+=h;
+      const hj=sumRange(s.colsJ||[],a,a+W);   // justified hours (weeks saved before this feature have none)
+      r.students=s.students; r.level=lvl; r.hours+=h; r.hj+=hj;
       if(week) r.absent=s.weekStudents||0; else r.absent+=s.dayStudents[it.d]||0;
       trend[ti].hours+=h; trend[ti].absent+=s.dayStudents[it.d]||0;
       if(student){
@@ -1824,8 +1845,8 @@ function svBuild(){
           const hh=String(bits||'').slice(a,a+W).replace(/0/g,'').length;
           if(!hh) return;
           const k=c+'\u0001'+name;
-          if(!stu.has(k)) stu.set(k,{name,cls:c,level:lvl,hours:0,days:0});
-          const x=stu.get(k); x.hours+=hh; x.days++;
+          if(!stu.has(k)) stu.set(k,{name,cls:c,level:lvl,hours:0,hj:0,days:0});
+          const x=stu.get(k); x.hours+=hh; x.hj+=String(bits||'').slice(a,a+W).split('2').length-1; x.days++;
         });
       }
     });
@@ -1837,9 +1858,10 @@ function svBuild(){
   if(student){
     const list=[...stu.values()].sort((x,y)=>y.hours-x.hours||y.days-x.days||x.name.localeCompare(y.name,'ar'));
     if(!list.length) return {empty:missing.size?'لا تتوفر تفاصيل التلاميذ لهذه الفترة لأنها سُجّلت قبل إضافة هذه الميزة. ستتوفر لكل الأسابيع الجديدة.':'لا يوجد تلاميذ غائبون في هذه الفترة'+(svFilterLabel()?' ('+svFilterLabel()+')':'')+'.'};
-    head=['التلميذ','القسم','المستوى','ساعات الغياب','أيام الغياب'];
-    rows=list.map(x=>[x.name,x.cls,x.level,x.hours,x.days]);
-    total=['المجموع ('+list.length+' تلميذ)','','',list.reduce((a,x)=>a+x.hours,0),list.reduce((a,x)=>a+x.days,0)];
+    head=['التلميذ','القسم','المستوى','ساعات الغياب','منها مبررة','منها غير مبررة','أيام الغياب'];
+    rows=list.map(x=>[x.name,x.cls,x.level,x.hours,x.hj,x.hours-x.hj,x.days]);
+    const th=list.reduce((a,x)=>a+x.hours,0), tj=list.reduce((a,x)=>a+x.hj,0);
+    total=['المجموع ('+list.length+' تلميذ)','','',th,tj,th-tj,list.reduce((a,x)=>a+x.days,0)];
     hoursArr=list.map(x=>x.hours); labels=list.map(x=>x.name); absArr=list.map(x=>x.days);
     note='تُعرض في هذا الجدول فقط التلاميذ الذين غابوا خلال الفترة، مرتّبين من الأكثر غيابا. «أيام الغياب» = عدد الأيام التي غاب فيها التلميذ ولو لحصة واحدة.';
     if(missing.size) note+=' تنبيه: لا تتوفر تفاصيل التلاميذ للأسابيع المسجّلة قبل هذا التحديث ('+[...missing].sort().join('، ')+').';
@@ -1850,16 +1872,16 @@ function svBuild(){
     if(svGroup==='level'){
       const m=new Map();
       rs.forEach(r=>{
-        if(!m.has(r.level)) m.set(r.level,{key:r.level,classes:0,students:0,hours:0,absent:0});
-        const x=m.get(r.level); x.classes++; x.students+=r.students; x.hours+=r.hours; x.absent+=r.absent;
+        if(!m.has(r.level)) m.set(r.level,{key:r.level,classes:0,students:0,hours:0,hj:0,absent:0});
+        const x=m.get(r.level); x.classes++; x.students+=r.students; x.hours+=r.hours; x.hj+=r.hj; x.absent+=r.absent;
       });
       g=[...m.values()];
-    }else g=rs.map(r=>({key:r.cls,level:r.level,students:r.students,hours:r.hours,absent:r.absent}));
-    head=(svGroup==='level'?['المستوى','عدد الأقسام']:['القسم','المستوى']).concat(['عدد التلاميذ','ساعات الغياب'],
+    }else g=rs.map(r=>({key:r.cls,level:r.level,students:r.students,hours:r.hours,hj:r.hj,absent:r.absent}));
+    head=(svGroup==='level'?['المستوى','عدد الأقسام']:['القسم','المستوى']).concat(['عدد التلاميذ','ساعات الغياب','منها مبررة','منها غير مبررة'],
       month?['أيام الغياب (تلميذ·يوم)','متوسط الغائبين يوميا']:['التلاميذ الغائبون','نسبة الغائبين']);
-    rows=g.map(r=>[r.key,svGroup==='level'?r.classes:r.level,r.students,r.hours,r.absent,month?avg(r.absent):pct(r.absent,r.students)]);
-    const tot=g.reduce((a,r)=>({students:a.students+r.students,hours:a.hours+r.hours,absent:a.absent+r.absent,classes:a.classes+(r.classes||1)}),{students:0,hours:0,absent:0,classes:0});
-    total=['المجموع',svGroup==='level'?tot.classes:'',tot.students,tot.hours,tot.absent,month?avg(tot.absent):pct(tot.absent,tot.students)];
+    rows=g.map(r=>[r.key,svGroup==='level'?r.classes:r.level,r.students,r.hours,r.hj,r.hours-r.hj,r.absent,month?avg(r.absent):pct(r.absent,r.students)]);
+    const tot=g.reduce((a,r)=>({students:a.students+r.students,hours:a.hours+r.hours,hj:a.hj+r.hj,absent:a.absent+r.absent,classes:a.classes+(r.classes||1)}),{students:0,hours:0,hj:0,absent:0,classes:0});
+    total=['المجموع',svGroup==='level'?tot.classes:'',tot.students,tot.hours,tot.hj,tot.hours-tot.hj,tot.absent,month?avg(tot.absent):pct(tot.absent,tot.students)];
     hoursArr=g.map(r=>r.hours); labels=g.map(r=>r.key); absArr=g.map(r=>r.absent);
     if(month) note='عدد الأيام المسجّلة في هذا الشهر: '+nDays+'. «أيام الغياب» = مجموع عدد التلاميذ الغائبين في كل يوم (تلميذ·يوم).';
   }
