@@ -60,6 +60,8 @@ h1{font-size:20px;font-weight:900;margin:0;color:var(--teal)}
 .tab-edit:hover{opacity:1}
 .tab.add-tab{background:transparent;border-style:dashed;color:var(--teal);font-weight:700}
 .cell.readonly{cursor:default}
+/* teacher account: only the season, the week dates, the class tabs, the sheet with the student list, add-student, language and logout */
+body.tch #statsBtn,body.tch #catchBtn,body.tch #printBtn,body.tch #usersBtn,body.tch #logoBtn,body.tch #newWeekBtn,body.tch #prevWeekBtn,body.tch #periodsBtn,body.tch #orgBtn,body.tch #timesBtn,body.tch #bulkDelBtn,body.tch .toolbar,body.tch .btncol,body.tch .stats,body.tch #autoPanel,body.tch #notifyPanel,body.tch #viewBanner,body.tch #weekBanner,body.tch #userChip{display:none!important}
 #viewBanner{background:var(--gold-soft);color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;font-weight:500}
 .userchip{font-size:12px;color:var(--ink-soft);margin-inline-start:8px;direction:ltr;unicode-bidi:isolate}
 .userchip b{color:var(--teal);margin-inline-end:4px}
@@ -622,6 +624,7 @@ let lanServerOk=false;
 
 function applyPermissionUI(){
   const ro=!canWrite;
+  document.body.classList.toggle('tch',!!canMark);
   const banner=document.getElementById('viewBanner');
   if(banner){
     banner.style.display=ro?'block':'none';
@@ -1212,12 +1215,14 @@ function renderTable(){
   const names=cls.names;
   const br=breakNow();   // inter-term holiday week: nothing can be recorded
   const selAllCell=canWrite?'<input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)">':'';
-  let html=`<div class="sheetwrap"><table><thead><tr><th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th><th class="hl" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th><th class="hl phh" rowspan="2">هاتف ولي الأمر</th>`;
+  const T=canMark;   // teacher: only the number and the name, no checkbox / delete / parent phone columns
+  const lead=T?1:3, stk=T?1:2;
+  let html=`<div class="sheetwrap"><table><thead><tr>${T?'':`<th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th>`}<th class="hl" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th>${T?'':'<th class="hl phh" rowspan="2">هاتف ولي الأمر</th>'}`;
   const pc=pcount(), NC=totalCols(pc);
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
-  html+='</tr><tr><th class="hl" colspan="3"></th><th class="hl stk" colspan="2"></th>';
+  html+=`</tr><tr><th class="hl" colspan="${lead}"></th><th class="hl stk" colspan="${stk}"></th>`;
   const dis=(canWrite&&!br)?'':'disabled';
   for(let i=0;i<NC;i++){
     html+=`<th class="meta${colDayCl(i,pc)}${sepCol(i,pc)}"><input ${dis} placeholder="المادة" value="${cls.columns[i].subject}" oninput="setMeta(${i},'subject',this.value)">
@@ -1227,7 +1232,7 @@ function renderTable(){
   names.forEach((name,si)=>{
     const checkCell=canWrite?`<input type="checkbox" ${selected.has(si)?'checked':''} onchange="toggleSelect(${si},this.checked)">`:'';
     const delCell=canWrite?`<button class="del" title="حذف التلميذ" onclick="deleteStudent(${si})">×</button>`:'';
-    html+=`<tr><td>${checkCell}</td><td>${delCell}</td><td class="num">${si+1}</td><td class="name">${name}</td><td class="phcol"><input class="phone" ${dis} placeholder="06XXXXXXXX" value="${cls.phones[si]||''}" oninput="setPhone(${si},this.value)"></td>`;
+    html+=`<tr>${T?'':`<td>${checkCell}</td><td>${delCell}</td>`}<td class="num">${si+1}</td><td class="name">${name}</td>${T?'':`<td class="phcol"><input class="phone" ${dis} placeholder="06XXXXXXXX" value="${cls.phones[si]||''}" oninput="setPhone(${si},this.value)"></td>`}`;
     if(br){   // one big block per day, over every student row
       if(si===0) for(let j=0;j<10;j++) if(pc[j&1]) html+=`<td class="breakcell" colspan="${pc[j&1]}" rowspan="${names.length}"><span>${svEsc(br.label||'عطلة بينية')}</span></td>`;
       html+='</tr>'; return;
@@ -1241,11 +1246,11 @@ function renderTable(){
     html+='</tr>';
   });
   if(br&&!names.length){   // empty list: still show the label
-    html+='<tr><td colspan="6"></td>';
+    html+=`<tr><td colspan="${T?2:6}"></td>`;
     for(let j=0;j<10;j++) if(pc[j&1]) html+=`<td class="breakcell" colspan="${pc[j&1]}"><span>${svEsc(br.label||'عطلة بينية')}</span></td>`;
     html+='</tr>';
   }
-  html+='<tr class="foot"><td colspan="3"></td><td colspan="2" class="stk">عدد الغياب في الحصة</td>';
+  html+=`<tr class="foot"><td colspan="${lead}"></td><td colspan="${stk}" class="stk">عدد الغياب في الحصة</td>`;
   if(br) html+=`<td colspan="${NC}"></td>`;
   else for(let i=0;i<NC;i++){
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
@@ -1253,17 +1258,17 @@ function renderTable(){
   }
   html+='</tr></tbody>';
   // the days / periods rows again at the bottom of the list
-  html+='<tfoot><tr><th colspan="3" rowspan="2"></th><th colspan="2" rowspan="2" class="stk">أيام الأسبوع والحصص</th>';
+  html+=`<tfoot><tr><th colspan="${lead}" rowspan="2"></th><th colspan="${stk}" rowspan="2" class="stk">أيام الأسبوع والحصص</th>`;
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
   html+='</tr></tfoot></table>';
-  if(canWrite){
+  if(canWrite||canMark){
     html+=`<div class="addbar">
       <input id="newName" placeholder="اسم التلميذ الجديد" onkeydown="if(event.key==='Enter')addStudent()">
       <button class="btn" id="addStuBtn" type="button" onmousedown="event.preventDefault()" onclick="addStudent()">إضافة تلميذ</button>
-      <button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
-      <button class="btn ghost" id="seasonBtn" style="margin-inline-start:auto" onclick="seasonDialog()" title="حفظ غياب الموسم الدراسي كاملا في الأرشيف وبدء موسم جديد">🗄️ أرشفة الموسم</button>
+      ${canWrite?`<button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
+      <button class="btn ghost" id="seasonBtn" style="margin-inline-start:auto" onclick="seasonDialog()" title="حفظ غياب الموسم الدراسي كاملا في الأرشيف وبدء موسم جديد">🗄️ أرشفة الموسم</button>`:''}
     </div>`;
   }
   html+='</div>';
@@ -1419,13 +1424,35 @@ function bulkDelete(){
   });
 }
 
-function addStudent(){
-  if(!canWrite) return;
+async function teacherAddStudent(cls0,name){
+  if(!navigator.onLine){ showAlert('لا يوجد اتصال بالإنترنت: لا يمكن إضافة التلميذ الآن، أعيدوا المحاولة عند عودة الاتصال.'); return false; }
+  let r,d={};
+  try{
+    r=await fetchT('/api/mark',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({action:'addstudent',cls:cls0,name})},12000);
+    try{ d=await r.json(); }catch(e){}
+  }catch(e){ showAlert('تعذر الاتصال بالخادم، لم تتم الإضافة. أعيدوا المحاولة.'); return false; }
+  if(r.status===401){ onAuthRejected(); return false; }
+  if(!r.ok||!d.ok){ showAlert(d.message||'تعذرت إضافة التلميذ.'); return false; }
+  return true;
+}
+async function addStudent(){
+  if(!canWrite&&!canMark) return;
   const input=document.getElementById('newName');
   if(!input) return;
   const name=input.value.trim();
   if(!name){ input.focus(); input.classList.add('need'); setTimeout(()=>input.classList.remove('need'),1200); return; }
   const cls=state.data[currentClass];
+  if(!canWrite){   // teacher: the server adds the name (no phone, no deletion) and the sheet refreshes from it
+    const cls0=currentClass, btn=document.getElementById('addStuBtn'); if(btn) btn.disabled=true;
+    const ok=await teacherAddStudent(cls0,name);
+    if(btn) btn.disabled=false;
+    if(!ok) return;
+    const c=state.data[cls0];
+    if(c&&!c.names.includes(name)){ c.names.push(name); c.absences.push(blankRow()); c.phones.push(''); }
+    renderTable(); renderStats();
+    const again=document.getElementById('newName'); if(again){ again.value=''; again.focus(); }
+    return;
+  }
   cls.names.push(name);
   cls.absences.push(blankRow());
   cls.phones.push('');

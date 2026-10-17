@@ -31,7 +31,12 @@ module.exports = async function handler(req, res) {
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       // Fresh deployment: hand out the default class lists (kept server side).
-      res.status(200).send(JSON.stringify(stored || buildSeedState()));
+      let out = stored || buildSeedState();
+      if (session.role === 'teacher' && out && out.data) {
+        // a teacher records absences: parents' phone numbers are not for them
+        out = Object.assign({}, out, { data: Object.fromEntries(Object.entries(out.data).map(([k, c]) => [k, c && Array.isArray(c.phones) ? Object.assign({}, c, { phones: c.phones.map(() => '') }) : c])) });
+      }
+      res.status(200).send(JSON.stringify(out));
     } catch (e) {
       L.send(res, 500, { error: 'server_error' });
     }

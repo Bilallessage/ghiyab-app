@@ -12,6 +12,7 @@
 //   - `name` must match the student at index `si` (a list that changed in the meantime
 //     must never mark the wrong child).
 // The admin may use it too (any column, justified allowed).
+// POST {action:'addstudent', cls, name} adds a student (name only) for a teacher or the admin.
 const L = require('./_lib');
 const S = require('./_stats');
 
@@ -49,6 +50,37 @@ function nowMinutes(now) {
 
 function fail(res, code, error, message) { return L.send(res, code, { ok: false, error, message }); }
 
+// A teacher may ADD a student to a class (name only: no phone, no deletion, no renaming).
+async function addStudent(res, session, b) {
+  const name = typeof b.name === 'string' ? b.name.replace(/\s+/g, ' ').trim() : '';
+  if (typeof b.cls !== 'string' || !name || name.length > 80) return fail(res, 400, 'bad_request', 'اسم التلميذ غير صالح');
+  const redis = L.getRedis();
+  try {
+    return await L.withLock('state', async () => {
+      const state = await redis.get(STATE_KEY);
+      if (!state || !Array.isArray(state.classNames) || !state.data) return fail(res, 409, 'no_state', 'لا توجد ورقة محفوظة بعد');
+      const cls = state.data[b.cls];
+      if (!state.classNames.includes(b.cls) || !cls || !Array.isArray(cls.names)) return fail(res, 404, 'no_class', 'القسم غير موجود');
+      if (cls.names.length >= 200) return fail(res, 400, 'too_many', 'عدد التلاميذ في القسم بلغ الحد الأقصى');
+      const key = norm(name);
+      if (cls.names.some((x) => norm(x) === key)) return fail(res, 409, 'exists', 'هذا التلميذ موجود في القسم بالفعل');
+      const W = S.periodCounts(state);
+      const cols = 5 * (W[0] + W[1]);
+      if (!Array.isArray(cls.absences)) cls.absences = [];
+      if (!Array.isArray(cls.phones)) cls.phones = [];
+      while (cls.absences.length < cls.names.length) cls.absences.push(Array(cols).fill(false));
+      while (cls.phones.length < cls.names.length) cls.phones.push('');
+      cls.names.push(name);
+      cls.absences.push(Array(cols).fill(false));
+      cls.phones.push('');
+      await redis.set(STATE_KEY, state);
+      return L.send(res, 200, { ok: true });
+    });
+  } catch (e) {
+    return fail(res, 500, 'server_error', 'خطأ في الخادم، أعيدوا المحاولة');
+  }
+}
+
 module.exports = async function handler(req, res) {
   const problem = L.configProblem();
   if (problem) return L.send(res, 503, { error: 'not_configured', message: problem });
@@ -62,6 +94,7 @@ module.exports = async function handler(req, res) {
   const isAdmin = session.role === 'admin';
 
   const b = L.parseBody(req) || {};
+  if (b.action === 'addstudent') return addStudent(res, session, b);
   const si = b.si, ci = b.ci;
   if (typeof b.cls !== 'string' || typeof b.name !== 'string' || !Number.isInteger(si) || !Number.isInteger(ci) || si < 0 || ci < 0) {
     return fail(res, 400, 'bad_request', 'طلب غير صالح');
