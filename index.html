@@ -62,6 +62,7 @@ h1{font-size:20px;font-weight:900;margin:0;color:var(--teal)}
 .cell.readonly{cursor:default}
 /* teacher account: only the season, the week dates, the class tabs, the sheet with the student list, add-student, language and logout */
 body.tch #statsBtn,body.tch #catchBtn,body.tch #printBtn,body.tch #usersBtn,body.tch #logoBtn,body.tch #newWeekBtn,body.tch #prevWeekBtn,body.tch #periodsBtn,body.tch #orgBtn,body.tch #timesBtn,body.tch #bulkDelBtn,body.tch .toolbar,body.tch .btncol,body.tch .stats,body.tch #autoPanel,body.tch #notifyPanel,body.tch #viewBanner,body.tch #weekBanner,body.tch #userChip{display:none!important}
+@media(max-width:700px){body.tch header .week{display:flex;flex-wrap:wrap;align-items:center;gap:8px}body.tch header .week br{display:none}body.tch header .week .wkbox{flex:1 1 100%}body.tch header .week .btn{margin:0}}
 #viewBanner{background:var(--gold-soft);color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;font-weight:500}
 .userchip{font-size:12px;color:var(--ink-soft);margin-inline-start:8px;direction:ltr;unicode-bidi:isolate}
 .userchip b{color:var(--teal);margin-inline-end:4px}
