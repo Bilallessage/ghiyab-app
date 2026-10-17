@@ -133,7 +133,7 @@ function verifyToken(token) {
   if (!p || typeof p.exp !== 'number' || p.exp < Math.floor(Date.now() / 1000)) return null;
   if (p.r === 'admin') {
     if (p.e !== ADMIN_EMAIL) return null;
-  } else if (p.r !== 'viewer') {
+  } else if (p.r !== 'viewer' && p.r !== 'teacher') {
     return null;
   }
   return { email: p.e, role: p.r };
@@ -155,28 +155,49 @@ const PENDING_KEY = PREFIX + ':pending';
 // account must not keep working with a token it already holds.) The answer is
 // cached for a minute per server instance, so polling does not double the Redis traffic.
 const viewerCache = new Map();
-async function viewerActive(email) {
+// -> {ok, role:'viewer'|'teacher', teacher:'<name or empty>'}. The role stored on the
+// account (set by the admin) wins over the one written in the token, so promoting or
+// demoting an account takes effect within a minute without a new login.
+async function accountInfo(email) {
   const now = Date.now();
   const c = viewerCache.get(email);
-  if (c && now - c.t < 60000) return c.ok;
-  let ok;
+  if (c && now - c.t < 60000) return c.v;
+  let v;
   try {
     const u = await getRedis().get(userKey(email));
-    ok = !!(u && u.status !== 'pending');
-  } catch (e) { return true; } // Redis hiccup: the data call itself would fail anyway
+    const ok = !!(u && u.status !== 'pending');
+    v = { ok, role: ok && u.role === 'teacher' ? 'teacher' : 'viewer', teacher: ok && u.role === 'teacher' ? String(u.teacher || '') : '' };
+  } catch (e) { return { ok: true, role: 'viewer', teacher: '', failed: true }; } // Redis hiccup: the data call itself would fail anyway
   if (viewerCache.size > 500) viewerCache.clear();
-  viewerCache.set(email, { ok, t: now });
-  return ok;
+  viewerCache.set(email, { v, t: now });
+  return v;
 }
+async function viewerActive(email) { return (await accountInfo(email)).ok; }
 function forgetViewer(email) { viewerCache.delete(email); }
 
 // Session from the Authorization header, or null when missing / invalid / a
-// viewer whose account was removed.
+// non-admin whose account was removed. The role is the one on the account record.
 async function getActiveSession(req) {
   const s = getSession(req);
   if (!s) return null;
-  if (s.role === 'viewer' && !(await viewerActive(s.email))) return null;
-  return s;
+  if (s.role === 'admin') return s;
+  const a = await accountInfo(s.email);
+  if (!a.ok) return null;
+  return a.failed ? s : { email: s.email, role: a.role, teacher: a.teacher };
+}
+
+// A tiny cross-request mutex (SET NX EX) so that two roll calls arriving together do not
+// overwrite each other's read-modify-write of the shared sheet. Waits up to ~2.5 s, then
+// goes ahead anyway (the lock expires by itself after 6 s).
+async function withLock(name, fn) {
+  const redis = getRedis();
+  const key = PREFIX + ':lock:' + name;
+  let got = false;
+  for (let i = 0; i < 16 && !got; i++) {
+    got = !!(await redis.set(key, '1', { nx: true, ex: 6 }));
+    if (!got) await new Promise((r) => setTimeout(r, 160));
+  }
+  try { return await fn(); } finally { if (got) { try { await redis.del(key); } catch (e) { /* expires anyway */ } } }
 }
 
 // ---- rate limiting (fixed window, counted in Redis) ------------------------
@@ -192,5 +213,5 @@ module.exports = {
   configProblem, getRedis, send, parseBody, clientIp, normalizeEmail, validEmail,
   safeEqual, hashPassword, verifyPassword, dummyVerify,
   signToken, verifyToken, getSession, getActiveSession, allow,
-  userKey, PENDING_KEY, viewerActive, forgetViewer,
+  userKey, PENDING_KEY, viewerActive, accountInfo, forgetViewer, withLock,
 };

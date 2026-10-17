@@ -4,6 +4,7 @@
 //   POST {action:'approve'|'reject'|'remove', email}
 //        approve: the pending account may now log in (read-only)
 //        reject : delete a pending request
+//        setrole: {role:'teacher', teacher:'<name, optional>'} or {role:'viewer'}
 //        remove : delete an approved viewer (its token stops working within a minute)
 const L = require('./_lib');
 
@@ -37,7 +38,7 @@ module.exports = async function handler(req, res) {
           for (const k of r[1]) {
             if (viewers.length >= MAX_VIEWERS_LISTED) break;
             const u = await redis.get(k);
-            if (u && u.email && u.status !== 'pending') viewers.push({ email: u.email, createdAt: u.createdAt || 0 });
+            if (u && u.email && u.status !== 'pending') viewers.push({ email: u.email, createdAt: u.createdAt || 0, role: u.role === 'teacher' ? 'teacher' : 'viewer', teacher: u.role === 'teacher' ? String(u.teacher || '') : '' });
           }
         } while (cursor !== '0' && viewers.length < MAX_VIEWERS_LISTED);
         viewers.sort((a, b) => (a.email < b.email ? -1 : 1));
@@ -63,6 +64,19 @@ module.exports = async function handler(req, res) {
         if (user.status !== 'pending') return L.send(res, 400, { error: 'not_pending', message: 'هذا الحساب مقبول من قبل، استعملوا «إزالة»' });
         await redis.del(key);
         await redis.hdel(L.PENDING_KEY, email);
+      } else if (body.action === 'setrole') {
+        // viewer <-> teacher (a teacher may also record absences, see /api/mark)
+        if (user.status === 'pending') return L.send(res, 400, { error: 'pending', message: 'اقبلوا الحساب أولا' });
+        const next = Object.assign({}, user);
+        if (body.role === 'teacher') {
+          next.role = 'teacher';
+          next.teacher = String(body.teacher || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+        } else if (body.role === 'viewer') {
+          delete next.role; delete next.teacher;
+        } else {
+          return L.send(res, 400, { error: 'bad_role' });
+        }
+        await redis.set(key, next);
       } else if (body.action === 'remove') {
         await redis.del(key);
         await redis.hdel(L.PENDING_KEY, email);

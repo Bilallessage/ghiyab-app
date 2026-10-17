@@ -130,4 +130,4 @@ async function archiveWeek(redis, prefix, state) {
   return true;
 }
 
-module.exports = { validIso, addDays, mondayOf, deriveLevel, summarizeState, archiveWeek, historyKey };
+module.exports = { validIso, addDays, mondayOf, deriveLevel, summarizeState, archiveWeek, historyKey, periodCounts, DEFAULT_BREAKS };

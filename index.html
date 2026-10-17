@@ -430,7 +430,7 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
 <div class="modal-overlay" id="usersOverlay" style="display:none">
   <div class="modal-box" style="max-width:520px;max-height:85vh;overflow:auto">
     <h3 style="margin:0 0 6px;color:var(--teal);font-size:15px">حسابات الاطلاع</h3>
-    <p class="sub" style="margin:0 0 12px;line-height:1.6">من يسجّل حسابا جديدا من صفحة الدخول لا يستطيع الدخول حتى توافقوا على طلبه هنا. الحسابات المقبولة تطلع على الجدول والإحصائيات فقط دون تعديل.</p>
+    <p class="sub" style="margin:0 0 12px;line-height:1.6">من يسجّل حسابا جديدا من صفحة الدخول لا يستطيع الدخول حتى توافقوا على طلبه هنا. الحسابات المقبولة تطلع على الجدول والإحصائيات فقط دون تعديل، ويمكنكم تحويل أي حساب إلى «أستاذ» ليسجّل الغياب عند النداء في حصص اليوم (وإن كتبتم اسمه كما في الجدول فلن يسجّل إلا في حصصه).</p>
     <div id="usersBody" style="margin-bottom:12px"></div>
     <div class="modal-actions"><button class="btn ghost" type="button" onclick="usersClose()">إغلاق</button></div>
   </div>
@@ -612,6 +612,9 @@ let lastWriteDone=0, dbNS=null, tableFocused=false, pendingRemoteState=null, pen
 // viewer : read only. The server enforces this on every request; canWrite
 //          below only decides which controls the page shows.
 let canWrite=false;
+// teacher : read only EXCEPT recording / removing an unjustified absence in today's periods,
+//           one cell at a time through /api/mark (the server checks day, week and teacher name).
+let canMark=false, teacherName='';
 let currentUser=null;
 let pollTimer=null;
 let syncedOnce=false;
@@ -620,7 +623,10 @@ let lanServerOk=false;
 function applyPermissionUI(){
   const ro=!canWrite;
   const banner=document.getElementById('viewBanner');
-  if(banner) banner.style.display=ro?'block':'none';
+  if(banner){
+    banner.style.display=ro?'block':'none';
+    banner.textContent=canMark?'👩‍🏫 حساب أستاذ(ة) — يمكنكم تسجيل غياب التلاميذ في حصص اليوم بالنقر على خانة الحصة. بقية الجدول للاطلاع فقط.':'👁️ وضع الاطلاع فقط — حسابكم لا يملك صلاحية التعديل. يمكنكم تصفّح الجدول والإحصائيات وطباعتها.';
+  }
   // sending absence notices / summons to parents is for the administrator only
   ['autoPanel','notifyPanel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=canWrite?'':'none'; });
   const tmBtn=document.getElementById('timesBtn');
@@ -644,7 +650,7 @@ function applyPermissionUI(){
   if(chip && currentUser){
     chip.style.display='inline';
     chip.innerHTML='';
-    const b=document.createElement('b'); b.textContent=currentUser.role==='admin'?'مسؤول':'اطلاع';
+    const b=document.createElement('b'); b.textContent=currentUser.role==='admin'?'مسؤول':currentUser.role==='teacher'?'أستاذ':'اطلاع';
     chip.appendChild(b); chip.appendChild(document.createTextNode(currentUser.email));
   }
   const lo=document.getElementById('logoutBtn');
@@ -822,7 +828,7 @@ function setSyncStatus(s){
   if(s==='online'){
     el.textContent=canWrite
       ? '🟢 متصل — تعديلاتكم تظهر فورًا لدى كل المستخدمين'
-      : '🟢 متصل — تُحدَّث البيانات تلقائيًا (اطلاع فقط)';
+      : canMark?'🟢 متصل — تُحدَّث البيانات تلقائيًا (تسجيل غياب حصص اليوم)':'🟢 متصل — تُحدَّث البيانات تلقائيًا (اطلاع فقط)';
   }else if(s==='pending'){
     el.textContent=canWrite?'🟠 دون اتصال — يمكنكم متابعة تسجيل الغياب، وستُرسَل التعديلات تلقائيا عند عودة الإنترنت':'🔴 دون اتصال — تُعرض آخر بيانات محفوظة على هذا الجهاز';
   }else if(s==='error'){
@@ -1228,8 +1234,9 @@ function renderTable(){
     }
     for(let i=0;i<NC;i++){
       const ab=cls.absences[si][i];
-      const click=canWrite?` onclick="toggleCell(${si},${i})"`:'';
-      html+=`<td class="cell${ab?' absent':''}${ab==='j'?' just':''}${canWrite?'':' readonly'}${colIsFuture(i)?' future':''}${colDayCl(i,pc)}${sepCol(i,pc)}" data-ci="${i}"${ab==='j'?' title="غياب مبرر"':ab?' title="غياب غير مبرر"':''}${click}>${ab?'غ':''}${ab==='j'?'<small class="jm">م</small>':''}</td>`;
+      const tap=!canWrite&&teacherCan(i,ab);
+      const click=canWrite?` onclick="toggleCell(${si},${i})"`:tap?` onclick="teacherMark(${si},${i})"`:'';
+      html+=`<td class="cell${ab?' absent':''}${ab==='j'?' just':''}${(canWrite||tap)?'':' readonly'}${colIsFuture(i)?' future':''}${colDayCl(i,pc)}${sepCol(i,pc)}" data-ci="${i}"${ab==='j'?' title="غياب مبرر"':ab?' title="غياب غير مبرر"':''}${click}>${ab?'غ':''}${ab==='j'?'<small class="jm">م</small>':''}</td>`;
     }
     html+='</tr>';
   });
@@ -1573,6 +1580,47 @@ function colStart(ci,cname){
   const o=colInfo(ci), date=addDaysIso(wf,o.d);
   const [hh,mm]=periodTimes(cname)[o.s][o.p].split(':').map(Number);
   return new Date(+date.slice(0,4),+date.slice(5,7)-1,+date.slice(8,10),hh,mm);
+}
+// ---- teacher accounts: record absences at roll call --------------------------------
+function tchNorm(x){ return String(x||'').normalize('NFKD').replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[\s.\-_'’]+/g,'').toLowerCase(); }
+// may this teacher tap column ci now? (the server repeats and enforces every check)
+function teacherCan(ci,cur){
+  if(!canMark||breakNow()||cur==='j'||colIsFuture(ci)) return false;
+  const wf=ntMonday(state.weekFrom); if(!wf) return false;
+  if(addDaysIso(wf,colInfo(ci).d)!==todayIso()) return false;
+  if(teacherName){
+    const cls=state.data[currentClass], want=tchNorm(teacherName), have=tchNorm(cls&&cls.columns&&cls.columns[ci]&&cls.columns[ci].teacher);
+    if(!want||!have||!(have.includes(want)||want.includes(have))) return false;
+  }
+  return true;
+}
+async function teacherPost(cls0,si,ci,name,value){
+  if(!navigator.onLine){ showAlert('لا يوجد اتصال بالإنترنت: لا يمكن تسجيل الغياب الآن، أعيدوا المحاولة عند عودة الاتصال.'); return false; }
+  let r,d={};
+  try{
+    r=await fetchT('/api/mark',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({cls:cls0,si,name,ci,value})},12000);
+    try{ d=await r.json(); }catch(e){}
+  }catch(e){ showAlert('تعذر الاتصال بالخادم، لم يُسجَّل الغياب. أعيدوا المحاولة.'); return false; }
+  if(r.status===401){ onAuthRejected(); return false; }
+  if(!r.ok||!d.ok){ showAlert(d.message||'تعذر تسجيل الغياب.'); return false; }
+  const c=state.data[cls0];
+  if(c&&c.names[si]===name){ c.absences[si][ci]=value; }
+  renderTable(); renderStats();
+  return true;
+}
+function teacherMark(si,ci){
+  const cls=state.data[currentClass], cls0=currentClass, name=cls.names[si], cur=cls.absences[si][ci];
+  if(!teacherCan(ci,cur)) return;
+  const subj=(cls.columns[ci]&&cls.columns[ci].subject||'').trim();
+  const wi=colInfo(ci), where=DAYS[wi.d*2+wi.s]+' — ح'+(wi.p+1)+(subj?' ('+subj+')':'');
+  if(cur){
+    showModal('حذف غياب التلميذ(ة) '+name+' — القسم '+cls0+' — '+where+'؟',[
+      {label:'تأكيد حذف الغياب',className:'btn danger',onClick:()=>teacherPost(cls0,si,ci,name,false)},
+      {label:'إلغاء',className:'btn ghost',onClick:null}
+    ]);
+  }else{
+    teacherPost(cls0,si,ci,name,true);   // roll call has to be quick: one tap, no question
+  }
 }
 function colIsFuture(ci,cname){ const d=colStart(ci,cname); return !!d&&d.getTime()>Date.now(); }
 function refreshFutureCells(){
@@ -2953,7 +3001,7 @@ async function usersDialog(){
   usersBadge(d.pending.length);
   body.innerHTML='';
   const day=t=>t?new Date(t).toISOString().slice(0,10):'';
-  const section=(title,list,buttons,empty)=>{
+  const section=(title,list,buttons,empty,extra)=>{
     const h=document.createElement('div'); h.style.cssText='font-weight:700;font-size:13px;color:var(--teal);margin:10px 0 6px';
     h.textContent=title+' ('+list.length+')'; body.appendChild(h);
     if(!list.length){ const e=document.createElement('div'); e.className='sub'; e.textContent=empty; body.appendChild(e); return; }
@@ -2963,6 +3011,7 @@ async function usersDialog(){
       const em=document.createElement('span'); em.dir='ltr'; em.textContent=u.email; em.style.cssText='flex:1;min-width:160px;font-size:13px;word-break:break-all;text-align:right';
       const dt=document.createElement('span'); dt.className='sub'; dt.textContent=day(u.createdAt);
       row.appendChild(em); row.appendChild(dt);
+      if(extra) extra(u,row);
       buttons.forEach(b=>{
         const bt=document.createElement('button'); bt.className=b.cls; bt.textContent=b.label; bt.type='button';
         bt.onclick=()=>b.go(u.email,bt); row.appendChild(bt);
@@ -2974,14 +3023,33 @@ async function usersDialog(){
     {label:'✔ قبول',cls:'btn',go:(e,bt)=>usersAct('approve',e,bt)},
     {label:'✖ رفض',cls:'btn danger',go:(e,bt)=>usersAct('reject',e,bt)},
   ],'لا توجد طلبات معلّقة.');
-  section('حسابات الاطلاع المقبولة',d.viewers||[],[
+  // accepted accounts: read-only («اطلاع») or teacher («أستاذ»: may also record absences at roll call)
+  const tInputs={};
+  section('الحسابات المقبولة',d.viewers||[],[
     {label:'إزالة',cls:'btn ghost',go:(e)=>showConfirm('ستُزال إمكانية دخول هذا الحساب ('+e+') فورا. المتابعة؟',()=>usersAct('remove',e))},
-  ],'لا توجد حسابات مقبولة بعد.');
+  ],'لا توجد حسابات مقبولة بعد.',(u,row)=>{
+    const isT=u.role==='teacher';
+    const tag=document.createElement('b'); tag.textContent=isT?'أستاذ':'اطلاع';
+    tag.style.cssText='font-size:11.5px;padding:1px 8px;border-radius:10px;background:'+(isT?'#DCEEE9':'#ECEFEE')+';color:'+(isT?'#0E6B5C':'#5B6664');
+    row.appendChild(tag);
+    const nm=document.createElement('input'); nm.type='text'; nm.className='tchName'; nm.value=u.teacher||''; nm.maxLength=80;
+    nm.placeholder='اسم الأستاذ(ة) كما في الجدول (اختياري)'; nm.title='إن كُتب الاسم، لا يسجّل الحساب الغياب إلا في الحصص التي يحمل فيها هذا الاسم';
+    nm.style.cssText='flex:1 1 170px;min-width:150px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:12.5px';
+    tInputs[u.email]=nm; row.appendChild(nm);
+    const bt=document.createElement('button'); bt.type='button'; bt.className='btn'; bt.textContent=isT?'حفظ الاسم':'جعله أستاذا';
+    bt.onclick=()=>usersAct('setrole',u.email,bt,{role:'teacher',teacher:nm.value});
+    row.appendChild(bt);
+    if(isT){
+      const bv=document.createElement('button'); bv.type='button'; bv.className='btn ghost'; bv.textContent='إرجاعه إلى اطلاع فقط';
+      bv.onclick=()=>usersAct('setrole',u.email,bv,{role:'viewer'});
+      row.appendChild(bv);
+    }
+  });
 }
-async function usersAct(action,email,btn){
+async function usersAct(action,email,btn,extra){
   if(btn) btn.disabled=true;
   try{
-    const r=await fetch('/api/users',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({action,email})});
+    const r=await fetch('/api/users',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify(Object.assign({action,email},extra||{}))});
     if(r.status===401){ onAuthRejected(); return; }
     if(!r.ok && r.status!==404){ showAlert('تعذر تنفيذ العملية، أعيدوا المحاولة.'); if(btn) btn.disabled=false; return; }
   }catch(e){ showAlert('تعذر الاتصال بالخادم.'); if(btn) btn.disabled=false; return; }
@@ -3141,6 +3209,8 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ try{ navi
   }
   currentUser=me;
   canWrite=(me.role==='admin');
+  canMark=(me.role==='teacher');
+  teacherName=canMark?String(me.teacher||''):'';
   startApp();
 })();
 </script>

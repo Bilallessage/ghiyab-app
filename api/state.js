@@ -1,7 +1,8 @@
 // Vercel serverless function: GET/POST /api/state
 // Stores the whole sheet as one JSON value in Upstash Redis.
 //   GET  -> any logged-in account (admin or viewer)
-//   POST -> the admin only (viewers get 403, anonymous callers get 401)
+//   POST -> the admin only (viewers and teachers get 403, anonymous callers get 401);
+//           a teacher records absences one cell at a time through /api/mark
 const L = require('./_lib');
 const { buildSeedState } = require('./_seed');
 const { archiveWeek } = require('./_stats');
@@ -44,7 +45,8 @@ module.exports = async function handler(req, res) {
     try {
       const data = L.parseBody(req);
       if (!looksLikeState(data)) throw new Error('invalid body');
-      await redis.set(STATE_KEY, data);
+      // same mutex as /api/mark, so a teacher's single-cell write is not lost in between
+      await L.withLock('state', () => redis.set(STATE_KEY, data));
       // Keep a summary of this week for the statistics page. Never let a
       // problem here block saving the sheet itself.
       try { await archiveWeek(redis, L.PREFIX, data); } catch (e) { /* ignore */ }

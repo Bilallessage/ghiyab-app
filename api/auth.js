@@ -50,7 +50,8 @@ module.exports = async function handler(req, res) {
       if (user.status === 'pending') {
         return L.send(res, 403, { error: 'pending', message: 'حسابكم في انتظار موافقة المسؤول. سيتمكّن من الدخول بعد قبول طلبكم.' });
       }
-      return L.send(res, 200, { token: L.signToken(email, 'viewer'), email, role: 'viewer' });
+      const role = user.role === 'teacher' ? 'teacher' : 'viewer';
+      return L.send(res, 200, { token: L.signToken(email, role), email, role, teacher: role === 'teacher' ? String(user.teacher || '') : '' });
     }
 
     // ---------------------------------------------------------- register
