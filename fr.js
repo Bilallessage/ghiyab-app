@@ -279,6 +279,10 @@
     'لا يوجد اتصال بالإنترنت: لا يمكن تسجيل الغياب الآن، أعيدوا المحاولة عند عودة الاتصال.': "Pas de connexion Internet : impossible de noter l'absence maintenant, réessayez au retour de la connexion.",
     'تعذر الاتصال بالخادم، لم يُسجَّل الغياب. أعيدوا المحاولة.': "Impossible de joindre le serveur, l'absence n'a pas été enregistrée. Réessayez.",
     'تعذر تسجيل الغياب.': "Impossible d'enregistrer l'absence.",
+    'ليس لحسابكم صلاحية تسجيل الغياب.': "Votre compte n'a pas le droit de noter les absences.",
+    'الأسبوع غير محدد في الورقة، أخبروا المسؤول.': "La semaine n'est pas définie dans la feuille, prévenez l'administrateur.",
+    'هذا الأسبوع عطلة، لا يُسجَّل فيه غياب.': "Cette semaine est une période de vacances : aucune absence n'y est notée.",
+    'هذا الغياب مبرَّر من المسؤول ولا يمكن تغييره.': "Cette absence a été justifiée par l'administrateur et ne peut pas être modifiée.",
     'لا يوجد اتصال بالإنترنت: لا يمكن إضافة التلميذ الآن، أعيدوا المحاولة عند عودة الاتصال.': "Pas de connexion Internet : impossible d'ajouter l'élève maintenant, réessayez au retour de la connexion.",
     'تعذر الاتصال بالخادم، لم تتم الإضافة. أعيدوا المحاولة.': "Impossible de joindre le serveur, l'ajout n'a pas été effectué. Réessayez.",
     'تعذرت إضافة التلميذ.': "Impossible d'ajouter l'élève.",
@@ -482,6 +486,11 @@
 
     // classes / students
     [/^حذف القسم "(.+)" نهائيا مع كل بياناته \(اللائحة والغياب والهواتف\)؟$/, 'Supprimer définitivement la classe « $1 » avec toutes ses données (liste, absences et téléphones) ?'],
+    [/^اليوم عطلة نهاية الأسبوع \((السبت|الأحد)\)، ولا توجد حصص لتسجيل غيابها\.$/, function (m) { return "Aujourd'hui c'est le week-end (" + (m[1] === 'السبت' ? 'samedi' : 'dimanche') + ") : il n'y a pas de séances dont noter l'absence."; }],
+    [/^الورقة تعرض الأسبوع من (\S+) إلى (\S+) وهو ليس أسبوع اليوم \((\S+)\)\. على المسؤول أن يبدأ الأسبوع الجديد \(زر «التالي»\) ليتمكن الأساتذة من تسجيل الغياب\.$/, "La feuille affiche la semaine du $1 au $2, qui n'est pas celle d'aujourd'hui ($3). L'administrateur doit démarrer la nouvelle semaine (bouton « Suivant ») pour que les professeurs puissent noter les absences."],
+    [/^يمكن تسجيل غياب حصص اليوم فقط: اليوم (\S+) وهذه الخانة من يوم (\S+)\.$/, function (m, t) { return "Seules les absences des séances d'aujourd'hui peuvent être notées : aujourd'hui c'est " + t(m[1]).toLowerCase() + " et cette case est celle de " + t(m[2]).toLowerCase() + "."; }],
+    [/^هذه الحصة لم يحن وقتها بعد \(تبدأ على الساعة (\d{2}:\d{2})\)\.$/, "Cette séance n'a pas encore commencé (début à $1)."],
+    [/^هذه الحصة ليست من حصصكم: اسم الأستاذ\(ة\) المكتوب فيها «(.*)» واسم حسابكم «(.*)»\.$/, "Cette séance n'est pas l'une des vôtres : le nom du/de la professeur(e) inscrit est « $1 » et le nom de votre compte est « $2 »."],
     [/^حذف (\d+) تلميذ\(ة\) من لائحة القسم؟$/, function (m) { return 'Supprimer ' + pl(m[1], 'élève', 'élèves') + ' de la liste de la classe ?'; }],
     [/^حذف "(.+)" من لائحة القسم؟$/, 'Supprimer « $1 » de la liste de la classe ?'],
     [/^(تسجيل|حذف) غياب التلميذ\(ة\) (.+) — القسم (.+) — (.+?) — ح(\d+)(?: \((.*)\))?؟$/, function (m, t) {

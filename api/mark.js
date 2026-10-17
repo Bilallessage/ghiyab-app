@@ -141,7 +141,7 @@ module.exports = async function handler(req, res) {
         }
         if (session.teacher) {
           if (!sameTeacher(session.teacher, cls.columns && cls.columns[ci] && cls.columns[ci].teacher)) {
-            return fail(res, 403, 'not_yours', 'هذه الحصة ليست من حصصكم');
+            return fail(res, 403, 'not_yours', 'هذه الحصة ليست من حصصكم: اسم الأستاذ(ة) المكتوب فيها «' + (String((cls.columns && cls.columns[ci] && cls.columns[ci].teacher) || '').trim() || '—') + '» واسم حسابكم «' + session.teacher + '».');
           }
         }
       }

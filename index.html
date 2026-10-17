@@ -1241,7 +1241,7 @@ function renderTable(){
     for(let i=0;i<NC;i++){
       const ab=cls.absences[si][i];
       const tap=!canWrite&&teacherCan(i,ab);
-      const click=canWrite?` onclick="toggleCell(${si},${i})"`:tap?` onclick="teacherMark(${si},${i})"`:'';
+      const click=canWrite?` onclick="toggleCell(${si},${i})"`:tap?` onclick="teacherMark(${si},${i})"`:canMark?` onclick="teacherLocked(${i})"`:'';
       html+=`<td class="cell${ab?' absent':''}${ab==='j'?' just':''}${(canWrite||tap)?'':' readonly'}${colIsFuture(i)?' future':''}${colDayCl(i,pc)}${sepCol(i,pc)}" data-ci="${i}"${ab==='j'?' title="غياب مبرر"':ab?' title="غياب غير مبرر"':''}${click}>${ab?'غ':''}${ab==='j'?'<small class="jm">م</small>':''}</td>`;
     }
     html+='</tr>';
@@ -1614,15 +1614,30 @@ function tchWords(x){ return String(x||'').normalize('NFKD').replace(/[\u064B-\u
 // same rule as the server (api/mark.js): word by word, any order, every word of the shorter name found in the other
 function tchSame(a,b){ const x=tchWords(a), y=tchWords(b); if(!x.length||!y.length) return false; const [sm,bg]=x.length<=y.length?[x,y]:[y,x]; return sm.every(w=>bg.includes(w)); }
 // may this teacher tap column ci now? (the server repeats and enforces every check)
-function teacherCan(ci,cur){
-  if(!canMark||breakNow()||cur==='j'||colIsFuture(ci)) return false;
-  const wf=ntMonday(state.weekFrom); if(!wf) return false;
-  if(addDaysIso(wf,colInfo(ci).d)!==todayIso()) return false;
+// Why can't this teacher record this cell? '' = they can. The wording is shown when they tap a locked cell,
+// so nobody is left guessing (the server repeats every one of these checks).
+function teacherWhy(ci,cur){
+  if(!canMark) return 'ليس لحسابكم صلاحية تسجيل الغياب.';
+  const br=breakNow();
+  if(br) return 'هذا الأسبوع عطلة، لا يُسجَّل فيه غياب.';
+  const wf=ntMonday(state.weekFrom); if(!wf) return 'الأسبوع غير محدد في الورقة، أخبروا المسؤول.';
+  const today=todayIso(), dow=(new Date(today+'T00:00:00Z').getUTCDay()+6)%7;   // 0 = Monday
+  if(dow>4) return 'اليوم عطلة نهاية الأسبوع ('+(dow===5?'السبت':'الأحد')+')، ولا توجد حصص لتسجيل غيابها.';
+  if(ntMonday(today)!==wf) return 'الورقة تعرض الأسبوع من '+state.weekFrom+' إلى '+state.weekTo+' وهو ليس أسبوع اليوم ('+today+'). على المسؤول أن يبدأ الأسبوع الجديد (زر «التالي») ليتمكن الأساتذة من تسجيل الغياب.';
+  const o=colInfo(ci);
+  if(o.d!==dow) return 'يمكن تسجيل غياب حصص اليوم فقط: اليوم '+DAY_NAMES[dow]+' وهذه الخانة من يوم '+DAY_NAMES[o.d]+'.';
+  if(colIsFuture(ci)){ const st=colStart(ci); return 'هذه الحصة لم يحن وقتها بعد (تبدأ على الساعة '+String(st.getHours()).padStart(2,'0')+':'+String(st.getMinutes()).padStart(2,'0')+').'; }
+  if(cur==='j') return 'هذا الغياب مبرَّر من المسؤول ولا يمكن تغييره.';
   if(teacherName){
-    const cls=state.data[currentClass];
-    if(!tchSame(teacherName,cls&&cls.columns&&cls.columns[ci]&&cls.columns[ci].teacher)) return false;
+    const cls=state.data[currentClass], have=cls&&cls.columns&&cls.columns[ci]&&cls.columns[ci].teacher;
+    if(!tchSame(teacherName,have)) return 'هذه الحصة ليست من حصصكم: اسم الأستاذ(ة) المكتوب فيها «'+((have||'').trim()||'—')+'» واسم حسابكم «'+teacherName+'».';
   }
-  return true;
+  return '';
+}
+function teacherCan(ci,cur){ return !teacherWhy(ci,cur); }
+function teacherLocked(ci){
+  const cls=state.data[currentClass]; if(!cls) return;
+  const why=teacherWhy(ci,null); if(why) showAlert(why);
 }
 async function teacherPost(cls0,si,ci,name,value){
   if(!navigator.onLine){ showAlert('لا يوجد اتصال بالإنترنت: لا يمكن تسجيل الغياب الآن، أعيدوا المحاولة عند عودة الاتصال.'); return false; }
