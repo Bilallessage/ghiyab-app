@@ -83,6 +83,8 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 .meta input:first-child{margin-bottom:2px}
 .cell{cursor:pointer;width:30px;height:26px;user-select:none}
 .cell.absent{background:var(--absent-soft);color:var(--absent);font-weight:900}
+.cell.just small.jm{font-size:10.5px;font-weight:700;margin-inline-start:1px;vertical-align:super}
+.btn.jbtn-yes{background:var(--teal-soft);color:var(--teal);border:1px solid var(--teal)}
 .cell.future{background:repeating-linear-gradient(45deg,#f3f1ea,#f3f1ea 4px,#e9e6dc 4px,#e9e6dc 8px);cursor:not-allowed}
 .foot td{background:var(--teal-soft);font-weight:700;color:var(--teal)}
 /* the sheet scrolls inside its own box so the days / periods rows stay visible while going down the list */
@@ -228,6 +230,7 @@ table.cu th:nth-child(1){width:24%}table.cu th:nth-child(2){width:13%}table.cu t
 /* the cells carry a whisper of the day's colour so each day reads as one block */
 #tableHost table td.cell{background:color-mix(in srgb,var(--dc,var(--teal)) 5%,var(--panel))}
 #tableHost table td.cell.absent{background:var(--absent-soft)}
+#tableHost table td.cell.absent.just{background:var(--teal-soft);color:var(--teal)}
 #tableHost table td.cell.future{background:repeating-linear-gradient(45deg,#f3f1ea,#f3f1ea 4px,#e9e6dc 4px,#e9e6dc 8px)}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) #tableHost table td.cell.future{background:repeating-linear-gradient(45deg,#232b29,#232b29 4px,#2a3330 4px,#2a3330 8px)} }
 /* buttons: outlined and tinted in the colour of what they do */
@@ -972,7 +975,7 @@ function ntCompute(){
     if(cur?w.weekStart===cur:w.current) return;                  // the current week comes from the sheet itself
     Object.keys(w.classes||{}).forEach(c=>{
       const cs=w.classes[c]||{}, pc=validPc(cs.pc);
-      (cs.abs||[]).forEach(([name,bits])=>take(c,name,String(bits).split('').map(x=>x==='1'),w.weekStart,pc));
+      (cs.abs||[]).forEach(([name,bits])=>take(c,name,String(bits).split('').map(x=>x!=='0'),w.weekStart,pc));
     });
   });
   return {month,list:Object.values(out).filter(e=>e.hours>0)};
@@ -1204,7 +1207,7 @@ function renderTable(){
     for(let i=0;i<NC;i++){
       const ab=cls.absences[si][i];
       const click=canWrite?` onclick="toggleCell(${si},${i})"`:'';
-      html+=`<td class="cell${ab?' absent':''}${canWrite?'':' readonly'}${colIsFuture(i)?' future':''}${colDayCl(i,pc)}${sepCol(i,pc)}" data-ci="${i}"${click}>${ab?'غ':''}</td>`;
+      html+=`<td class="cell${ab?' absent':''}${ab==='j'?' just':''}${canWrite?'':' readonly'}${colIsFuture(i)?' future':''}${colDayCl(i,pc)}${sepCol(i,pc)}" data-ci="${i}"${ab==='j'?' title="غياب مبرر"':ab?' title="غياب غير مبرر"':''}${click}>${ab?'غ':''}${ab==='j'?'<small class="jm">م</small>':''}</td>`;
     }
     html+='</tr>';
   });
@@ -1290,7 +1293,7 @@ function triggerPrint(){
     const total=cls.absences[si].filter(Boolean).length;
     grandTotal+=total;
     rows+=`<tr><td class="pnum">${si+1}</td><td class="pname">${name}</td>`;
-    for(let i=0;i<NC;i++) rows+=`<td class="pcell${sepCol(i,pc)}">${cls.absences[si][i]?'غ':''}</td>`;
+    for(let i=0;i<NC;i++) rows+=`<td class="pcell${sepCol(i,pc)}">${cls.absences[si][i]?'غ':''}${cls.absences[si][i]==='j'?'<sup>'+(fr?'J':'م')+'</sup>':''}</td>`;
     rows+=`<td class="ptotal">${total}</td></tr>`;
   });
   let footRow='<tr class="pfoot"><td colspan="2">مجموع غياب القسم في كل حصة</td>';
@@ -1630,10 +1633,11 @@ function delPeriod(s){
 }
 
 // Recording or removing an absence always asks for confirmation first, so a stray click can't change the sheet.
+// An absence is either unjustified (true, shown «غ» in red) or justified (the string 'j', shown «غ» + «م» in green).
 function toggleCell(si,ci){
   if(!canWrite) return;
   const cls=state.data[currentClass];
-  const cls0=currentClass, name=cls.names[si], make=!cls.absences[si][ci];
+  const cls0=currentClass, name=cls.names[si], cur=cls.absences[si][ci], make=!cur;
   if(make&&colIsFuture(ci)){
     const st=colStart(ci);
     showAlert('لا يمكن تسجيل غياب في حصة لم يحن وقتها بعد: '+colLabel(ci)+' — '+st.toLocaleDateString('en-GB')+' على الساعة '+String(st.getHours()).padStart(2,'0')+':'+String(st.getMinutes()).padStart(2,'0')+'.');
@@ -1641,19 +1645,29 @@ function toggleCell(si,ci){
   }
   const subj=(cls.columns[ci]&&cls.columns[ci].subject||'').trim();
   const wi=colInfo(ci), where=DAYS[wi.d*2+wi.s]+' — ح'+(wi.p+1)+(subj?' ('+subj+')':'');
-  const msg=(make?'تسجيل غياب التلميذ(ة) ':'حذف غياب التلميذ(ة) ')+name+' — القسم '+cls0+' — '+where+'؟';
-  showModal(msg,[
-    {label:make?'تأكيد تسجيل الغياب':'تأكيد حذف الغياب',className:make?'btn':'btn danger',onClick:()=>{
-      const c=state.data[cls0];
-      if(!canWrite||!c||c.names[si]!==name){ showAlert('تغيّرت القائمة قبل التأكيد، أعيدوا المحاولة.'); renderTable(); return; }
-      c.absences[si][ci]=make;
-      save();
-      renderTable();
-      renderStats();
-      if(make) setTimeout(()=>ntAfterRecord(cls0,name),80);
-    }},
-    {label:'إلغاء',className:'btn ghost',onClick:null}
-  ]);
+  const set=v=>{
+    const c=state.data[cls0];
+    if(!canWrite||!c||c.names[si]!==name){ showAlert('تغيّرت القائمة قبل التأكيد، أعيدوا المحاولة.'); renderTable(); return; }
+    c.absences[si][ci]=v;
+    save();
+    renderTable();
+    renderStats();
+    if(v&&!cur) setTimeout(()=>ntAfterRecord(cls0,name),80);   // only a newly recorded absence triggers the parent notice
+  };
+  if(make){
+    showModal('تسجيل غياب التلميذ(ة) '+name+' — القسم '+cls0+' — '+where+'؟\n\nهل الغياب مبرر أم غير مبرر؟',[
+      {label:'تسجيل غياب غير مبرر',className:'btn',onClick:()=>set(true)},
+      {label:'تسجيل غياب مبرر',className:'btn jbtn-yes',onClick:()=>set('j')},
+      {label:'إلغاء',className:'btn ghost',onClick:null}
+    ]);
+  }else{
+    const isJ=cur==='j';
+    showModal('غياب التلميذ(ة) '+name+' — القسم '+cls0+' — '+where+' ('+(isJ?'مبرر':'غير مبرر')+').',[
+      {label:'تأكيد حذف الغياب',className:'btn danger',onClick:()=>set(false)},
+      {label:isJ?'تحويله إلى غير مبرر':'تحويله إلى مبرر',className:'btn jbtn-yes',onClick:()=>set(isJ?true:'j')},
+      {label:'إلغاء',className:'btn ghost',onClick:null}
+    ]);
+  }
 }
 function setMeta(ci,field,val){
   if(!canWrite) return;
@@ -1807,7 +1821,7 @@ function svBuild(){
       if(student){
         if(!Array.isArray(s.abs)){ if((s.weekStudents||0)>0) missing.add(it.w.weekStart); return; }
         s.abs.forEach(([name,bits])=>{
-          const hh=String(bits||'').slice(a,a+W).split('1').length-1;
+          const hh=String(bits||'').slice(a,a+W).replace(/0/g,'').length;
           if(!hh) return;
           const k=c+'\u0001'+name;
           if(!stu.has(k)) stu.set(k,{name,cls:c,level:lvl,hours:0,days:0});
@@ -2190,7 +2204,7 @@ function cuCollect(r){
         const name=String(a[0]==null?'':a[0]).trim(), bits=String(a[1]||'');
         if(!names.has(name)) return; // the student left the class
         for(let i=0;i<bits.length;i++){
-          if(bits[i]!=='1') continue;
+          if(bits[i]==='0') continue;
           const o=colInfo(i,pc), date=addDaysIso(w.weekStart,o.d);
           if(date<r.from||date>r.to) continue;
           const sj=cuNorm(subj&&subj[i]);
@@ -2802,7 +2816,7 @@ function applyWeek(w){
     const k=state.data[c], src=(w.classes||{})[c];
     if(!src){ k.absences=k.names.map(()=>blankRow()); return; }
     const from=validPc(src.pc||w.pc), to=pcount();       // the week may have been saved with another number of periods
-    k.absences=k.names.map(n=>{ const i=src.names.indexOf(n); return i>=0?convertArr((src.absences[i]||[]).map(Boolean),from,to,()=>false):blankRow(); });
+    k.absences=k.names.map(n=>{ const i=src.names.indexOf(n); return i>=0?convertArr((src.absences[i]||[]).map(v=>v==='j'?'j':!!v),from,to,()=>false):blankRow(); });
     if(src.columns) k.columns=convertArr(JSON.parse(JSON.stringify(src.columns)),from,to,()=>({subject:'',teacher:''}));
   });
   document.getElementById('wFrom').value=state.weekFrom;
@@ -2835,7 +2849,7 @@ function archivedPreviousWeek(){
   const classes={}; let detailed=false;
   Object.keys(w.classes||{}).forEach(c=>{
     const abs=(w.classes[c]||{}).abs;
-    if(Array.isArray(abs)){ detailed=true; classes[c]={names:abs.map(a=>a[0]),absences:abs.map(a=>String(a[1]).split('').map(x=>x==='1')),columns:null,pc:(w.classes[c]||{}).pc||DEF_PC}; }
+    if(Array.isArray(abs)){ detailed=true; classes[c]={names:abs.map(a=>a[0]),absences:abs.map(a=>String(a[1]).split('').map(x=>x==='2'?'j':x==='1')),columns:null,pc:(w.classes[c]||{}).pc||DEF_PC}; }
   });
   return detailed?{weekFrom:w.weekStart,weekTo:addDaysIso(w.weekStart,4),classes}:{old:true};
 }

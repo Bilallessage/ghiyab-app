@@ -66,7 +66,7 @@ function summarizeState(state) {
     const cols = Array(COLS).fill(0);
     const dayStudents = Array(DAYS).fill(0);
     let weekStudents = 0;
-    const absList = []; // [name, "0101…" one bit per column] for every student with at least one absence
+    const absList = []; // [name, "0102…" one digit per column: 0 present, 1 absent, 2 justified absence] for every student with at least one absence
     for (let si = 0; si < names.length; si++) {
       const row = Array.isArray(abs[si]) ? abs[si] : [];
       const dayHit = Array(DAYS).fill(false);
@@ -78,7 +78,7 @@ function summarizeState(state) {
       if (any) {
         weekStudents++;
         let bits = '';
-        for (let i = 0; i < COLS; i++) bits += row[i] ? '1' : '0';
+        for (let i = 0; i < COLS; i++) bits += row[i] === 'j' ? '2' : row[i] ? '1' : '0'; // 1 = absent, 2 = absent and justified
         absList.push([String(names[si] == null ? '' : names[si]).trim().slice(0, 80), bits]);
       }
     }

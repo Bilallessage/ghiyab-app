@@ -314,6 +314,13 @@
     'م': 'N°',
     'الاسم الكامل': 'Nom complet',
     'هاتف ولي الأمر': 'Tél. du parent',
+    'هل الغياب مبرر أم غير مبرر؟': "L'absence est-elle justifiée ou non justifiée ?",
+    'غياب مبرر': 'Absence justifiée',
+    'غياب غير مبرر': 'Absence non justifiée',
+    'تسجيل غياب غير مبرر': 'Enregistrer une absence non justifiée',
+    'تسجيل غياب مبرر': 'Enregistrer une absence justifiée',
+    'تحويله إلى مبرر': 'Passer en absence justifiée',
+    'تحويله إلى غير مبرر': 'Passer en absence non justifiée',
     'المادة': 'Matière',
     'الأستاذ(ة)': 'Professeur(e)',
     'حذف التلميذ': "Supprimer l'élève",
@@ -438,6 +445,9 @@
     [/^حذف "(.+)" من لائحة القسم؟$/, 'Supprimer « $1 » de la liste de la classe ?'],
     [/^(تسجيل|حذف) غياب التلميذ\(ة\) (.+) — القسم (.+) — (.+?) — ح(\d+)(?: \((.*)\))?؟$/, function (m, t) {
       return (m[1] === 'تسجيل' ? "Enregistrer l'absence de l'élève " : "Supprimer l'absence de l'élève ") + m[2] + ' — ' + clsLabel(m[3]) + ' — ' + t(m[4]) + ' — S' + m[5] + (m[6] ? ' (' + m[6] + ')' : '') + ' ?';
+    }],
+    [/^غياب التلميذ\(ة\) (.+) — القسم (.+) — (.+?) — ح(\d+)(?: \((.*)\))? \((مبرر|غير مبرر)\)\.$/, function (m, t) {
+      return "Absence de l'élève " + m[1] + ' — ' + clsLabel(m[2]) + ' — ' + t(m[3]) + ' — S' + m[4] + (m[5] ? ' (' + m[5] + ')' : '') + ' : ' + (m[6] === 'مبرر' ? 'justifiée' : 'non justifiée') + '.';
     }],
     [new RegExp('^لا يمكن تسجيل غياب في حصة لم يحن وقتها بعد: (.+) — (\\S+) على الساعة (\\d{2}:\\d{2})\\.$'), "Impossible d'enregistrer l'absence d'une séance qui n'a pas encore commencé : %1 — $2 à $3."],
 
