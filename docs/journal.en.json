@@ -28,7 +28,20 @@
     "gitChange": "Change",
     "generated": "This file is generated automatically by node docs/build-journal.js from docs/journal.json, its translations and the git log.",
     "footer": "Development journal of “{title}” — page {page} / {pages}",
-    "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    "months": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
     "dateFmt": "{m} {d}, {y}"
   },
   "title": "Student Absence Tracker",
@@ -38,11 +51,26 @@
     "It was built over successive conversations with the person in charge of the app: they ask for an addition or a change, it is implemented, tested and published to both sites, then the result is reviewed and a new improvement is requested. This file tells those phases in chronological order."
   ],
   "stack": [
-    ["Front end", "A single HTML file with plain JavaScript (no framework), an fr.js file for instant French translation, and sw.js so the page works offline"],
-    ["Server", "Vercel functions in the api folder (accounts, saving the sheet, statistics history, school-year archive)"],
-    ["Storage", "Upstash Redis, with a KEY_PREFIX key prefix that isolates each school's data"],
-    ["Deployment", "Two Vercel projects from the same repository (Al-Mothabara Private Institution, and Al-Mothabara Private Primary School), deployed automatically on every push to main"],
-    ["Testing", "Dozens of automated Playwright browser tests (recording absences, printing, permissions, weeks, offline work, statistics, import…) run before every release"]
+    [
+      "Front end",
+      "A single HTML file with plain JavaScript (no framework), an fr.js file for instant French translation, and sw.js so the page works offline"
+    ],
+    [
+      "Server",
+      "Vercel functions in the api folder (accounts, saving the sheet, statistics history, school-year archive)"
+    ],
+    [
+      "Storage",
+      "Upstash Redis, with a KEY_PREFIX key prefix that isolates each school's data"
+    ],
+    [
+      "Deployment",
+      "Two Vercel projects from the same repository (Al-Mothabara Private Institution, and Al-Mothabara Private Primary School), deployed automatically on every push to main"
+    ],
+    [
+      "Testing",
+      "Dozens of automated Playwright browser tests (recording absences, printing, permissions, weeks, offline work, statistics, import…) run before every release"
+    ]
   ],
   "phases": [
     {
@@ -263,6 +291,18 @@
         "The French version of the new texts."
       ],
       "tech": "jumpToWeek and archivedWeekAt in index.html (using state.other, snapshotWeek, applyWeek and ntLoad), and a guard in archiveWeek in api/_stats.js that skips a week which has not started yet and has no absences. A new Playwright test covers: a previous week, going back, the same week, a week with no data (3 buttons), the holiday week, an empty date, and the server state."
+    },
+    {
+      "title": "Training pack: demo site and fictional Excel files",
+      "goal": "Make a training course on the app possible with a demo site and a completely fictional school, without touching any real school’s data or using real names.",
+      "done": [
+        "New run mode: SEED_DEMO in the Vercel settings. Value 1 starts with an empty timetable that trainees fill in by importing; value 2 starts with a ready timetable. On the first visit the “Al-Ofoq (demo)” school is created: 6 classes, 121 students with invented names and invented phones (starting with 06000), an empty current week and four past weeks of invented absences on the statistics page.",
+        "The setting only acts when the database is empty, so it cannot change the data of an existing project; the demo site is kept apart from the others by its own KEY_PREFIX.",
+        "Three fictional Excel files (docs/training): student lists (one sheet per class), an updated version (one student leaves each class, newcomers join, alphabetical order) for the “update while keeping absences and phones” exercise, and a fictional “educational organisation” file (class grid with lesson codes, timetable with subjects, blocks for the fifteen teachers) with no teacher in two classes at once.",
+        "The two generators (export.js and build-xlsx.py) read the same data as the server, so the files and the demo site always agree.",
+        "README guide in docs/training: creating the training Vercel project, resetting after each course, answer key for the exercises and a table of the fictional teachers."
+      ],
+      "tech": "File api/_demo.js (deterministic data, fixed-seed random generator, timetable built by random search with no teacher clashes) and a modified GET in api/state.js (set with NX, then the weeks written to history). Playwright tests with a stub Excel reader: seeding, importing the educational organisation (result identical to the SEED_DEMO=2 timetable, lesson by lesson) and importing the updated list (absences and phones kept even though positions changed)."
     }
   ],
   "method": [

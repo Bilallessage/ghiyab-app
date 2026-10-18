@@ -5,7 +5,7 @@
 //           a teacher records absences one cell at a time through /api/mark
 const L = require('./_lib');
 const { buildSeedState } = require('./_seed');
-const { archiveWeek } = require('./_stats');
+const { archiveWeek, historyKey } = require('./_stats');
 const B = require('./_backup');
 
 const STATE_KEY = L.PREFIX + ':state';
@@ -28,7 +28,17 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const stored = await redis.get(STATE_KEY);
+      let stored = await redis.get(STATE_KEY);
+      // training site (SEED_DEMO=1|2): the first visit stores the invented school and four invented past weeks
+      if (!stored && (process.env.SEED_DEMO === '1' || process.env.SEED_DEMO === '2')) {
+        try {
+          const demo = require('./_demo').buildDemo(process.env.SEED_DEMO);
+          if (await redis.set(STATE_KEY, demo.state, { nx: true })) {
+            for (const h of demo.history) await redis.hset(historyKey(L.PREFIX), { [h.weekStart]: h });
+          }
+          stored = await redis.get(STATE_KEY);
+        } catch (e) { /* fall back to the normal seed */ }
+      }
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       // Fresh deployment: hand out the default class lists (kept server side).

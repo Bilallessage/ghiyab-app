@@ -28,7 +28,20 @@
     "gitChange": "Modification",
     "generated": "Ce fichier est généré automatiquement par la commande node docs/build-journal.js à partir de docs/journal.json, de ses traductions et de l’historique git.",
     "footer": "Journal de développement de « {title} » — page {page} / {pages}",
-    "months": ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+    "months": [
+      "janvier",
+      "février",
+      "mars",
+      "avril",
+      "mai",
+      "juin",
+      "juillet",
+      "août",
+      "septembre",
+      "octobre",
+      "novembre",
+      "décembre"
+    ],
     "dateFmt": "{d} {m} {y}"
   },
   "title": "Suivi des absences des élèves",
@@ -38,11 +51,26 @@
     "Elle a été construite au fil de conversations successives avec le responsable de l’application : il demande un ajout ou une modification, celui-ci est réalisé, testé et publié sur les deux sites, puis le résultat est examiné et une nouvelle amélioration est demandée. Ce document raconte ces phases dans l’ordre chronologique."
   ],
   "stack": [
-    ["Interface", "Un seul fichier HTML en JavaScript pur (sans framework), un fichier fr.js pour la traduction française instantanée, et sw.js pour que la page fonctionne hors connexion"],
-    ["Serveur", "Fonctions Vercel dans le dossier api (comptes, enregistrement de la feuille, historique des statistiques, archive des années scolaires)"],
-    ["Stockage", "Upstash Redis, avec un préfixe de clés KEY_PREFIX qui isole les données de chaque établissement"],
-    ["Déploiement", "Deux projets Vercel à partir du même dépôt (Établissement privé Al-Mothabara, et École privée Al-Mothabara – primaire), déployés automatiquement à chaque envoi vers main"],
-    ["Tests", "Des dizaines de tests automatiques avec le navigateur Playwright (saisie des absences, impression, droits, semaines, travail hors connexion, statistiques, import…) exécutés avant chaque publication"]
+    [
+      "Interface",
+      "Un seul fichier HTML en JavaScript pur (sans framework), un fichier fr.js pour la traduction française instantanée, et sw.js pour que la page fonctionne hors connexion"
+    ],
+    [
+      "Serveur",
+      "Fonctions Vercel dans le dossier api (comptes, enregistrement de la feuille, historique des statistiques, archive des années scolaires)"
+    ],
+    [
+      "Stockage",
+      "Upstash Redis, avec un préfixe de clés KEY_PREFIX qui isole les données de chaque établissement"
+    ],
+    [
+      "Déploiement",
+      "Deux projets Vercel à partir du même dépôt (Établissement privé Al-Mothabara, et École privée Al-Mothabara – primaire), déployés automatiquement à chaque envoi vers main"
+    ],
+    [
+      "Tests",
+      "Des dizaines de tests automatiques avec le navigateur Playwright (saisie des absences, impression, droits, semaines, travail hors connexion, statistiques, import…) exécutés avant chaque publication"
+    ]
   ],
   "phases": [
     {
@@ -263,6 +291,18 @@
         "La version française des nouveaux textes."
       ],
       "tech": "jumpToWeek et archivedWeekAt dans index.html (utilisant state.other, snapshotWeek, applyWeek et ntLoad), et une garde dans archiveWeek de api/_stats.js qui ignore une semaine pas encore commencée et sans absence. Un nouveau test Playwright couvre : une semaine précédente, le retour, la même semaine, une semaine sans données (3 boutons), la semaine de vacances, une date vide, et l’état du serveur."
+    },
+    {
+      "title": "Pack de formation : site de démonstration et fichiers Excel fictifs",
+      "goal": "Permettre une session de formation sur l’application avec un site de démonstration et un établissement entièrement fictif, sans toucher aux données d’un vrai établissement ni utiliser de vrais noms.",
+      "done": [
+        "Nouveau mode d’exécution : SEED_DEMO dans les réglages Vercel. La valeur 1 démarre avec un emploi du temps vide que les stagiaires remplissent par import, la valeur 2 avec un emploi du temps prêt. À la première visite, l’établissement « Al-Ofoq (démonstration) » est créé : 6 classes, 121 élèves aux noms fictifs et aux téléphones fictifs (commençant par 06000), semaine en cours vide et quatre semaines passées d’absences fictives dans la page des statistiques.",
+        "Le réglage n’agit que si la base est vide : il ne peut donc pas modifier les données d’un projet existant ; le site de démonstration est isolé des autres par son propre KEY_PREFIX.",
+        "Trois fichiers Excel fictifs (docs/training) : listes d’élèves (une feuille par classe), version mise à jour (un élève part de chaque classe, des nouveaux arrivent, ordre alphabétique) pour l’exercice « mise à jour en gardant absences et téléphones », et fichier « organisation pédagogique » fictif (grille des classes avec codes des cours, emploi du temps avec les matières, blocs des quinze enseignants) sans enseignant dans deux classes à la fois.",
+        "Les deux générateurs (export.js et build-xlsx.py) lisent les mêmes données que le serveur : fichiers et site de démonstration concordent toujours.",
+        "Guide README dans docs/training : création du projet Vercel de formation, remise à zéro après chaque session, corrigé des exercices et tableau des enseignants fictifs."
+      ],
+      "tech": "Fichier api/_demo.js (données déterministes, générateur pseudo-aléatoire à graine fixe, emploi du temps construit par recherche aléatoire sans conflit d’enseignants) et GET de api/state.js modifié (set avec NX puis écriture des semaines dans history). Tests Playwright avec un lecteur Excel simulé : amorçage, import de l’organisation pédagogique (résultat identique à l’emploi du temps SEED_DEMO=2, cours par cours) et import de la liste mise à jour (absences et téléphones conservés malgré le changement de position)."
     }
   ],
   "method": [
