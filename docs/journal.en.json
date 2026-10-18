@@ -303,6 +303,19 @@
         "README guide in docs/training: creating the training Vercel project, resetting after each course, answer key for the exercises and a table of the fictional teachers."
       ],
       "tech": "File api/_demo.js (deterministic data, fixed-seed random generator, timetable built by random search with no teacher clashes) and a modified GET in api/state.js (set with NX, then the weeks written to history). Playwright tests with a stub Excel reader: seeding, importing the educational organisation (result identical to the SEED_DEMO=2 timetable, lesson by lesson) and importing the updated list (absences and phones kept even though positions changed)."
+    },
+    {
+      "title": "“Nobody” for the teacher, and teachers working without internet",
+      "goal": "Let the administration check that the teacher did the roll call even when nobody is absent, and keep absence recording working when the teacher’s internet goes down.",
+      "done": [
+        "A “Nobody” (لا أحد) button under each period for the teacher: pressed when the roll call is done and nobody is absent, it records the teacher’s name and the time on the sheet. One tap plus a confirmation cancels it; it cancels itself if an absence is later recorded in that period, and it is refused if an absence is already there. The rules are those of recording an absence: today’s period, already started, and the teacher’s own.",
+        "Follow-up for the administration: under each period’s absence count, a ✓ (roll call done with “Nobody”) or a red “!” (no absence and no “Nobody” 20 minutes after the period began); the “✅ Roll-call follow-up” button lists the periods without a recorded roll call (class, period, subject, teacher) and the “Nobody” declarations with their time, for today or the whole week. It covers the current week and periods that have a subject or a teacher.",
+        "Teachers working without internet: the app opens on the device where the teacher has already signed in (account, name and last sheet are kept) and they record absences and “Nobody” as usual; each tap shows at once with an orange dashed frame (“waiting”), the status bar shows how many are unsent, and everything is then sent automatically, in order, when the network returns.",
+        "Deferred records carry the time of the tap: the server checks “today” and “period started” against that time rather than the arrival time (and refuses a future time or one older than 18 hours). Whatever the server refuses on arrival (an absence justified in the meantime, a new week, a student removed from the list) is reported to the teacher with the student, the period and the reason, and the screen returns to the server’s copy. If the session expires, the records stay and are sent after signing in again with the same account; the “Log out” button warns when some remain.",
+        "Complete French interface for these additions, and the README updated (the “teacher account” and “working without internet” sections used to say the teacher needs internet)."
+      ],
+      "tech": "In api/mark.js: a new action 'called' storing columns[i].called={at,by}, a shared teacherRules function for the teacher’s rules, an optional at field with tapTime (18-hour ceiling, future refused), and the marker removed when an absence is recorded. In index.html: a local queue ghiyab_tq (operations carry absolute values so a resend is harmless; the last tap on a cell replaces earlier ones), a tqOverlay layer re-applied over every server copy so automatic sync never erases what is not yet sent, tqFlush sending in order and stopping on a dropout or 5xx, dropping refusals for good (409 stale retried three times), and the teacher’s name kept in USER_KEY so the app opens offline with their rights. Tests: 28 server checks (rules and times) and a browser test with simulated dropout, page reload with no network, automatic sending, refusal on arrival and the logout warning, plus a French test checking that no Arabic text is left on screen.",
+      "date": "2026-10-18"
     }
   ],
   "method": [
@@ -316,7 +329,7 @@
     "Delete the old Vercel domains by hand (up to the user).",
     "Try “Archive the season” for the first time at the real end of the season, because clearing absences from the table cannot be undone.",
     "Try the teaching-organisation import on the live site with the real Excel reader.",
-    "Try the teacher account in a real lesson: is a single tap without confirmation appropriate, and must the account be linked to the teacher's name in every account?",
+    "Try the teacher account in a real lesson: is a single tap without confirmation appropriate, and must the account be linked to the teacher's name in every account? Also try the “Nobody” button (is the 20-minute delay before the “!” right?) and working without internet in a room with no coverage.",
     "Try restoring from “Backups” on real data, and enable the daily backup in Upstash if the plan allows it."
   ],
   "gitNote": "Commit messages are kept in English as written."

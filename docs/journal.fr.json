@@ -303,6 +303,19 @@
         "Guide README dans docs/training : création du projet Vercel de formation, remise à zéro après chaque session, corrigé des exercices et tableau des enseignants fictifs."
       ],
       "tech": "Fichier api/_demo.js (données déterministes, générateur pseudo-aléatoire à graine fixe, emploi du temps construit par recherche aléatoire sans conflit d’enseignants) et GET de api/state.js modifié (set avec NX puis écriture des semaines dans history). Tests Playwright avec un lecteur Excel simulé : amorçage, import de l’organisation pédagogique (résultat identique à l’emploi du temps SEED_DEMO=2, cours par cours) et import de la liste mise à jour (absences et téléphones conservés malgré le changement de position)."
+    },
+    {
+      "title": "« Aucun » pour le professeur, et travail du professeur sans Internet",
+      "goal": "Permettre à l’administration de vérifier que le professeur a bien fait l’appel même quand personne n’est absent, et ne pas bloquer la saisie des absences quand le professeur n’a plus Internet.",
+      "done": [
+        "Bouton « Aucun » sous chaque séance pour le professeur : il l’appuie quand l’appel est fait et que personne n’est absent ; la feuille enregistre son nom et l’heure. Il s’annule d’un appui avec confirmation, s’annule tout seul si une absence est ensuite saisie dans la séance, et il est refusé s’il y a déjà une absence. Les règles sont celles de la saisie d’absence : séance du jour, commencée, et de ce professeur.",
+        "Suivi par l’administration : sous le nombre d’absences de chaque séance, un ✓ (appel fait avec « Aucun ») ou un « ! » rouge (ni absence ni « Aucun » 20 minutes après le début de la séance) ; le bouton « ✅ Suivi de l’appel » liste les séances sans appel enregistré (classe, séance, matière, professeur) et les déclarations « Aucun » avec leur heure, pour aujourd’hui ou toute la semaine. Cela concerne la semaine en cours et les séances renseignées d’une matière ou d’un professeur.",
+        "Travail du professeur sans Internet : l’application s’ouvre sur l’appareil où il s’est déjà connecté (compte, nom et dernière feuille sont conservés) et il saisit absences et « Aucun » comme d’habitude ; l’appui apparaît aussitôt avec un cadre orange en pointillés (« en attente »), la barre indique le nombre de saisies non envoyées, puis tout est envoyé automatiquement, dans l’ordre, au retour du réseau.",
+        "Les saisies différées portent l’heure de l’appui : le serveur vérifie « aujourd’hui » et « séance commencée » sur cette heure et non sur celle de l’arrivée (il refuse une heure future ou de plus de 18 heures). Ce que le serveur refuse à l’arrivée (absence justifiée entre-temps, nouvelle semaine, élève sorti de la liste) est signalé au professeur avec l’élève, la séance et le motif, et l’écran revient à l’état du serveur. Si la session expire, les saisies restent et sont envoyées après reconnexion avec le même compte ; le bouton « Se déconnecter » avertit s’il en reste.",
+        "Interface française complète pour ces nouveautés et mise à jour du README (les sections « compte professeur » et « travail sans Internet » disaient que le professeur avait besoin d’Internet)."
+      ],
+      "tech": "Dans api/mark.js : nouvelle action 'called' qui stocke columns[i].called={at,by}, fonction commune teacherRules pour les règles du professeur, champ facultatif at avec tapTime (plafond 18 h, futur refusé) et suppression du marqueur quand une absence est saisie. Dans index.html : file locale ghiyab_tq (opérations à valeur absolue, donc un renvoi est sans danger ; le dernier appui sur une case remplace les précédents), couche tqOverlay réappliquée sur chaque copie du serveur pour que la synchronisation automatique n’efface pas ce qui n’est pas encore envoyé, tqFlush qui envoie dans l’ordre et s’arrête à la coupure ou à une 5xx, abandonne définitivement les refus (409 stale réessayé trois fois), et nom du professeur conservé dans USER_KEY pour ouvrir l’application hors connexion avec ses droits. Tests : 28 vérifications côté serveur (règles et heures) et un test navigateur avec coupure simulée, rechargement de la page sans réseau, envoi automatique, refus à l’arrivée et avertissement à la déconnexion, plus un test en français qui vérifie qu’aucun texte arabe ne reste à l’écran.",
+      "date": "2026-10-18"
     }
   ],
   "method": [
@@ -316,7 +329,7 @@
     "Supprimer à la main les anciens domaines Vercel (à la charge de l’utilisateur).",
     "Essayer « Archiver la saison » pour la première fois à la fin réelle de la saison, car l’effacement des absences du tableau est irréversible.",
     "Essayer l’import de l’organisation pédagogique sur le site avec le vrai lecteur Excel.",
-    "Essayer le compte enseignant lors d’une vraie séance : un seul appui sans confirmation convient-il, et faut-il lier le compte au nom de l’enseignant dans tous les comptes ?",
+    "Essayer le compte enseignant lors d’une vraie séance : un seul appui sans confirmation convient-il, et faut-il lier le compte au nom de l’enseignant dans tous les comptes ? Essayer aussi le bouton « Aucun » (le délai de 20 minutes avant le « ! » est-il adapté ?) et le travail sans Internet dans une salle sans couverture.",
     "Essayer la restauration depuis « Sauvegardes » sur des données réelles, et activer la sauvegarde quotidienne d’Upstash si l’offre le permet."
   ],
   "gitNote": "Les messages de commit restent en anglais, tels qu’écrits."

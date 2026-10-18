@@ -97,6 +97,24 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 .btn.jbtn-yes{background:var(--teal-soft);color:var(--teal);border:1px solid var(--teal)}
 .cell.future{background:repeating-linear-gradient(45deg,#f3f1ea,#f3f1ea 4px,#e9e6dc 4px,#e9e6dc 8px);cursor:not-allowed}
 .foot td{background:var(--teal-soft);font-weight:700;color:var(--teal)}
+.cbtn{display:block;margin:2px auto 0;width:30px;white-space:normal;font:inherit;font-size:10px;line-height:1.15;font-weight:700;padding:2px 1px;border:1px solid var(--teal);background:var(--panel);color:var(--teal);border-radius:5px;cursor:pointer}
+.cbtn.on{background:var(--teal);color:#fff}
+.cbtn.pend,.cell.pend{outline:2px dashed #d97706;outline-offset:-2px}
+.cmk{display:block;font-size:11px;line-height:1.1;font-weight:900}
+.callsum .cmk,.callsub .cmk{display:inline}
+.cmk.ok{color:#15803d}.cmk.miss{color:#fff;background:#dc2626;border-radius:8px;padding:0 4px;display:inline-block;margin-top:1px}
+.calloverlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:80;display:none;align-items:flex-start;justify-content:center;padding:16px;overflow:auto}
+.callpanel{background:var(--panel);color:var(--ink);border-radius:12px;max-width:760px;width:100%;padding:16px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.callhd{display:flex;justify-content:space-between;align-items:center;font-size:17px;margin-bottom:6px}
+.callsub{font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;line-height:1.7}
+.callseg{display:flex;gap:6px;margin-bottom:10px}
+.callsum{font-size:14px;margin-bottom:8px}
+.callpanel h4{margin:12px 0 6px;color:var(--teal);font-size:14px}
+.callwrap{max-height:42vh;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.calltbl{width:100%;min-width:0;border-collapse:collapse;font-size:13px}
+.calltbl th,.calltbl td{padding:5px 8px;border:0;border-bottom:1px solid var(--line);text-align:right;white-space:normal}
+.calltbl th{position:sticky;top:0;background:var(--teal-soft);color:var(--teal)}
+.callok{color:#15803d;font-weight:700}
 /* the sheet scrolls inside its own box so the days / periods rows stay visible while going down the list */
 #tableHost{max-height:82vh;overflow:auto;padding-top:0;padding-bottom:0}
 #tableHost th,#tableHost td.name,#tableHost td.num{cursor:grab}
@@ -304,7 +322,7 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
     <span class="userchip" id="userChip" style="display:none"></span>
     <button class="btn ghost" id="logoutBtn" style="display:none" onclick="logout()">خروج</button>
     <br>
-    <div class="btncol"><button class="btn ghost" id="statsBtn" onclick="openStats()">📊 الإحصائيات</button><button class="btn ghost" id="catchBtn" onclick="openCatch()" title="التلاميذ المتغيبون والمواد التي فاتتهم، لبرمجة حصص التعويض والدعم">📚 قائمة التعويض</button><button class="btn ghost" id="usersBtn" style="display:none" onclick="usersDialog()" title="الموافقة على طلبات حسابات الاطلاع">👥 الموافقة على حساب جديد <span id="usersBadge" style="display:none;background:var(--absent);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-inline-start:4px">0</span></button></div>
+    <div class="btncol"><button class="btn ghost" id="statsBtn" onclick="openStats()">📊 الإحصائيات</button><button class="btn ghost" id="catchBtn" onclick="openCatch()" title="التلاميذ المتغيبون والمواد التي فاتتهم، لبرمجة حصص التعويض والدعم">📚 قائمة التعويض</button><button class="btn ghost" id="callBtn" onclick="openCallFollow()" title="هل قام الأساتذة بالنداء؟ الحصص التي سُجّل فيها غياب أو «لا أحد» والحصص بلا نداء">✅ متابعة النداء</button><button class="btn ghost" id="usersBtn" style="display:none" onclick="usersDialog()" title="الموافقة على طلبات حسابات الاطلاع">👥 الموافقة على حساب جديد <span id="usersBadge" style="display:none;background:var(--absent);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-inline-start:4px">0</span></button></div>
     <button class="btn ghost" id="printBtn" onclick="triggerPrint()">طباعة</button>
     <button class="btn ghost langBtn" type="button" onclick="setLang(LANG==='fr'?'ar':'fr')">Français</button>
   </div>
@@ -640,10 +658,12 @@ function applyPermissionUI(){
   const banner=document.getElementById('viewBanner');
   if(banner){
     banner.style.display=ro?'block':'none';
-    banner.textContent=canMark?'👩‍🏫 حساب أستاذ(ة) — يمكنكم تسجيل غياب التلاميذ في حصص اليوم بالنقر على خانة الحصة. بقية الجدول للاطلاع فقط.':'👁️ وضع الاطلاع فقط — حسابكم لا يملك صلاحية التعديل. يمكنكم تصفّح الجدول والإحصائيات وطباعتها.';
+    banner.textContent=canMark?'👩‍🏫 حساب أستاذ(ة) — يمكنكم تسجيل غياب التلاميذ في حصص اليوم بالنقر على خانة الحصة، أو الضغط على «لا أحد» أسفل الحصة إذا لم يتغيب أحد. يعمل التطبيق أيضا عند انقطاع الإنترنت وتُرسَل تسجيلاتكم تلقائيا حين يعود. بقية الجدول للاطلاع فقط.':'👁️ وضع الاطلاع فقط — حسابكم لا يملك صلاحية التعديل. يمكنكم تصفّح الجدول والإحصائيات وطباعتها.';
   }
   // sending absence notices / summons to parents is for the administrator only
   ['autoPanel','notifyPanel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=canWrite?'':'none'; });
+  const clBtn=document.getElementById('callBtn');
+  if(clBtn) clBtn.style.display=canMark?'none':'inline-block';
   const tmBtn=document.getElementById('timesBtn');
   if(tmBtn) tmBtn.style.display=canWrite?'inline-block':'none';
   const orBtn=document.getElementById('orgBtn');
@@ -680,7 +700,7 @@ const TOKEN_KEY='ghiyab_token', USER_KEY='ghiyab_user';
 function getToken(){ try{ return localStorage.getItem(TOKEN_KEY)||''; }catch(e){ return ''; } }
 function authHeaders(){ const t=getToken(); return t?{'Authorization':'Bearer '+t}:{}; }
 function saveSession(d){
-  try{ localStorage.setItem(TOKEN_KEY,d.token); localStorage.setItem(USER_KEY,JSON.stringify({email:d.email,role:d.role})); }catch(e){}
+  try{ localStorage.setItem(TOKEN_KEY,d.token); localStorage.setItem(USER_KEY,JSON.stringify({email:d.email,role:d.role,teacher:d.teacher||''})); }catch(e){}
 }
 function cachedUser(){
   try{ const u=JSON.parse(localStorage.getItem(USER_KEY)); return (u&&u.email&&u.role)?u:null; }catch(e){ return null; }
@@ -689,7 +709,7 @@ function cachedUser(){
 function clearSession(){
   try{
     localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(KEY); localStorage.removeItem('ghiyab_v1'); localStorage.removeItem(DIRTY_KEY); localStorage.removeItem(BASE_KEY);
+    localStorage.removeItem(KEY); localStorage.removeItem('ghiyab_v1'); localStorage.removeItem(DIRTY_KEY); localStorage.removeItem(BASE_KEY); localStorage.removeItem('ghiyab_tq');
   }catch(e){}
 }
 
@@ -761,6 +781,13 @@ async function submitAuth(ev){
   return false;
 }
 function logout(){
+  if(canMark && tqCount()){
+    showModal('توجد '+tqCount()+' تسجيلات لم تُرسَل إلى الخادم بعد (عمل دون اتصال). الخروج الآن يحذفها نهائيا من هذا الجهاز. هل تريدون الخروج؟',[
+      {label:'نعم، اخرج وأحذفها',className:'btn danger',onClick:()=>{ clearSession(); location.reload(); }},
+      {label:'البقاء',className:'btn ghost',onClick:null}
+    ]);
+    return;
+  }
   if(canWrite && isDirty()){
     showModal('توجد تعديلات لم تُرسَل إلى الخادم بعد (عمل دون اتصال). الخروج الآن يحذفها نهائيا من هذا الجهاز. هل تريدون الخروج؟',[
       {label:'نعم، اخرج وأحذفها',className:'btn danger',onClick:()=>{ setDirty(false); clearSession(); location.reload(); }},
@@ -773,6 +800,11 @@ function logout(){
 function onAuthRejected(){
   // The server no longer accepts our token (expired / invalid): stop syncing and ask again.
   clearInterval(pollTimer); clearTimeout(dbWriteTimer);
+  if(canMark && tqCount()){
+    try{ localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); }catch(e){}
+    showGate('انتهت الجلسة، سجّلوا الدخول من جديد. تسجيلاتكم غير المرسلة محفوظة على هذا الجهاز وستُرسَل بعد الدخول بالحساب نفسه.');
+    return;
+  }
   if(isDirty()){
     // unsent edits must survive: only the login is dropped, they are sent after signing in again as the administrator
     try{ localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(USER_KEY); }catch(e){}
@@ -808,6 +840,7 @@ function fetchT(url,opts,ms){ // fetch that gives up instead of hanging on a dea
   return fetch(url,Object.assign({},opts||{},{signal:ac.signal})).finally(()=>clearTimeout(t));
 }
 window.addEventListener('online',()=>{ if(typeof pollRemote==='function'&&syncedOnce!==undefined) pollRemote(); });
+window.addEventListener('offline',()=>{ if(canMark&&typeof setSyncStatus==='function') setSyncStatus('pending'); });
 
 function save(){
   if(!canWrite) return; // viewers never write (the server refuses it anyway)
@@ -839,9 +872,20 @@ function save(){
   },400);
 }
 
+let lastSync='';
 function setSyncStatus(s){
   const el=document.getElementById('syncStatus');
   if(!el) return;
+  lastSync=s;
+  const nq=canMark?tqCount():0;
+  if(canMark&&(s==='pending'||s==='error'||s==='off')){
+    el.textContent='🟠 دون اتصال — يمكنكم متابعة تسجيل الغياب و«لا أحد»، وسيُرسَل ما تسجّلونه تلقائيا عند عودة الإنترنت'+(nq?' ('+nq+' في الانتظار)':'');
+    return;
+  }
+  if(canMark&&s==='online'&&nq){
+    el.textContent='🟡 جارٍ إرسال '+nq+' تسجيل إلى الخادم…';
+    return;
+  }
   if(s==='online'){
     el.textContent=canWrite
       ? '🟢 متصل — تعديلاتكم تظهر فورًا لدى كل المستخدمين'
@@ -881,8 +925,10 @@ async function initSync(){
     setSyncStatus('pending'); // offline: the administrator keeps working, a viewer sees the last saved data
   }
   noteLogoVersion();
+  tqOverlay();
   renderAll(); updateInstName();
   pollTimer=setInterval(pollRemote,1500);
+  tqFlush();
   return true;
 }
 let polling=false, reconciling=false, conflictOpen=false;
@@ -895,6 +941,7 @@ async function pollRemote(){
     if(!res.ok) throw new Error('bad status');
     const raw=await res.text();
     lanServerOk=true;
+    if(canMark&&tqCount()) tqFlush();      // the connection works: send what the teacher recorded without it
     if(!raw || raw==='null') { return; }
     if(writeInFlight) return; // a local edit hasn't finished saving yet — never let a stale poll undo it
     if(startedAt<=lastWriteDone) return; // this answer was requested before our last save landed: it may predate it
@@ -939,6 +986,7 @@ function applyRemoteState(incoming,incomingStr){
   currentClass=state.classNames.includes(currentClass)?currentClass:state.classNames[0];
   selected.clear();
   noteLogoVersion();
+  tqOverlay();         // a teacher's taps the server has not confirmed yet stay on screen
   renderAll(); updateInstName();
 }
 
@@ -1238,6 +1286,7 @@ function renderTable(){
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
   html+=`</tr><tr><th class="hl" colspan="${lead}"></th><th class="hl stk" colspan="${stk}"></th>`;
   const dis=(canWrite&&!br)?'':'disabled';
+  const pendSet=canMark?tqPending():null;
   for(let i=0;i<NC;i++){
     html+=`<th class="meta${colDayCl(i,pc)}${sepCol(i,pc)}"><input ${dis} placeholder="المادة" value="${cls.columns[i].subject}" oninput="setMeta(${i},'subject',this.value)">
       <input ${dis} placeholder="الأستاذ(ة)" value="${cls.columns[i].teacher}" oninput="setMeta(${i},'teacher',this.value)"></th>`;
@@ -1254,8 +1303,9 @@ function renderTable(){
     for(let i=0;i<NC;i++){
       const ab=cls.absences[si][i];
       const tap=!canWrite&&teacherCan(i,ab);
+      const pend=pendSet&&pendSet.has('m|'+currentClass+'|'+name+'|'+i);
       const click=canWrite?` onclick="toggleCell(${si},${i})"`:tap?` onclick="teacherMark(${si},${i})"`:canMark?` onclick="teacherLocked(${i})"`:'';
-      html+=`<td class="cell${ab?' absent':''}${ab==='j'?' just':''}${(canWrite||tap)?'':' readonly'}${colIsFuture(i)?' future':''}${colDayCl(i,pc)}${sepCol(i,pc)}" data-ci="${i}"${ab==='j'?' title="غياب مبرر"':ab?' title="غياب غير مبرر"':''}${click}>${ab?'غ':''}${ab==='j'?'<small class="jm">م</small>':''}</td>`;
+      html+=`<td class="cell${ab?' absent':''}${ab==='j'?' just':''}${(canWrite||tap)?'':' readonly'}${pend?' pend':''}${colIsFuture(i)?' future':''}${colDayCl(i,pc)}${sepCol(i,pc)}" data-ci="${i}"${ab==='j'?' title="غياب مبرر"':ab?' title="غياب غير مبرر"':''}${click}>${ab?'غ':''}${ab==='j'?'<small class="jm">م</small>':''}</td>`;
     }
     html+='</tr>';
   });
@@ -1268,7 +1318,7 @@ function renderTable(){
   if(br) html+=`<td colspan="${NC}"></td>`;
   else for(let i=0;i<NC;i++){
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
-    html+=`<td class="${sepCol(i,pc).trim()}">${sum}</td>`;
+    html+=`<td class="${sepCol(i,pc).trim()}">${sum}${callMark(currentClass,i,sum,pendSet)}</td>`;
   }
   html+='</tr></tbody>';
   // the days / periods rows again at the bottom of the list
@@ -1708,23 +1758,173 @@ function teacherWhy(ci,cur){
   return '';
 }
 function teacherCan(ci,cur){ return !teacherWhy(ci,cur); }
+// ---- roll call «لا أحد»: has the teacher done the call in this period? ----
+// A period counts as called when an absence is recorded in it, or the teacher pressed «لا أحد» (columns[i].called).
+const CALL_GRACE_MIN=20;   // a period is flagged «not called» only 20 minutes after it started
+function callState(cname,i,sum){
+  const cls=state.data[cname], col=cls&&cls.columns&&cls.columns[i];
+  if(!col||(!String(col.subject||'').trim()&&!String(col.teacher||'').trim())) return {k:'',col};   // no lesson in this slot
+  if(sum>0) return {k:'abs',col};
+  if(col.called) return {k:'none',col};
+  const st=colStart(i,cname);
+  if(!st||breakNow()) return {k:'',col};
+  if(ntMonday(todayIso())!==ntMonday(state.weekFrom)) return {k:'',col};         // only the current week is checked
+  return {k:(Date.now()-st.getTime()>CALL_GRACE_MIN*60000)?'miss':'wait',col};
+}
+function callTime(c){ try{ return new Date(c.at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Casablanca'}); }catch(e){ return ''; } }
+// the small mark under the absence count of a period
+function callMark(cname,i,sum,pendSet){
+  const cs=callState(cname,i,sum);
+  if(canMark){
+    const why=teacherWhy(i,null);
+    if(sum>0) return '';
+    const pend=pendSet&&pendSet.has('c|'+cname+'|'+i)?' pend':'';
+    if(cs.k==='none'){
+      return why?`<span class="cmk ok" title="لا أحد — ${svEsc(cs.col.by||'')} ${callTime(cs.col.called)}">✓</span>`
+        :`<button type="button" class="cbtn on${pend}" onclick="teacherCalled(${i})" title="لا أحد — اضغطوا للإلغاء">✓ لا أحد</button>`;
+    }
+    return why?'':`<button type="button" class="cbtn${pend}" onclick="teacherCalled(${i})" title="تمّ النداء ولا غائب في هذه الحصة">لا أحد</button>`;
+  }
+  if(cs.k==='none') return `<span class="cmk ok" title="${svEsc('لا أحد — '+(cs.col.called.by||'')+' '+callTime(cs.col.called))}">✓</span>`;
+  if(cs.k==='miss') return `<span class="cmk miss" title="لم يُسجَّل نداء ولا «لا أحد» في هذه الحصة">!</span>`;
+  return '';
+}
+function callRows(){
+  const rows=[], today=todayIso();
+  if(!state.classNames||breakNow()) return rows;
+  state.classNames.forEach(c=>{
+    const cls=state.data[c]; if(!cls) return;
+    (cls.columns||[]).forEach((col,i)=>{
+      let sum=0; cls.absences.forEach(r=>{ if(r&&r[i]) sum++; });
+      const cs=callState(c,i,sum); if(!cs.k) return;
+      const st=colStart(i,c); if(!st) return; const o=colInfo(i);
+      const date=st.getFullYear()+'-'+String(st.getMonth()+1).padStart(2,'0')+'-'+String(st.getDate()).padStart(2,'0');
+      rows.push({cls:c,i,k:cs.k,sum,date,today:date===today,start:st.getTime(),label:DAYS[o.d*2+o.s]+' — ح'+(o.p+1),subject:String(col.subject||'').trim(),teacher:String(col.teacher||'').trim(),by:col.called?col.called.by:'',time:col.called?callTime(col.called):''});
+    });
+  });
+  return rows.filter(r=>r.k!=='wait'&&r.start<=Date.now());
+}
+let callScope='today';
+function openCallFollow(){
+  let ov=document.getElementById('callOv');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='callOv'; ov.className='calloverlay';
+    ov.addEventListener('click',e=>{ if(e.target===ov) closeCallFollow(); });
+    document.body.appendChild(ov);
+  }
+  renderCallFollow(); ov.style.display='flex';
+}
+function closeCallFollow(){ const ov=document.getElementById('callOv'); if(ov) ov.style.display='none'; }
+function renderCallFollow(){
+  const ov=document.getElementById('callOv'); if(!ov) return;
+  const all=callRows(), rows=callScope==='today'?all.filter(r=>r.today):all;
+  const n=k=>rows.filter(r=>r.k===k).length;
+  const miss=rows.filter(r=>r.k==='miss').sort((a,b)=>a.start-b.start||a.cls.localeCompare(b.cls));
+  const none=rows.filter(r=>r.k==='none').sort((a,b)=>a.start-b.start||a.cls.localeCompare(b.cls));
+  const line=r=>`<tr><td>${svEsc(r.cls)}</td><td>${svEsc(r.label)}</td><td>${svEsc(r.subject||'—')}</td><td>${svEsc(r.teacher||'—')}</td>${r.k==='none'?`<td>${svEsc(r.time)}</td>`:''}</tr>`;
+  let h=`<div class="callpanel"><div class="callhd"><b>متابعة النداء</b><button class="btn ghost" type="button" onclick="closeCallFollow()">إغلاق</button></div>
+    <div class="callsub">الحصة تُعدّ «مُنادى فيها» إذا سُجّل فيها غياب أو ضغط الأستاذ(ة) زر «لا أحد». تُعلَّم الحصة «بلا نداء» بعد ${CALL_GRACE_MIN} دقيقة من بدايتها. الأسبوع الجاري فقط.</div>
+    <div class="callseg"><button type="button" class="btn ${callScope==='today'?'':'ghost'}" onclick="callScope='today';renderCallFollow()">اليوم فقط</button><button type="button" class="btn ${callScope==='week'?'':'ghost'}" onclick="callScope='week';renderCallFollow()">كل الأسبوع</button></div>
+    <div class="callsum"><span class="cmk ok">✓</span> <span>مع غياب:</span> <b>${n('abs')}</b> &nbsp; <span class="cmk ok">✓</span> <span>«لا أحد»:</span> <b>${n('none')}</b> &nbsp; <span class="cmk miss">!</span> <span>بلا نداء:</span> <b>${n('miss')}</b></div>`;
+  h+=miss.length
+    ?`<h4>حصص بلا نداء مسجَّل</h4><div class="callwrap"><table class="calltbl"><thead><tr><th>القسم</th><th>الحصة</th><th>المادة</th><th>الأستاذ(ة)</th></tr></thead><tbody>${miss.map(line).join('')}</tbody></table></div>`
+    :`<p class="callok">${all.length?'لا توجد حصص بلا نداء في هذه الفترة.':'لا توجد حصص بدأت بعد في هذه الفترة.'}</p>`;
+  if(none.length) h+=`<h4>تصريحات «لا أحد»</h4><div class="callwrap"><table class="calltbl"><thead><tr><th>القسم</th><th>الحصة</th><th>المادة</th><th>الأستاذ(ة)</th><th>الساعة</th></tr></thead><tbody>${none.map(line).join('')}</tbody></table></div>`;
+  h+='</div>';
+  ov.innerHTML=h;
+}
 function teacherLocked(ci){
   const cls=state.data[currentClass]; if(!cls) return;
   const why=teacherWhy(ci,null); if(why) showAlert(why);
 }
-async function teacherPost(cls0,si,ci,name,value){
-  if(!navigator.onLine){ showAlert('لا يوجد اتصال بالإنترنت: لا يمكن تسجيل الغياب الآن، أعيدوا المحاولة عند عودة الاتصال.'); return false; }
-  let r,d={};
+// ---- teacher: taps are written to this device first, then sent (also after hours without internet) ----
+// Each tap is an entry of ghiyab_tq {id,u,k:'mark'|'called',cls,name,ci,value,at}. They are shown at once (tqOverlay),
+// sent in order as soon as the server answers (tqFlush), and the server checks the same rules against the moment of the
+// tap («at»). Entries are absolute values (set / unset), so sending one twice does no harm.
+const TQ_KEY='ghiyab_tq';
+function tqLoad(){ try{ const a=JSON.parse(localStorage.getItem(TQ_KEY)); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function tqSave(a){ try{ if(a.length) localStorage.setItem(TQ_KEY,JSON.stringify(a)); else localStorage.removeItem(TQ_KEY); }catch(e){} if(lastSync) setSyncStatus(lastSync); }
+function tqMine(){ const u=currentUser&&currentUser.email; return tqLoad().filter(o=>o.u===u); }
+function tqCount(){ return canMark?tqMine().length:0; }
+function tqKey(o){ return o.k==='called'?'c|'+o.cls+'|'+o.ci:'m|'+o.cls+'|'+o.name+'|'+o.ci; }
+function tqPending(){ const set=new Set(); tqMine().forEach(o=>set.add(tqKey(o))); return set; }
+function tqOverlay(){
+  if(!canMark||!state||!state.data) return;
+  tqMine().forEach(o=>{
+    const c=state.data[o.cls]; if(!c) return;
+    if(o.k==='called'){
+      const col=c.columns&&c.columns[o.ci]; if(!col) return;
+      if(o.value) col.called={at:o.at,by:teacherName||''}; else delete col.called;
+    }else{
+      const si=c.names.indexOf(o.name); if(si<0) return;
+      const row=c.absences[si]; if(!row) return;
+      while(row.length<=o.ci) row.push(false);
+      if(row[o.ci]==='j') return;
+      row[o.ci]=o.value;
+      if(o.value&&c.columns&&c.columns[o.ci]) delete c.columns[o.ci].called;
+    }
+  });
+}
+function tqAdd(o){
+  if(!currentUser) return;
+  o.id=Date.now().toString(36)+Math.random().toString(36).slice(2,7); o.u=currentUser.email; o.at=Date.now();
+  const key=tqKey(o);
+  const a=tqLoad().filter(x=>!(x.u===o.u&&tqKey(x)===key));   // the last tap on a cell replaces the earlier one
+  a.push(o); tqSave(a);
+  tqOverlay(); renderTable(); renderStats();
+  tqFlush();
+}
+let tqBusy=false;
+async function tqFlush(){
+  if(!canMark||tqBusy||!tqCount()) return;
+  tqBusy=true;
+  const rejected=[]; let sent=0;
   try{
-    r=await fetchT('/api/mark',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({cls:cls0,si,name,ci,value})},12000);
-    try{ d=await r.json(); }catch(e){}
-  }catch(e){ showAlert('تعذر الاتصال بالخادم، لم يُسجَّل الغياب. أعيدوا المحاولة.'); return false; }
-  if(r.status===401){ onAuthRejected(); return false; }
-  if(!r.ok||!d.ok){ showAlert(d.message||'تعذر تسجيل الغياب.'); return false; }
-  const c=state.data[cls0];
-  if(c&&c.names[si]===name){ c.absences[si][ci]=value; }
-  renderTable(); renderStats();
-  return true;
+    for(;;){
+      const o=tqMine()[0]; if(!o) break;
+      const c=state.data&&state.data[o.cls];
+      const body=o.k==='called'
+        ? {action:'called',cls:o.cls,ci:o.ci,value:o.value,at:o.at}
+        : {cls:o.cls,si:c?c.names.indexOf(o.name):-1,name:o.name,ci:o.ci,value:o.value,at:o.at};
+      let r,d={};
+      if(o.k!=='called'&&body.si<0){ tqSave(tqLoad().filter(x=>x.id!==o.id)); rejected.push(tqWhy(o,'التلميذ(ة) لم يعد في لائحة القسم.')); continue; }
+      try{
+        r=await fetchT('/api/mark',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify(body)},12000);
+        try{ d=await r.json(); }catch(e){}
+      }catch(e){ break; }                                  // no connection: everything stays queued
+      if(r.status===401){ onAuthRejected(); break; }
+      if(r.status===429||r.status>=500) break;             // the server is busy: try again later
+      if(!r.ok&&d.error==='stale'&&(o.tries||0)<3){        // the list changed: wait for the next refresh then retry
+        tqSave(tqLoad().map(x=>x.id===o.id?Object.assign(x,{tries:(x.tries||0)+1}):x)); break;
+      }
+      tqSave(tqLoad().filter(x=>x.id!==o.id));
+      if(r.ok&&d.ok) sent++; else rejected.push(tqWhy(o,d.message||'رفض الخادم هذا التسجيل.'));
+    }
+  }finally{ tqBusy=false; }
+  if(sent||rejected.length){ lastAppliedStr=null; pollRemote(); }   // show the server's copy (a refused tap disappears)
+  if(lastSync) setSyncStatus(lastSync);
+  if(rejected.length) showAlert('تعذّر قبول '+(rejected.length>1?rejected.length+' تسجيلات':'تسجيل')+' من التسجيلات المؤجلة:\n\n'+rejected.join('\n'));
+}
+function tqWhy(o,msg){
+  if(o.k==='called') return '• «لا أحد» — القسم '+o.cls+' — '+colLabelOf(o.cls,o.ci)+': '+msg;
+  return '• '+o.name+' — القسم '+o.cls+' — '+colLabelOf(o.cls,o.ci)+': '+msg;
+}
+function colLabelOf(cname,ci){ try{ const o=colInfo(ci); return DAYS[o.d*2+o.s]+' ح'+(o.p+1); }catch(e){ return 'ح'+ci; } }
+function teacherPost(cls0,si,ci,name,value){ tqAdd({k:'mark',cls:cls0,name,ci,value}); }
+// «لا أحد»: the roll call was done and nobody is absent in this period
+function teacherCalled(ci){
+  const cls0=currentClass, cls=state.data[cls0]; if(!cls) return;
+  const why=teacherWhy(ci,null); if(why){ showAlert(why); return; }
+  const col=cls.columns[ci]||{};
+  if(col.called){
+    showModal('إلغاء التصريح «لا أحد» لهذه الحصة (القسم '+cls0+')؟',[
+      {label:'نعم، ألغِ',className:'btn danger',onClick:()=>tqAdd({k:'called',cls:cls0,ci,value:false})},
+      {label:'إبقاء',className:'btn ghost',onClick:null}
+    ]);
+    return;
+  }
+  if(cls.absences.some(r=>r&&r[ci])){ showAlert('سُجّل غياب في هذه الحصة، فلا يصحّ التصريح بأنه «لا أحد».'); return; }
+  tqAdd({k:'called',cls:cls0,ci,value:true});
 }
 function teacherMark(si,ci){
   const cls=state.data[currentClass], cls0=currentClass, name=cls.names[si], cur=cls.absences[si][ci];
@@ -2754,7 +2954,7 @@ async function archiveSeason(){
   }catch(e){ showAlert('تعذر الاتصال بالخادم لأرشفة الموسم، أعيدوا المحاولة. لم يتغيّر شيء.'); return; }
   if(r.status===401){ onAuthRejected(); return; }
   if(!r.ok){ showAlert((j&&j.message)||'تعذرت أرشفة الموسم، أعيدوا المحاولة. لم يتغيّر شيء.'); return; }
-  state.classNames.forEach(c=>{ const cls=state.data[c]; cls.absences=cls.names.map(()=>blankRow()); });
+  state.classNames.forEach(c=>{ const cls=state.data[c]; cls.absences=cls.names.map(()=>blankRow()); (cls.columns||[]).forEach(k=>{ if(k) delete k.called; }); });
   state.other=null;
   state.weekFrom=''; state.weekTo='';
   state.season=nextSeason(l);
@@ -3008,7 +3208,7 @@ function startNewWeek(){
     const ok=await saveNow();
     if(!ok){ showAlert('تعذر حفظ الأسبوع الحالي في السجل، تحقّقوا من الاتصال وأعيدوا المحاولة. لم يتغيّر شيء.'); return; }
     if(!brk) state.other=snapshotWeek();   // the finished week stays available through «الأسبوع الماضي»
-    state.classNames.forEach(c=>{ const cls=state.data[c]; cls.absences=cls.names.map(()=>blankRow()); });
+    state.classNames.forEach(c=>{ const cls=state.data[c]; cls.absences=cls.names.map(()=>blankRow()); (cls.columns||[]).forEach(k=>{ if(k) delete k.called; }); });
     state.weekFrom=addDaysIso(state.weekFrom,7);
     if(isoOk(state.weekTo)) state.weekTo=addDaysIso(state.weekTo,7);
     document.getElementById('wFrom').value=state.weekFrom;
@@ -3431,7 +3631,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ try{ navi
     }
     if(!res.ok) throw new Error('bad status');
     me=await res.json();
-    saveSession({token:getToken(),email:me.email,role:me.role});
+    saveSession({token:getToken(),email:me.email,role:me.role,teacher:me.teacher});
   }catch(e){
     me=cachedUser(); // offline: fall back to the identity remembered on this device
     if(!me || !hasCachedState()){ showGate('تعذر الاتصال بالخادم، تأكدوا من الإنترنت وأعيدوا المحاولة'); return; }
@@ -3440,6 +3640,7 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ try{ navi
   canWrite=(me.role==='admin');
   canMark=(me.role==='teacher');
   teacherName=canMark?String(me.teacher||''):'';
+  if(canMark){ const keep=tqLoad().filter(o=>o.u===me.email); try{ if(keep.length) localStorage.setItem(TQ_KEY,JSON.stringify(keep)); else localStorage.removeItem(TQ_KEY); }catch(e){} }
   startApp();
 })();
 </script>

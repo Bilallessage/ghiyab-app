@@ -13,6 +13,13 @@
 //     must never mark the wrong child).
 // The admin may use it too (any column, justified allowed).
 // POST {action:'addstudent', cls, name} adds a student (name only) for a teacher or the admin.
+// POST {action:'called', cls, ci, value:true|false} = roll call done with NOBODY absent in that period («لا أحد»):
+//   stored as cls.columns[ci].called = {at, by} so the administration can see the teacher did the roll call.
+//   It needs the same rights as recording an absence in that period and is refused while an absence is recorded in it;
+//   recording an absence in the period later cancels it.
+// Both writes accept `at` (epoch ms): a teacher whose phone had no connection sends what was tapped while offline
+//   later, and the time rules (today / period started) are checked against the moment of the tap, not of the delivery.
+//   `at` is accepted only if it is not in the future and at most MAX_AGE old (teachers only; the admin has no time rules).
 const L = require('./_lib');
 const S = require('./_stats');
 
@@ -61,7 +68,77 @@ function nowMinutes(now) {
   return g('hour') * 60 + g('minute');
 }
 
+const MAX_AGE = 18 * 3600 * 1000;   // a tap made offline is still accepted for 18 hours
+// the moment a teacher's tap happened: `at` when it is a plausible past time, otherwise now
+function tapTime(at) {
+  const now = Date.now();
+  if (typeof at !== 'number' || !isFinite(at)) return { ok: true, d: new Date(now), late: false };
+  if (at > now + 120000) return { ok: false, message: 'ساعة الجهاز غير صحيحة، صحّحوا التاريخ والوقت ثم أعيدوا المحاولة' };
+  if (now - at > MAX_AGE) return { ok: false, message: 'مضى وقت طويل على هذا التسجيل (أكثر من 18 ساعة) فلم يُقبل. أخبروا المسؤول ليسجّله.' };
+  return { ok: true, d: new Date(Math.min(at, now)), late: now - at > 60000 };
+}
+
 function fail(res, code, error, message) { return L.send(res, code, { ok: false, error, message }); }
+
+// The rules a teacher is bound by for column ci (same for an absence and for «لا أحد»). Returns a failure
+// description or null. `d` = the moment of the tap.
+function teacherRules(state, cls, pc, W, ci, session, d, needStarted) {
+  const monday = S.mondayOf(state.weekFrom);
+  if (!monday) return ['conflict', 409, 'no_week', 'الأسبوع غير محدد في الورقة'];
+  const breaks = Array.isArray(state.breaks) ? state.breaks : S.DEFAULT_BREAKS;
+  if (breaks.some((x) => x && S.validIso(x.from) && S.validIso(x.to) && state.weekFrom >= x.from && state.weekFrom <= x.to)) {
+    return ['x', 403, 'break', 'هذا الأسبوع عطلة، لا يُسجَّل فيه غياب'];
+  }
+  const colDate = S.addDays(monday, Math.floor(ci / W));
+  if (colDate !== todayIso(d)) return ['x', 403, 'not_today', 'يمكن تسجيل غياب حصص اليوم فقط'];
+  if (needStarted && nowMinutes(d) < startMinutes(state, cls, pc, ci)) {
+    return ['x', 403, 'not_started', 'هذه الحصة لم يحن وقتها بعد'];
+  }
+  if (session.teacher) {
+    const have = cls.columns && cls.columns[ci] && cls.columns[ci].teacher;
+    if (!sameTeacher(session.teacher, have)) {
+      return ['x', 403, 'not_yours', 'هذه الحصة ليست من حصصكم: اسم الأستاذ(ة) المكتوب فيها «' + (String(have || '').trim() || '—') + '» واسم حسابكم «' + session.teacher + '».'];
+    }
+  }
+  return null;
+}
+
+// Roll call with nobody absent in one period.
+async function calledAction(res, session, b, isAdmin) {
+  const ci = b.ci;
+  if (typeof b.cls !== 'string' || !Number.isInteger(ci) || ci < 0 || (b.value !== true && b.value !== false)) return fail(res, 400, 'bad_request', 'طلب غير صالح');
+  const tap = isAdmin ? { ok: true, d: new Date() } : tapTime(b.at);
+  if (!tap.ok) return fail(res, 403, 'too_old', tap.message);
+  const redis = L.getRedis();
+  try {
+    return await L.withLock('state', async () => {
+      const state = await redis.get(STATE_KEY);
+      if (!state || !Array.isArray(state.classNames) || !state.data) return fail(res, 409, 'no_state', 'لا توجد ورقة محفوظة بعد');
+      const cls = state.data[b.cls];
+      if (!state.classNames.includes(b.cls) || !cls || !Array.isArray(cls.names)) return fail(res, 404, 'no_class', 'القسم غير موجود');
+      const pc = S.periodCounts(state), W = pc[0] + pc[1];
+      if (ci >= 5 * W) return fail(res, 400, 'bad_column', 'حصة غير موجودة');
+      if (!isAdmin) {
+        const bad = teacherRules(state, cls, pc, W, ci, session, tap.d, b.value === true);
+        if (bad) return fail(res, bad[1], bad[2], bad[3]);
+      }
+      if (!Array.isArray(cls.columns)) cls.columns = [];
+      while (cls.columns.length <= ci) cls.columns.push({ subject: '', teacher: '' });
+      const col = cls.columns[ci] && typeof cls.columns[ci] === 'object' ? cls.columns[ci] : (cls.columns[ci] = { subject: '', teacher: '' });
+      if (b.value === true) {
+        const n = (cls.absences || []).filter((r) => Array.isArray(r) && r[ci]).length;
+        if (n) return fail(res, 409, 'has_absences', 'سُجّل غياب في هذه الحصة، فلا يصحّ التصريح بأنه «لا أحد».');
+        col.called = { at: tap.d.getTime(), by: String(session.teacher || session.email || '').slice(0, 80) };
+      } else {
+        delete col.called;
+      }
+      await redis.set(STATE_KEY, state);
+      return L.send(res, 200, { ok: true, value: b.value });
+    });
+  } catch (e) {
+    return fail(res, 500, 'server_error', 'خطأ في الخادم، أعيدوا المحاولة');
+  }
+}
 
 // A teacher may ADD a student to a class (name only: no phone, no deletion, no renaming).
 async function addStudent(res, session, b) {
@@ -108,6 +185,7 @@ module.exports = async function handler(req, res) {
 
   const b = L.parseBody(req) || {};
   if (b.action === 'addstudent') return addStudent(res, session, b);
+  if (b.action === 'called') return calledAction(res, session, b, isAdmin);
   const si = b.si, ci = b.ci;
   if (typeof b.cls !== 'string' || typeof b.name !== 'string' || !Number.isInteger(si) || !Number.isInteger(ci) || si < 0 || ci < 0) {
     return fail(res, 400, 'bad_request', 'طلب غير صالح');
@@ -116,6 +194,8 @@ module.exports = async function handler(req, res) {
   if (value !== false && value !== true && value !== 'j') return fail(res, 400, 'bad_request', 'قيمة غير صالحة');
   if (value === 'j' && !isAdmin) return fail(res, 403, 'forbidden', 'تبرير الغياب من اختصاص المسؤول');
 
+  const tap = isAdmin ? { ok: true, d: new Date() } : tapTime(b.at);
+  if (!tap.ok) return fail(res, 403, 'too_old', tap.message);
   const redis = L.getRedis();
   try {
     return await L.withLock('state', async () => {
@@ -128,22 +208,8 @@ module.exports = async function handler(req, res) {
       if (ci >= 5 * W) return fail(res, 400, 'bad_column', 'حصة غير موجودة');
 
       if (!isAdmin) {
-        const monday = S.mondayOf(state.weekFrom);
-        if (!monday) return fail(res, 409, 'no_week', 'الأسبوع غير محدد في الورقة');
-        const breaks = Array.isArray(state.breaks) ? state.breaks : S.DEFAULT_BREAKS;
-        if (breaks.some((x) => x && S.validIso(x.from) && S.validIso(x.to) && state.weekFrom >= x.from && state.weekFrom <= x.to)) {
-          return fail(res, 403, 'break', 'هذا الأسبوع عطلة، لا يُسجَّل فيه غياب');
-        }
-        const colDate = S.addDays(monday, Math.floor(ci / W));
-        if (colDate !== todayIso()) return fail(res, 403, 'not_today', 'يمكن تسجيل غياب حصص اليوم فقط');
-        if (value === true && nowMinutes() < startMinutes(state, cls, pc, ci)) {
-          return fail(res, 403, 'not_started', 'هذه الحصة لم يحن وقتها بعد');
-        }
-        if (session.teacher) {
-          if (!sameTeacher(session.teacher, cls.columns && cls.columns[ci] && cls.columns[ci].teacher)) {
-            return fail(res, 403, 'not_yours', 'هذه الحصة ليست من حصصكم: اسم الأستاذ(ة) المكتوب فيها «' + (String((cls.columns && cls.columns[ci] && cls.columns[ci].teacher) || '').trim() || '—') + '» واسم حسابكم «' + session.teacher + '».');
-          }
-        }
+        const bad = teacherRules(state, cls, pc, W, ci, session, tap.d, value === true);
+        if (bad) return fail(res, bad[1], bad[2], bad[3]);
       }
 
       if (!Array.isArray(cls.absences)) cls.absences = [];
@@ -152,6 +218,7 @@ module.exports = async function handler(req, res) {
       while (row.length < 5 * W) row.push(false);
       if (!isAdmin && row[ci] === 'j') return fail(res, 403, 'justified', 'هذا الغياب مبرَّر من المسؤول ولا يمكن تغييره');
       row[ci] = value;
+      if (value && cls.columns && cls.columns[ci] && cls.columns[ci].called) delete cls.columns[ci].called;   // an absence is recorded: «لا أحد» no longer holds
       await redis.set(STATE_KEY, state);
       try { await S.archiveWeek(redis, L.PREFIX, state); } catch (e) { /* the sheet itself is saved */ }
       return L.send(res, 200, { ok: true, value });
