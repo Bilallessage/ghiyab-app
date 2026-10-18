@@ -302,6 +302,12 @@
     'هذه الحصة لم يحن وقتها بعد': "Cette séance n'a pas encore commencé",
     // roll call «لا أحد» + teacher without internet
     'لا أحد': 'Aucun',
+    '✅ لا أحد': '✅ Aucun',
+    'تمّ النداء ولا غائب في حصتكم الحالية': "L'appel est fait et personne n'est absent dans votre séance en cours",
+    'هل قام الأساتذة بالنداء؟': "Les professeurs ont-ils fait l'appel ?",
+    'تأكيد «لا أحد»': 'Confirmer « Aucun »',
+    'لا توجد الآن حصة من حصصكم قيد الانعقاد في هذا القسم. «لا أحد» يخص حصة اليوم التي بدأت وهي من حصصكم.': "Aucune de vos séances n'est en cours dans cette classe. « Aucun » concerne une séance d'aujourd'hui, commencée, qui est la vôtre.",
+    'سُجّل غياب في حصتكم الحالية، فلا يصحّ التصريح بأنه «لا أحد».': "Une absence est enregistrée dans votre séance en cours : on ne peut pas déclarer « Aucun absent ».",
     '✓ لا أحد': '✓ Aucun',
     '✅ متابعة النداء': "✅ Suivi de l'appel",
     'متابعة النداء': "Suivi de l'appel",
@@ -598,6 +604,9 @@
     // roll call «لا أحد» + teacher without internet
     [/^🟠 دون اتصال — يمكنكم متابعة تسجيل الغياب و«لا أحد»، وسيُرسَل ما تسجّلونه تلقائيا عند عودة الإنترنت(?: \((\d+) في الانتظار\))?$/, function (m) {
       return '🟠 Hors connexion — vous pouvez continuer à noter les absences et « Aucun absent » ; ce que vous saisissez sera envoyé automatiquement au retour d\'Internet' + (m[1] ? ' (' + m[1] + ' en attente)' : '');
+    }],
+    [/^تأكيد «لا أحد» — القسم (.+) — (.+?) — ح(\d+)(?: \((.*)\))?؟$/, function (m, t) {
+      return 'Confirmer « Aucun absent » — ' + clsLabel(m[1]) + ' — ' + t(m[2]) + ' — S' + m[3] + (m[4] ? ' (' + m[4] + ')' : '') + ' ?';
     }],
     [/^🟡 جارٍ إرسال (\d+) تسجيل إلى الخادم…$/, '🟡 Envoi de $1 saisie(s) au serveur…'],
     [/^توجد (\d+) تسجيلات لم تُرسَل إلى الخادم بعد \(عمل دون اتصال\)\. الخروج الآن يحذفها نهائيا من هذا الجهاز\. هل تريدون الخروج؟$/, "$1 saisie(s) n'ont pas encore été envoyées au serveur (travail hors connexion). Se déconnecter maintenant les supprime définitivement de cet appareil. Voulez-vous vous déconnecter ?"],

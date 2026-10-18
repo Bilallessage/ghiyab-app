@@ -266,7 +266,7 @@ table.cu th:nth-child(1){width:24%}table.cu th:nth-child(2){width:13%}table.cu t
 .btn.ghost{--bc:var(--teal);color:var(--bc);border-color:color-mix(in srgb,var(--bc) 55%,transparent);background:color-mix(in srgb,var(--bc) 8%,transparent);transition:background .15s}
 .btn.ghost:hover:not(:disabled){background:color-mix(in srgb,var(--bc) 17%,transparent)}
 #logoBtn{--bc:var(--c-violet)} #periodsBtn{--bc:var(--c-blue)} #seasonBtn{--bc:var(--c-slate)} #timesBtn{--bc:var(--c-amber)} #prevWeekBtn{--bc:var(--c-slate)} #newWeekBtn{--bc:var(--c-green)}
-#statsBtn{--bc:var(--c-indigo)} #catchBtn,#cuXlsBtn{--bc:var(--c-amber)} #cuXlsBtn{--bc:var(--c-green)} #usersBtn{--bc:var(--c-rose)} #printBtn{--bc:var(--c-slate)} #importBtn{--bc:var(--c-green)} #svXlsBtn{--bc:var(--c-green)} #svPngBtn{--bc:var(--c-violet)}
+#statsBtn{--bc:var(--c-indigo)} #catchBtn,#cuXlsBtn{--bc:var(--c-amber)} #cuXlsBtn{--bc:var(--c-green)} #usersBtn{--bc:var(--c-rose)} #printBtn{--bc:var(--c-slate)} #importBtn{--bc:var(--c-green)} #callBtn2{--bc:var(--c-green)} #svXlsBtn{--bc:var(--c-green)} #svPngBtn{--bc:var(--c-violet)}
 .langBtn{--bc:var(--c-slate)}
 /* a week ribbon under the header: Monday to Friday */
 header{position:relative;padding-bottom:14px}
@@ -1331,7 +1331,9 @@ function renderTable(){
     html+=`<div class="addbar">
       <input id="newName" placeholder="اسم التلميذ الجديد" onkeydown="if(event.key==='Enter')addStudent()">
       <button class="btn" id="addStuBtn" type="button" onmousedown="event.preventDefault()" onclick="addStudent()">إضافة تلميذ</button>
-      ${canWrite?`<button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>
+      ${canWrite?`<button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>`:''}
+      ${canMark?`<button class="btn" id="noneBtn" type="button" onmousedown="event.preventDefault()" onclick="teacherCalledNow()" title="تمّ النداء ولا غائب في حصتكم الحالية">✅ لا أحد</button>`:''}
+      ${canWrite?`<button class="btn ghost" id="callBtn2" type="button" onclick="openCallFollow()" title="هل قام الأساتذة بالنداء؟">✅ متابعة النداء</button>
       <button class="btn ghost" id="seasonBtn" style="margin-inline-start:auto" onclick="seasonDialog()" title="حفظ غياب الموسم الدراسي كاملا في الأرشيف وبدء موسم جديد">🗄️ أرشفة الموسم</button>`:''}
     </div>`;
   }
@@ -1912,6 +1914,25 @@ function tqWhy(o,msg){
 function colLabelOf(cname,ci){ try{ const o=colInfo(ci); return DAYS[o.d*2+o.s]+' ح'+(o.p+1); }catch(e){ return 'ح'+ci; } }
 function teacherPost(cls0,si,ci,name,value){ tqAdd({k:'mark',cls:cls0,name,ci,value}); }
 // «لا أحد»: the roll call was done and nobody is absent in this period
+// the «لا أحد» button next to «إضافة تلميذ»: acts on the teacher's period in progress in this class
+// (the latest started period of today that is theirs); a confirmation names it, so nobody ticks the wrong period
+function teacherCalledNow(){
+  const cname=currentClass, cls=state.data[cname]; if(!cls) return;
+  let ci=-1, bt=-1;
+  (cls.columns||[]).forEach((col,i)=>{
+    if(!col||(!String(col.subject||'').trim()&&!String(col.teacher||'').trim())) return;
+    if(teacherWhy(i,null)) return;
+    const st=colStart(i,cname); if(st&&st.getTime()>=bt){ bt=st.getTime(); ci=i; }
+  });
+  if(ci<0){ showAlert('لا توجد الآن حصة من حصصكم قيد الانعقاد في هذا القسم. «لا أحد» يخص حصة اليوم التي بدأت وهي من حصصكم.'); return; }
+  if(cls.absences.some(r=>r&&r[ci])){ showAlert('سُجّل غياب في حصتكم الحالية، فلا يصحّ التصريح بأنه «لا أحد».'); return; }
+  if((cls.columns[ci]||{}).called){ teacherCalled(ci); return; }   // already declared: offers to cancel
+  const subj=String((cls.columns[ci]||{}).subject||'').trim(), wi=colInfo(ci), where=DAYS[wi.d*2+wi.s]+' — ح'+(wi.p+1)+(subj?' ('+subj+')':'');
+  showModal('تأكيد «لا أحد» — القسم '+cname+' — '+where+'؟',[
+    {label:'تأكيد «لا أحد»',className:'btn',onClick:()=>teacherCalled(ci)},
+    {label:'إلغاء',className:'btn ghost',onClick:null}
+  ]);
+}
 function teacherCalled(ci){
   const cls0=currentClass, cls=state.data[cls0]; if(!cls) return;
   const why=teacherWhy(ci,null); if(why){ showAlert(why); return; }
