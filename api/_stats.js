@@ -126,6 +126,10 @@ function historyKey(prefix) { return prefix + ':history'; }
 async function archiveWeek(redis, prefix, state) {
   const snap = summarizeState(state);
   if (!snap) return false;
+  // a week that has not started yet (shown by typing its date) and holds no absence is not archived: it would
+  // only add an empty week to the statistics
+  const todayMon = mondayOf(new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Casablanca', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()));
+  if (todayMon && snap.weekStart > todayMon && !Object.values(snap.classes).some((c) => c.weekStudents > 0)) return false;
   await redis.hset(historyKey(prefix), { [snap.weekStart]: snap });
   return true;
 }

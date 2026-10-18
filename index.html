@@ -1946,7 +1946,7 @@ function renderAll(){ renderTabs(); renderTable(); renderStats(); updateSelUI();
 
 document.getElementById('wFrom').value=state.weekFrom;
 document.getElementById('wTo').value=state.weekTo;
-document.getElementById('wFrom').onchange=e=>{ if(!canWrite) return; state.weekFrom=e.target.value; save(); refreshFutureCells(); };
+document.getElementById('wFrom').onchange=e=>{ if(!canWrite) return; jumpToWeek(e.target.value); };
 document.getElementById('wTo').onchange=e=>{ if(!canWrite) return; state.weekTo=e.target.value; save(); };
 
 document.getElementById('tableHost').addEventListener('focusin', ()=>{ tableFocused=true; });
@@ -3070,6 +3070,61 @@ function archivedPreviousWeek(){
     if(Array.isArray(abs)){ detailed=true; classes[c]={names:abs.map(a=>a[0]),absences:abs.map(a=>String(a[1]).split('').map(x=>x==='2'?'j':x==='1')),columns:null,pc:(w.classes[c]||{}).pc||DEF_PC}; }
   });
   return detailed?{weekFrom:w.weekStart,weekTo:addDaysIso(w.weekStart,4),classes}:{old:true};
+}
+// ---- typing another «من» date shows the data of THAT week (press Enter / pick the date) ----------------------
+// Within the same week it only changes the label. For another week the sheet being left is kept (state.other holds it
+// in full; the statistics archive holds it too), and the target week appears: the full copy in state.other when it is
+// that week, else the one rebuilt from the statistics archive (absent students, with that week's subjects/teachers),
+// else (nothing recorded) the admin chooses between an empty week and changing only the date.
+let weekJumpBusy=false;
+function archivedWeekAt(monday){
+  const w=svWeeks.find(x=>x.weekStart===monday); if(!w) return null;
+  const classes={}; let detailed=false;
+  Object.keys(w.classes||{}).forEach(c=>{
+    const k=w.classes[c]||{};
+    if(!Array.isArray(k.abs)) return;
+    detailed=true;
+    classes[c]={names:k.abs.map(a=>a[0]),absences:k.abs.map(a=>String(a[1]).split('').map(x=>x==='2'?'j':x==='1')),pc:k.pc||DEF_PC,
+      columns:Array.isArray(k.subj)&&k.subj.length?k.subj.map((sj,i)=>({subject:sj||'',teacher:(k.tch&&k.tch[i])||''})):null};
+  });
+  return detailed?{weekFrom:w.weekStart,weekTo:addDaysIso(w.weekStart,4),classes}:{old:true};
+}
+async function jumpToWeek(newFrom){
+  const el=document.getElementById('wFrom'), prev=state.weekFrom||'';
+  if(weekJumpBusy) return;
+  if(!isoOk(newFrom)){ el.value=prev; return; }
+  const T=ntMonday(newFrom), C=ntMonday(prev);
+  if(!C||T===C){ state.weekFrom=newFrom; save(); refreshFutureCells(); renderAll(); return; }   // same week (or no week yet): only the date
+  weekJumpBusy=true;
+  const revert=()=>{ el.value=prev; };
+  try{
+    const ok=await saveNow();
+    if(!ok){ showAlert('تعذر حفظ الأسبوع المعروض قبل التبديل، تحقّقوا من الاتصال وأعيدوا المحاولة. لم يتغيّر شيء.'); revert(); return; }
+    const go=target=>{
+      const here=snapshotWeek();
+      applyWeek(target);
+      state.weekFrom=newFrom; state.weekTo=isoOk(target.weekTo)?target.weekTo:addDaysIso(T,4);
+      el.value=state.weekFrom; document.getElementById('wTo').value=state.weekTo;
+      state.other=here; selected.clear();
+      save(); renderAll(); refreshFutureCells();
+    };
+    const o=state.other;
+    let target=(o&&isoOk(o.weekFrom)&&ntMonday(o.weekFrom)===T)?o:null;
+    if(!target){
+      await ntLoad();
+      const a=archivedWeekAt(T);
+      if(a&&a.old){ showAlert('هذا الأسبوع مؤرشف قبل إضافة التفاصيل، فلا يمكن إعادة عرضه. ابتداءً من الأسابيع الجديدة يتوفر عرضها كاملة.'); revert(); return; }
+      target=a;
+    }
+    if(target){ go(target); return; }
+    const brk=(Array.isArray(state.breaks)?state.breaks:DEFAULT_BREAKS).some(b=>b&&isoOk(b.from)&&isoOk(b.to)&&newFrom>=b.from&&newFrom<=b.to);
+    if(brk){ go({weekFrom:newFrom,weekTo:addDaysIso(T,4),classes:{}}); return; }
+    showModal('لا توجد بيانات محفوظة للأسبوع الذي يبدأ في '+T+'.\n\nالأسبوع الحالي ('+prev+') يُحفظ كما هو ويمكنكم الرجوع إليه.',[
+      {label:'عرض أسبوع فارغ بهذا التاريخ',className:'btn',onClick:()=>go({weekFrom:newFrom,weekTo:addDaysIso(T,4),classes:{}})},
+      {label:'تغيير التاريخ فقط (تبقى البيانات الحالية)',className:'btn ghost',onClick:()=>{ state.weekFrom=newFrom; save(); refreshFutureCells(); renderAll(); }},
+      {label:'إلغاء',className:'btn ghost',onClick:revert}
+    ]);
+  }finally{ weekJumpBusy=false; }
 }
 function goPrevWeek(){ if(weekNavInfo().kind==='cur') return; toggleOtherWeek(); }
 function goCurrentWeek(){ if(weekNavInfo().kind!=='cur') return; toggleOtherWeek(); }
