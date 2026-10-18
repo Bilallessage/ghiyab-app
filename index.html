@@ -61,7 +61,7 @@ h1{font-size:20px;font-weight:900;margin:0;color:var(--teal)}
 .tab.add-tab{background:transparent;border-style:dashed;color:var(--teal);font-weight:700}
 .cell.readonly{cursor:default}
 /* teacher account: only the season, the week dates, the class tabs, the sheet with the student list, add-student, language and logout */
-body.tch #statsBtn,body.tch #catchBtn,body.tch #printBtn,body.tch #usersBtn,body.tch #logoBtn,body.tch #newWeekBtn,body.tch #prevWeekBtn,body.tch #periodsBtn,body.tch #orgBtn,body.tch #timesBtn,body.tch #bulkDelBtn,body.tch .toolbar,body.tch .btncol,body.tch .stats,body.tch #autoPanel,body.tch #notifyPanel,body.tch #viewBanner,body.tch #weekBanner,body.tch #userChip{display:none!important}
+body.tch #statsBtn,body.tch #catchBtn,body.tch #printBtn,body.tch #usersBtn,body.tch #logoBtn,body.tch #newWeekBtn,body.tch #prevWeekBtn,body.tch #periodsBtn,body.tch #orgBtn,body.tch #timesBtn,body.tch #bulkDelBtn,body.tch #backupBtn,body.tch .toolbar,body.tch .btncol,body.tch .stats,body.tch #autoPanel,body.tch #notifyPanel,body.tch #viewBanner,body.tch #weekBanner,body.tch #userChip{display:none!important}
 @media(max-width:700px){body.tch header .week{display:flex;flex-wrap:wrap;align-items:center;gap:8px}body.tch header .week br{display:none}body.tch header .week .wkbox{flex:1 1 100%}body.tch header .week .btn{margin:0}}
 #viewBanner{background:var(--gold-soft);color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;font-weight:500}
 .userchip{font-size:12px;color:var(--ink-soft);margin-inline-start:8px;direction:ltr;unicode-bidi:isolate}
@@ -142,6 +142,7 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
 .addbar input.need{border-color:var(--absent);box-shadow:0 0 0 3px color-mix(in srgb,var(--absent) 25%,transparent)}
 @media print{.tabs,.btn,header .week{display:none}}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;align-items:center;justify-content:center;padding:20px}
+#modalOverlay{z-index:60}  /* questions and messages always above the other dialogs (e.g. the import window) */
 .modal-box{background:var(--panel);color:var(--ink);border-radius:12px;padding:20px;max-width:360px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .modal-box p{margin:0 0 16px;font-size:14px;line-height:1.6;white-space:pre-line}
 .modal-input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:14px;margin-bottom:14px;background:var(--bg);color:var(--ink)}
@@ -370,6 +371,7 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
   <button class="btn ghost" id="periodsBtn" style="display:none" onclick="periodsDialog()" title="إضافة حصة أو حذفها صباحا أو مساء لتلائم النظام الدراسي للمؤسسة">🧮 عدد الحصص</button>
   <button class="btn ghost" id="orgBtn" style="display:none" onclick="document.getElementById('orgFile').click()" title="ملء اسم المادة واسم الأستاذ لكل قسم من ملف إكسيل «التنظيم التربوي»">📅 استيراد التنظيم التربوي</button>
   <button class="btn ghost" id="timesBtn" style="display:none" onclick="editPeriodTimes()" title="بداية كل حصة في القسم المعروض، لمنع تسجيل غياب حصة لم يحن وقتها">⏰ توقيت الحصص</button>
+  <button class="btn ghost" id="backupBtn" style="display:none" onclick="backupsDialog()" title="نسخ احتياطية تلقائية للورقة، لاسترجاع الغياب والهواتف إن ضاعت بخطأ">🕘 النسخ الاحتياطية</button>
   <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
 </div>
 <div class="tabs" id="tabs"></div>
@@ -436,6 +438,15 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
     <p class="sub" style="margin:0 0 12px;line-height:1.6">من يسجّل حسابا جديدا من صفحة الدخول لا يستطيع الدخول حتى توافقوا على طلبه هنا. الحسابات المقبولة تطلع على الجدول والإحصائيات فقط دون تعديل، ويمكنكم تحويل أي حساب إلى «أستاذ» ليسجّل الغياب عند النداء في حصص اليوم (وإن كتبتم اسمه كما في الجدول فلن يسجّل إلا في حصصه).</p>
     <div id="usersBody" style="margin-bottom:12px"></div>
     <div class="modal-actions"><button class="btn ghost" type="button" onclick="usersClose()">إغلاق</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="backupsOverlay" style="display:none">
+  <div class="modal-box" style="max-width:560px;max-height:85vh;overflow:auto">
+    <h3 style="margin:0 0 6px;color:var(--teal);font-size:15px">النسخ الاحتياطية</h3>
+    <p class="sub" style="margin:0 0 12px;line-height:1.6">يحفظ الخادم نسخة تلقائيا قبل أي حفظ يُضيّع دفعة واحدة كثيرا من الغياب أو الهواتف أو التلاميذ (كاستبدال اللائحة أو الحذف الجماعي أو بدء أسبوع جديد)، وكل 12 ساعة على الأكثر. يُحتفظ بآخر 15 نسخة. «الاسترجاع الجزئي» يُرجع الغياب (إن كان الأسبوع نفسه) والهواتف لتلاميذ اللائحة الحالية دون المساس بغير ذلك، و«الاسترجاع الكامل» يعيد الورقة كلها كما كانت.</p>
+    <div id="backupsBody" style="margin-bottom:12px"></div>
+    <div class="modal-actions"><button class="btn" type="button" id="backupNowBtn" onclick="backupNow()">حفظ نسخة الآن</button><button class="btn ghost" type="button" onclick="backupsClose()">إغلاق</button></div>
   </div>
 </div>
 
@@ -639,6 +650,8 @@ function applyPermissionUI(){
   if(orBtn) orBtn.style.display=canWrite?'inline-block':'none';
   const pdBtn=document.getElementById('periodsBtn');
   if(pdBtn) pdBtn.style.display=canWrite?'inline-block':'none';
+  const bkBtn=document.getElementById('backupBtn');
+  if(bkBtn) bkBtn.style.display=canWrite?'inline-block':'none';
   const usBtn=document.getElementById('usersBtn');
   if(usBtn) usBtn.style.display=canWrite?'inline-block':'none';
   const lgBtn=document.getElementById('logoBtn');
@@ -1566,25 +1579,85 @@ function updateImportActions(){
   actions.innerHTML='';
   const disabled=!names.length;
   const mk=(label,cls,mode)=>{const b=document.createElement('button');b.className=cls;b.textContent=label;b.disabled=disabled;b.onclick=()=>confirmImport(mode);return b;};
-  actions.appendChild(mk('استبدال اللائحة الحالية','btn danger','replace'));
-  actions.appendChild(mk('إضافة إلى اللائحة الحالية','btn','append'));
+  actions.appendChild(mk('تحديث اللائحة مع الاحتفاظ بالغياب والهواتف','btn','sync'));
+  actions.appendChild(mk('إضافة إلى اللائحة الحالية','btn ghost','append'));
+  actions.appendChild(mk('استبدال اللائحة (يمسح الغياب والهواتف)','btn danger','replace'));
   const cancel=document.createElement('button');cancel.className='btn ghost';cancel.textContent='إلغاء';
   cancel.onclick=()=>{document.getElementById('importOverlay').style.display='none';};
   actions.appendChild(cancel);
 }
+// ---- importing a student list: matching the file's names with the students already on the sheet ----
+// A student is "the same" when the words of the name are the same, in any order, ignoring spaces, accents and the
+// alef / ya / ta-marbuta spellings; a name that is only 1-2 letters away (typo) is matched too when it is unambiguous.
+function impKey(n){ return tchWords(n).sort().join(' '); }
+function impLev(a,b){
+  if(a===b) return 0; if(Math.abs(a.length-b.length)>2) return 3;
+  let prev=Array.from({length:b.length+1},(_,i)=>i);
+  for(let i=1;i<=a.length;i++){ const cur=[i]; for(let k=1;k<=b.length;k++) cur[k]=Math.min(prev[k]+1,cur[k-1]+1,prev[k-1]+(a[i-1]===b[k-1]?0:1)); prev=cur; }
+  return prev[b.length];
+}
+// -> {match:[old index or -1 per file name], fuzzy:[[old name,new name]], missing:[old indexes not in the file]}
+function importPlan(cls,names){
+  const used=new Set(), byKey=new Map(), fuzzy=[];
+  cls.names.forEach((n,i)=>{ const k=impKey(n); if(!k) return; if(!byKey.has(k)) byKey.set(k,[]); byKey.get(k).push(i); });
+  const match=names.map(n=>{ const arr=byKey.get(impKey(n)); const j=arr?arr.find(i=>!used.has(i)):undefined; if(j!==undefined){ used.add(j); return j; } return -1; });
+  names.forEach((n,ni)=>{
+    if(match[ni]>=0) return;
+    const k=impKey(n).replace(/ /g,''); if(k.length<8) return;
+    let best=-1, bd=3, tie=false;
+    cls.names.forEach((o,i)=>{ if(used.has(i)) return; const d=impLev(impKey(o).replace(/ /g,''),k); if(d<bd){ bd=d; best=i; tie=false; } else if(d===bd) tie=true; });
+    if(best>=0&&!tie){ match[ni]=best; used.add(best); fuzzy.push([cls.names[best],n]); }
+  });
+  const missing=cls.names.map((_,i)=>i).filter(i=>!used.has(i));
+  return {match,fuzzy,missing};
+}
+function importDone(){ document.getElementById('importOverlay').style.display='none'; selected.clear(); save(); renderTable(); renderStats(); }
+function importApplySync(cn,names,keepMissing){
+  const cls=state.data[cn]; if(!cls) return;   // read again: the sheet may have been refreshed while the question was open
+  const plan=importPlan(cls,names);
+  const nn=[], na=[], np=[];
+  names.forEach((n,ni)=>{ const j=plan.match[ni]; nn.push(n); na.push(j>=0?cls.absences[j]:blankRow()); np.push(j>=0?(cls.phones[j]||''):''); });
+  if(keepMissing) plan.missing.forEach(j=>{ nn.push(cls.names[j]); na.push(cls.absences[j]); np.push(cls.phones[j]||''); });
+  const kept=plan.match.filter(j=>j>=0).length, added=names.length-kept, removed=keepMissing?0:plan.missing.length;
+  cls.names=nn; cls.absences=na; cls.phones=np;
+  importDone();
+  showAlert('تم تحديث اللائحة: احتُفظ بغياب وهواتف '+kept+' تلميذا'+(added?'، وأُضيف '+added+' تلميذا جديدا':'')+(removed?'، وحُذف '+removed+' غير موجود في الملف':'')+'.');
+}
 function confirmImport(mode){
   const names=importState.names;
   const cls=state.data[currentClass];
+  const cn=currentClass;
   if(mode==='replace'){
-    cls.names=names;
-    cls.absences=names.map(()=>blankRow());
-    cls.phones=names.map(()=>'');
-  }else{
-    names.forEach(n=>{ cls.names.push(n); cls.absences.push(blankRow()); cls.phones.push(''); });
+    const nAbs=cls.absences.reduce((a,r)=>a+r.filter(Boolean).length,0), nPh=cls.phones.filter(x=>x&&String(x).trim()).length;
+    showModal('سيُمسح غياب كل تلاميذ القسم ('+nAbs+' غيابا) وأرقام هواتفهم ('+nPh+') ويبدأ الجدول فارغا.\n\nإن كانت اللائحة هي نفسها تقريبا فاستعملوا «تحديث اللائحة مع الاحتفاظ بالغياب والهواتف».',[
+      {label:'نعم، امسح كل شيء',className:'btn danger',onClick:()=>{
+        const cls=state.data[cn]; if(!cls) return;
+        cls.names=names; cls.absences=names.map(()=>blankRow()); cls.phones=names.map(()=>'');
+        importDone();
+      }},
+      {label:'إلغاء',className:'btn ghost',onClick:null}
+    ]);
+    return;
   }
-  selected.clear();
-  save(); renderTable(); renderStats();
-  document.getElementById('importOverlay').style.display='none';
+  if(mode==='append'){
+    const have=new Set(cls.names.map(impKey)); let added=0, skipped=0;
+    names.forEach(n=>{ const k=impKey(n); if(have.has(k)){ skipped++; return; } have.add(k); cls.names.push(n); cls.absences.push(blankRow()); cls.phones.push(''); added++; });
+    importDone();
+    showAlert('أُضيف '+added+' تلميذا'+(skipped?'، وتُجوهل '+skipped+' موجودا من قبل':'')+'.');
+    return;
+  }
+  // 'sync': the file's order; students found in both keep their absences and phone
+  const plan=importPlan(cls,names);
+  if(!plan.missing.length){ importApplySync(currentClass,names,true); return; }
+  const list=plan.missing.slice(0,12).map(i=>cls.names[i]).join('، ')+(plan.missing.length>12?'…':'');
+  const lines=['سيُحتفظ بغياب وهواتف '+plan.match.filter(j=>j>=0).length+' تلميذا، وسيُضاف '+plan.match.filter(j=>j<0).length+' تلميذا جديدا.'];
+  if(plan.fuzzy.length) lines.push('أسماء متشابهة اعتُبرت نفس التلميذ: '+plan.fuzzy.slice(0,6).map(f=>f[0]+' ← '+f[1]).join('؛ ')+(plan.fuzzy.length>6?'…':''));
+  lines.push('موجودون في اللائحة الحالية وغير موجودين في الملف ('+plan.missing.length+'): '+list);
+  showModal(lines.join('\n'),[
+    {label:'حذف غير الموجودين',className:'btn danger',onClick:()=>importApplySync(cn,names,false)},
+    {label:'إبقاؤهم في آخر اللائحة',className:'btn',onClick:()=>importApplySync(cn,names,true)},
+    {label:'إلغاء',className:'btn ghost',onClick:null}
+  ]);
 }
 
 // ---- a period that has not started yet cannot be marked absent ----
@@ -3018,6 +3091,62 @@ async function toggleOtherWeek(){
   if(!a) return showAlert('لا يوجد أسبوع سابق في سجل الإحصائيات.');
   if(a.old) return showAlert('الأسبوع السابق مؤرشف قبل إضافة التفاصيل، فلا يمكن إعادة عرضه للتعديل. ابتداءً من الأسبوع القادم سيتوفر الرجوع كاملا.');
   swap(a,'سيُعرض الأسبوع الماضي ('+a.weekFrom+') من سجل الإحصائيات: يظهر فيه التلاميذ الذين سُجّل غيابهم (أسماء المواد والأساتذة تبقى كما هي في الجدول). صحّحوا ما يلزم ثم عودوا إلى الأسبوع الحالي.\n\nالمتابعة؟');
+}
+
+// ---- automatic snapshots of the sheet (admin): see api/backups.js ---------------------------
+function backupsClose(){ document.getElementById('backupsOverlay').style.display='none'; }
+async function backupsApi(body){
+  const r=await fetch('/api/backups',body?{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify(body)}:{headers:authHeaders()});
+  if(r.status===401){ onAuthRejected(); return null; }
+  let d={}; try{ d=await r.json(); }catch(e){}
+  if(!r.ok) throw new Error(d.message||'error');
+  return d;
+}
+function backupReason(r){ return r==='loss'?'قبل حفظ أضاع بيانات':r==='manual'?'نسخة يدوية':'نسخة دورية'; }
+async function backupsDialog(){
+  if(!canWrite) return;
+  const body=document.getElementById('backupsBody');
+  body.textContent='جارٍ التحميل…';
+  document.getElementById('backupsOverlay').style.display='flex';
+  let d=null; try{ d=await backupsApi(); }catch(e){}
+  if(!d){ body.textContent='تعذر تحميل النسخ، تحقّقوا من الاتصال وأعيدوا المحاولة.'; return; }
+  body.innerHTML='';
+  const cur=document.createElement('div'); cur.className='sub'; cur.style.marginBottom='8px';
+  cur.textContent='الورقة الآن: '+d.now.students+' تلميذا، '+d.now.absences+' غيابا، '+d.now.phones+' هاتفا.';
+  body.appendChild(cur);
+  if(!d.backups.length){ const e=document.createElement('div'); e.className='sub'; e.textContent='لا توجد نسخ بعد. ستُحفظ أول نسخة تلقائيا عند أول حفظ لاحق.'; body.appendChild(e); return; }
+  d.backups.forEach(b=>{
+    const row=document.createElement('div');
+    row.style.cssText='padding:8px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px';
+    const t=document.createElement('div'); t.style.cssText='font-size:13px;font-weight:600';
+    const when=new Date(b.ts); t.textContent=when.toLocaleDateString('en-GB')+' '+when.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})+' — '+backupReason(b.reason);
+    const i=document.createElement('div'); i.className='sub'; i.textContent=b.students+' تلميذا، '+b.absences+' غيابا، '+b.phones+' هاتفا'+(b.weekFrom?' — أسبوع '+b.weekFrom:'');
+    const act=document.createElement('div'); act.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+    const mk=(label,cls,mode)=>{ const bt=document.createElement('button'); bt.type='button'; bt.className=cls; bt.textContent=label; bt.onclick=()=>backupRestore(b,mode); act.appendChild(bt); };
+    mk('استرجاع جزئي (الغياب والهواتف)','btn','merge');
+    mk('استرجاع كامل','btn danger','full');
+    row.appendChild(t); row.appendChild(i); row.appendChild(act); body.appendChild(row);
+  });
+}
+async function backupNow(){
+  const bt=document.getElementById('backupNowBtn'); bt.disabled=true;
+  try{ await backupsApi({action:'snapshot'}); }catch(e){ showAlert('تعذر حفظ النسخة، أعيدوا المحاولة.'); }
+  bt.disabled=false; backupsDialog();
+}
+function backupRestore(b,mode){
+  const full=mode==='full';
+  showModal(full
+    ? 'سيُعاد الجدول كله كما كان في هذه النسخة ('+b.students+' تلميذا، '+b.absences+' غيابا)، وتضيع التعديلات التي أُجريت بعدها. تُحفظ نسخة من الحالة الحالية قبل ذلك. المتابعة؟'
+    : 'سيستعيد تلاميذ اللائحة الحالية غيابهم (إن كان الأسبوع نفسه) وهواتفهم من هذه النسخة ('+b.absences+' غيابا، '+b.phones+' هاتفا)، دون المساس بغير ذلك. المتابعة؟',[
+    {label:full?'نعم، استرجاع كامل':'نعم، استرجاع جزئي',className:full?'btn danger':'btn',onClick:async()=>{
+      let d=null;
+      try{ d=await backupsApi({action:'restore',ts:b.ts,mode}); }catch(e){ showAlert(e.message&&e.message!=='error'?e.message:'تعذر الاسترجاع، أعيدوا المحاولة.'); return; }
+      if(!d) return;
+      const msg=d.mode==='full'?'تمّ استرجاع الورقة كاملة.':'تمّ استرجاع '+(d.absencesBack||0)+' غيابا و'+(d.phonesBack||0)+' هاتفا لتلاميذ اللائحة الحالية.';
+      showModal(msg,[{label:'حسنًا',className:'btn',onClick:()=>{ location.reload(); }}]);
+    }},
+    {label:'إلغاء',className:'btn ghost',onClick:null}
+  ]);
 }
 
 // ---- approving viewer accounts (admin) ---------------------------------------

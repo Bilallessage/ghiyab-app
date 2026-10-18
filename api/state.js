@@ -6,6 +6,7 @@
 const L = require('./_lib');
 const { buildSeedState } = require('./_seed');
 const { archiveWeek } = require('./_stats');
+const B = require('./_backup');
 
 const STATE_KEY = L.PREFIX + ':state';
 
@@ -51,7 +52,11 @@ module.exports = async function handler(req, res) {
       const data = L.parseBody(req);
       if (!looksLikeState(data)) throw new Error('invalid body');
       // same mutex as /api/mark, so a teacher's single-cell write is not lost in between
-      await L.withLock('state', () => redis.set(STATE_KEY, data));
+      await L.withLock('state', async () => {
+        // a save that loses a lot at once (replaced list, bulk delete, new week...) first keeps a snapshot of what was stored
+        try { await B.maybeSnapshot(redis, L.PREFIX, await redis.get(STATE_KEY), data); } catch (e) { /* never block saving */ }
+        await redis.set(STATE_KEY, data);
+      });
       // Keep a summary of this week for the statistics page. Never let a
       // problem here block saving the sheet itself.
       try { await archiveWeek(redis, L.PREFIX, data); } catch (e) { /* ignore */ }
