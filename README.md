@@ -291,4 +291,4 @@ https://ghiyab-app-xxxx.vercel.app
 قائمة `state.breaks` (`from` / `to` / `label`، والافتراضي 19–23 أكتوبر 2026) تحدّد أسابيع مقفلة: تُعرض فيها كتل «عطلة بينية» بدل الخانات ولا تدخل الإحصائيات (`DEFAULT_BREAKS` في `index.html` و`api/_stats.js`).
 
 ## سجل التطوير
-`docs/app-journal.pdf` يلخّص مراحل بناء التطبيق وتطويره. مصدره `docs/journal.json`، ويُولَّد بالأمر `node docs/build-journal.js` (يتطلب playwright)، ويُحيَّن مع كل إضافة جديدة.
+`docs/app-journal.pdf` يلخّص مراحل بناء التطبيق وتطويره (وله نسختان: بالفرنسية `docs/app-journal-fr.pdf` وبالإنجليزية `docs/app-journal-en.pdf`، من ترجمتي `docs/journal.fr.json` و`docs/journal.en.json`). مصدره `docs/journal.json`، ويُولَّد بالأمر `node docs/build-journal.js` (يتطلب playwright)، ويُحيَّن مع كل إضافة جديدة.

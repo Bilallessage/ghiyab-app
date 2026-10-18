@@ -1,0 +1,283 @@
+{
+  "ui": {
+    "lang": "en",
+    "dir": "ltr",
+    "file": "app-journal-en.pdf",
+    "badge": "A",
+    "phasesStat": "development phases",
+    "commitsStat": "published changes",
+    "linesStat": "lines in the main page",
+    "filesStat": "files in the project",
+    "fromTo": "From {from} to {to}",
+    "updated": "This file last updated: {today}",
+    "aboutH": "About the app",
+    "stackH": "Technical architecture",
+    "stackPart": "Part",
+    "stackDesc": "Description",
+    "timelineH": "Timeline",
+    "dateCol": "Date",
+    "phaseCol": "Phase",
+    "detailsH": "Development phases in detail",
+    "request": "Request:",
+    "tech": "Technical notes:",
+    "methodH": "Working method",
+    "openH": "Still open",
+    "appendixH": "Appendix: change log",
+    "gitHash": "Hash",
+    "gitDate": "Date",
+    "gitChange": "Change",
+    "generated": "This file is generated automatically by node docs/build-journal.js from docs/journal.json, its translations and the git log.",
+    "footer": "Development journal of “{title}” — page {page} / {pages}",
+    "months": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    "dateFmt": "{m} {d}, {y}"
+  },
+  "title": "Student Absence Tracker",
+  "subtitle": "Journal of how the app was built and developed",
+  "intro": [
+    "An Arabic (right-to-left) web app for recording student absences period by period on a weekly sheet, shared live by the school's offices, with statistics, notifications to parents, a make-up list and a French version.",
+    "It was built over successive conversations with the person in charge of the app: they ask for an addition or a change, it is implemented, tested and published to both sites, then the result is reviewed and a new improvement is requested. This file tells those phases in chronological order."
+  ],
+  "stack": [
+    ["Front end", "A single HTML file with plain JavaScript (no framework), an fr.js file for instant French translation, and sw.js so the page works offline"],
+    ["Server", "Vercel functions in the api folder (accounts, saving the sheet, statistics history, school-year archive)"],
+    ["Storage", "Upstash Redis, with a KEY_PREFIX key prefix that isolates each school's data"],
+    ["Deployment", "Two Vercel projects from the same repository (Al-Mothabara Private Institution, and Al-Mothabara Private Primary School), deployed automatically on every push to main"],
+    ["Testing", "Dozens of automated Playwright browser tests (recording absences, printing, permissions, weeks, offline work, statistics, import…) run before every release"]
+  ],
+  "phases": [
+    {
+      "title": "Foundation: the shared absence sheet",
+      "goal": "A weekly sheet where every office records student absences and all other offices see them instantly, without a computer acting as a server.",
+      "done": [
+        "Weekly table: five days × morning and afternoon periods, a tab per class, and a student list with the parent's phone number.",
+        "Columns for subject and teacher, and totals of absence hours (per period, per day, per week).",
+        "Parent notification through a ready-made WhatsApp message, and printing of the class sheet with the school header and logo.",
+        "Import of a student list from an Excel file (choosing the names column and the header row from a preview).",
+        "Shared storage on Vercel and Upstash Redis with periodic synchronisation between offices, protected by a single password."
+      ],
+      "tech": "First commit: index.html (about 940 lines), api/state.js and package.json."
+    },
+    {
+      "title": "Accounts and permissions",
+      "goal": "A single administrator who edits, and view-only accounts that browse without changing anything, instead of one shared password.",
+      "done": [
+        "Login with email and password; the administrator is the email set in the server settings and cannot be registered through the public form.",
+        "View-only accounts are read-only: writing is refused by the server itself (403) however the buttons are shown in the browser."
+      ],
+      "tech": "Signed sessions (HMAC-SHA256) valid for 30 days, and passwords stored as salted scrypt hashes. New files: api/auth.js, api/_lib.js and api/_seed.js."
+    },
+    {
+      "title": "Several schools, first statistics, a logo per school",
+      "goal": "Use the same code for more than one school with separate data, and see absence figures instead of just the table.",
+      "done": [
+        "The KEY_PREFIX, INSTITUTION_NAME and SEED_BLANK variables: each Vercel project gets its own data, accounts and name.",
+        "Statistics page: total absence hours, number of absent students and their rate by day, week and month, per class or level, with printing.",
+        "Weekly archive: on every save a summary of the week is stored on the server (api/history.js), so past weeks stay available and the sheet itself does not grow.",
+        "A logo specific to each school (LOGO_FILE) with a layout for wide logos."
+      ],
+      "tech": "api/_stats.js summarises the week and derives the level from the class name (1AIPC-2 → 1AIPC)."
+    },
+    {
+      "title": "Deeper statistics and confirmation before recording",
+      "goal": "Richer reports for the administration, and protecting the sheet from a wrong click.",
+      "done": [
+        "A per-student view, class and level filters, and charts that are included when printing.",
+        "Export of charts as PNG images and of the table to Excel.",
+        "Every recording or deletion of an absence asks for confirmation that names the student, the class and the period."
+      ],
+      "tech": "About 290 lines for the statistics, and a change to how clicking a cell behaves."
+    },
+    {
+      "title": "Semi-automatic notifications to parents",
+      "goal": "Inform parents of absences without anyone counting hours by hand.",
+      "done": [
+        "One hour of absence → a notice to the parent; three hours → a summons to come to school.",
+        "The count is cumulative over the month (archived weeks plus the current sheet), and what was already sent is remembered so it is not repeated.",
+        "The message is prepared as ready text in WhatsApp and the administrator only has to press “Send”."
+      ],
+      "tech": "Fully automatic sending needs a paid service provider, so WhatsApp with one click by the administrator was chosen."
+    },
+    {
+      "title": "Recording and correction safeguards",
+      "goal": "Prevent common mistakes and correct what was recorded by error.",
+      "done": [
+        "An absence cannot be recorded for a period whose time has not come yet, and upcoming cells look different.",
+        "A button to go back to the previous week to correct a mistaken absence; on save, that week's summary in the statistics is updated automatically.",
+        "The days and periods rows stay visible while scrolling the student list, and are repeated at the bottom of the table."
+      ],
+      "tech": "The finished week is kept in full (absences, subjects and teachers) in state.other so it comes back exactly as it was."
+    },
+    {
+      "title": "Number of periods per school timetable",
+      "goal": "Fit the table to schools that differ in how many periods they have.",
+      "done": [
+        "Add or remove a period in the morning and in the afternoon; subjects, teachers, absences and period times are realigned so nothing slips into a wrong period.",
+        "Archived weeks keep their own layout, so their figures stay correct."
+      ],
+      "tech": "state.pc = [morning periods, afternoon periods], stored with every weekly summary."
+    },
+    {
+      "title": "The big day: logo, approvals, French, colours",
+      "goal": "Let the school manage itself and extend use to French-speaking users.",
+      "done": [
+        "The administrator changes the school logo from the app; it is stored on the server and shown on every device.",
+        "New view-only accounts wait for the administrator's approval (the “Approve a new account” button).",
+        "The French version: language switching within the same page and left-to-right direction, covering WhatsApp messages, printing, charts and Excel (the fr.js file).",
+        "The interface is named “Student Absence Tracker”, and so is the browser tab.",
+        "A thick separator between morning and afternoon and after each day in the table and in print, and a colour layer (day colours, coloured buttons and the week bar).",
+        "Buttons rearranged: the tabs row below the buttons, and list import next to “Add a student”."
+      ],
+      "tech": "fr.js is a translator that runs at runtime: a dictionary for fixed phrases and patterns for sentences with numbers, plus a page observer that translates whatever is added to it."
+    },
+    {
+      "title": "Make-up list and hardening “Add a student”",
+      "goal": "Let the support team schedule make-up sessions, and deal with a complaint about the “Add a student” button.",
+      "done": [
+        "“Make-up list”: absent students and the subjects they missed (from the weekly archive), with Excel export.",
+        "Telling parents the date, time and place of the make-up session through WhatsApp, which also works for view-only accounts.",
+        "“Add a student” button: the cursor stays in the name field, a warning for an empty name, readiness for the next name, and preventing local storage or an old poll from cancelling the save."
+      ],
+      "tech": "The fault could not be reproduced on our side, so a preventive hardening was added, then the user confirmed that everything works."
+    },
+    {
+      "title": "Notifications restricted to the administrator",
+      "goal": "View-only accounts must not send absence notices or summonses.",
+      "done": [
+        "The automatic-notice and summons panels and their send buttons are shown to the administrator only.",
+        "A clearer frame around the new student's name field."
+      ],
+      "tech": "Make-up session notices remain available to view-only accounts, as requested earlier."
+    },
+    {
+      "title": "Working offline and the week buttons",
+      "goal": "Keep recording absences when the network drops, and simplify moving between weeks.",
+      "done": [
+        "Unsent edits are kept on the device and sent automatically when the connection returns; the page opens without internet, with a bar showing the status and a warning window if another administrator edited in the meantime.",
+        "The week buttons sit under the two date fields and are named “Previous” and “Next”, and the “Current week” button comes before the date on its row."
+      ],
+      "tech": "A copy of the sheet in localStorage with “unsent” and “copy base” markers; sw.js caches only the page shell and never caches /api. A test showed that edits were being erased when the connection returned, so the design was corrected."
+    },
+    {
+      "title": "Timing per class, header order and the school year",
+      "goal": "Finer detail per class, then a whole school year that can be archived.",
+      "done": [
+        "Period times per class, and a class without settings follows the default times.",
+        "Header order: “Logo” before “Current week”, and “Log out” at the end of the first row.",
+        "The school year appears at the top of the page (inferred from the date or edited by the administrator).",
+        "“Archive the season” moves all weeks' absences into the season archive and starts the statistics from zero in the next season, keeping the lists and subjects.",
+        "A “Season” selector in the statistics to browse archived seasons (read, print and export), and deleting them is for the administrator.",
+        "The “Archive the season” button sits under the table next to “Add a student”."
+      ],
+      "tech": "api/season.js: each week is stored in its own field in Redis, and archiving a season twice is prevented. Two corrections for our misunderstanding of two requests: the “Change season” button was meant to name the season, not to archive it."
+    },
+    {
+      "title": "Importing the teaching organisation from Excel",
+      "goal": "Stop typing the subject and teacher name by hand for each period of each class.",
+      "done": [
+        "The “Import teaching organisation” button reads the “teaching organisation” file: teacher blocks (code → teacher + subject), the classes table and the “timetable for class” sheets.",
+        "A window decides, for each class in the file, which class it applies to (match by name, create a new class, or ignore).",
+        "Spelling mistakes are corrected from the class table, and names are cleaned of elongation characters and repeated spaces.",
+        "Student lists and absences are not changed."
+      ],
+      "tech": "Tried on the real file: 6 classes, 15 teachers and 28 periods per class, using a substitute Excel reader in the test because downloading the real reader is blocked in the development environment."
+    },
+    {
+      "title": "Absence sheet: pinned columns, bottom rows, the bar and dragging the table",
+      "goal": "The phone column disappeared when moving between days of the week, unlike the names column. Then a request to move the table left and right by long-click and drag. Then the “Add a student”, “Import list from Excel” and “Archive the season” buttons were to stay visible while the table moves, with the archive button at the far left of the row. Then the “absence count per period” and “days of the week and periods” rows below the list were to stay visible too. Finally the “subjects” and “teachers” row was to be pinned as well.",
+      "done": [
+        "The “Parent's phone” column stays visible next to the names column while the sheet scrolls horizontally between days.",
+        "The two column headings (“Full name” and “Parent's phone”) stay visible as well.",
+        "Moving the table with the mouse: a long left-click then drag left or right (and up/down), with the cursor turning into a grabbing hand.",
+        "Dragging never records an absence by mistake; a normal click opens the confirmation window as usual, and typing in the phone fields and the buttons is unaffected.",
+        "The add bar (new student's name + the three buttons) is now fixed at the bottom of the table and stays visible however the table is moved sideways or the list scrolls down.",
+        "The “Archive the season” button is at the far left of the row, and the bar wraps onto two lines on narrow screens.",
+        "The “absence count per period” row and the “days of the week and periods” rows below the list are now pinned directly above the add bar, and stay visible while moving around the table or the names and phones list.",
+        "The subjects and teachers row is now pinned under the days and periods rows at the top of the table while going down the list."
+      ],
+      "tech": "position:sticky for the phone column with an offset equal to the names column width, measured after every table render (the --namew variable), so it is correct with long names. Dragging: mousedown, mousemove and mouseup events with a 5-pixel threshold, and the click following a drag is cancelled (touch is unaffected since it already scrolls). The bar sits inside a wide wrapper with position:sticky (bottom and right) whose width equals the visible area (the --hostw variable). The heights of the pinned rows are measured after every render (the --b0, --b1 and --b2 variables) so they stack from the bottom. The three top headings stack by measuring their heights (--hr1 and --hr12), and the pinned label cells cover only the name and phone columns so they do not hide periods on narrow screens."
+    },
+    {
+      "title": "Justification inside the absence cell and its breakdown in the statistics",
+      "goal": "A “justified or unjustified” choice is more useful if added in the absence-recording cell itself, next to “A”. (It was first tried as a per-student column before the phone, then the column was removed and this solution adopted.) Then a breakdown of justified and unjustified absences in the statistics was requested.",
+      "done": [
+        "Clicking an empty cell makes the confirmation window ask: “Record unjustified absence” or “Record justified absence”.",
+        "An unjustified absence shows a red “A” as before, a justified one shows “A” with a small “J” in green, and a tooltip explains the state on mouse hover.",
+        "Clicking a recorded absence lets you delete it or switch it between justified and unjustified without notifying the parent again.",
+        "A justified absence counts in the counters and statistics like any other, and is saved in the weekly history, so it comes back as it was when returning to the previous week.",
+        "In print it appears as a small “J” above the “A”, and in the French version as “absence justifiée / non justifiée”.",
+        "Main cards: under “Absence hours (today)” and “Total absence this week” two badges: how many hours are unjustified and how many justified; and under “Absence by subject / teacher” the phrase “of which n justified”.",
+        "Statistics window (day / week / month, by class / level / student): two new columns “of which justified” and “of which unjustified” after “Absence hours”, in the table, in print and in the Excel export."
+      ],
+      "tech": "The cell value became true (unjustified) or 'j' (justified), so every calculation built on truthiness stays correct. In the server's weekly summary (api/_stats.js) there is a digit per period: 0 present, 1 absent, 2 justified absence. The server's weekly summary carries a colsJ array (justified per period) next to cols; weeks saved before the feature are counted as entirely unjustified."
+    },
+    {
+      "title": "Mid-term holiday week: a locked sheet",
+      "goal": "The week of 19 to 23 October 2026 is a mid-term holiday: it stays locked, nothing can be recorded, and a prominent “Mid-term holiday” text appears across the days of the week.",
+      "done": [
+        "When this week is shown, the absence cells are hidden and replaced by large hatched blocks reading “Mid-term holiday” above each half-day (morning / afternoon); the subject and teacher cells are locked and clicking opens no window.",
+        "The locked week does not enter the statistics (its summary is not saved and it does not count as a recorded day), and moving on from it with “Next” does not replace the real “previous week”.",
+        "Printing shows the same wording instead of the cells; the French version reads “Vacances intermédiaires”.",
+        "Incidental fix: printing a sheet containing a justified absence used to break, and was corrected."
+      ],
+      "tech": "The list of weeks is in state.breaks (from / to / label), with a default value in the interface and in api/_stats.js (summarizeState returns empty for the holiday week). There is no screen yet to edit the list, so adding another holiday is done by editing the data."
+    },
+    {
+      "title": "“Teacher” account records absences at roll call",
+      "goal": "Trial of giving the teacher permission to record absences at roll call at the start of the period, without being able to edit the rest of the sheet.",
+      "done": [
+        "A third role next to administrator and view-only: the administrator turns any approved account into a “teacher” from the accounts window, with an optional teacher name as it appears in the table, and withdraws the permission with one button.",
+        "The teacher sees the sheet read-only, but the absence cells become clickable in today's periods whose time has started: one tap records the absence with no questions, and a tap on a recorded absence asks to confirm deletion. If a name is saved, the teacher is limited to their own periods.",
+        "The teacher interface is simplified for the phone: only the season, the week date, the class tabs bar, the class table with its students' names, an “Add a student” button, the language switch and logout; statistics, printing, make-up, import, approval, parent notifications, phone columns and deletion are hidden; the language and logout buttons are on one line on a phone screen.",
+        "The teacher adds a student by name only through the server (which refuses duplicates and empty names), and cannot delete or edit; parents' phone numbers are never sent to them by the server.",
+        "A justified absence is the administrator's decision alone, so the teacher neither creates nor removes it, and sees no edit buttons or parent notifications.",
+        "The server enforces all of this (today's date in Casablanca time, the period has started, not a holiday week, matching the student's name and place), and saving the whole sheet stays for the administrator only.",
+        "Two simultaneous roll calls by two teachers do not lose one another, because the server locks reading and writing the sheet; this was tested with six parallel requests.",
+        "The French version of all new texts and messages.",
+        "Both cases verified: a teacher account with no saved name records in any period that has started today, and an account with a saved name records only in their own periods. Name matching now tolerates a different order, titles, spellings of alef, ya and ta marbuta, and accented Latin letters, with the same rule on the server and the page.",
+        "When a teacher taps a locked cell a message explains why (weekend, sheet on a past week, another day, period not started, another teacher's period with both names, justified absence), in Arabic and French, instead of leaving the cell silent."
+      ],
+      "tech": "A new endpoint api/mark.js edits a single cell inside the stored sheet (read then write under a Redis SET NX lock). The role is saved in the account record and overrides what is in the signed token (refreshed within a minute). A known limit: if the administrator saves an old sheet at the very same moment it could overwrite a teacher's roll call, so the server uses the same lock and the administrator's page resynchronises on its first poll. api/mark.js adds the addstudent action, api/state.js returns parents' phones empty for a teacher account, and hiding in the interface uses the body.tch class."
+    },
+    {
+      "title": "Importing a list without losing absences, and backups of the sheet",
+      "goal": "Importing a list that was almost the same as the existing one wiped the week's absences and the phone numbers. Needed: that it never happens again, and a way to recover what gets lost.",
+      "done": [
+        "Import now has three buttons: “Update the list keeping absences and phones” (first), “Add”, and “Replace”, which now asks for an explicit confirmation stating how many absences and phones will be erased.",
+        "The update matches names word by word regardless of order and of differences in how alef, ya and ta marbuta are written, and accepts a difference of one or two letters when it is not ambiguous; whoever is in both the file and the list keeps their absences and phone, and the administrator is asked about those not in the file (delete them or keep them). “Add” no longer duplicates an existing name.",
+        "Automatic backups on the server before any save that loses absences, phones or students in one go, and at most every 12 hours, keeping the last 15 copies.",
+        "A “Backups” button for the administrator: list the copies, save one immediately, and restore partially (absences and phones for the students of the current list, matched by name) or fully; every restore first saves a copy so it can be undone.",
+        "Incidental fix: confirmation messages now appear above the import window instead of hiding beneath it.",
+        "The French version of all new texts."
+      ],
+      "tech": "api/_backup.js (snapshot on loss or periodically, the index, restore by matching) and api/backups.js under the same lock used by api/state.js. The snapshot is taken in POST /api/state after reading the stored state. What was lost before this addition has no copy in the app; what may exist in Upstash backups or in the weekly statistics archive (for previous weeks only) remains."
+    },
+    {
+      "title": "Changing the “from” date shows that week's data at once",
+      "goal": "When the week's start date is changed in the “from” field and Enter is pressed, the table's data changes to match the chosen week instead of only relabelling it.",
+      "done": [
+        "If the new date is within the same week (the same Monday) only the label changes and the data stays.",
+        "If it is in another week, the current week is saved first and then the chosen week is shown: in full (absences, subjects and teachers) if it is the other week kept in the sheet, otherwise rebuilt from the statistics history (absent students, subjects and teachers). The week that was displayed stays saved, so typing its date again restores it in full.",
+        "The mid-term holiday week opens directly, locked.",
+        "For a week with no data the administrator is asked to choose: show an empty week at this date, or change the date only while keeping the current data, or cancel (the old date returns). An empty or invalid date restores the previous one.",
+        "An empty future week is not added to the statistics archive (so the statistics do not fill up with empty weeks).",
+        "The French version of the new texts."
+      ],
+      "tech": "jumpToWeek and archivedWeekAt in index.html (using state.other, snapshotWeek, applyWeek and ntLoad), and a guard in archiveWeek in api/_stats.js that skips a week which has not started yet and has no absences. A new Playwright test covers: a previous week, going back, the same week, a week with no data (3 buttons), the holiday week, an empty date, and the server state."
+    }
+  ],
+  "method": [
+    "Every change is built first in a local test copy, and its tests are run together with the old tests before release.",
+    "Permissions never rely on hiding buttons alone: every write is checked by the server.",
+    "The archive does not enlarge the sheet that is polled every second and a half: separate summaries are kept on the server.",
+    "The French translation covers every new text (dictionary + sentence patterns) and is checked by a test.",
+    "When a request is ambiguous (such as where a button goes), the closest understanding is implemented, then corrected according to the user's feedback, and the reading that was understood is stated."
+  ],
+  "open": [
+    "Delete the old Vercel domains by hand (up to the user).",
+    "Try “Archive the season” for the first time at the real end of the season, because clearing absences from the table cannot be undone.",
+    "Try the teaching-organisation import on the live site with the real Excel reader.",
+    "Try the teacher account in a real lesson: is a single tap without confirmation appropriate, and must the account be linked to the teacher's name in every account?",
+    "Try restoring from “Backups” on real data, and enable the daily backup in Upstash if the plan allows it."
+  ],
+  "gitNote": "Commit messages are kept in English as written."
+}

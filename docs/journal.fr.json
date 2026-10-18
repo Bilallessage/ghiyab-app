@@ -1,0 +1,283 @@
+{
+  "ui": {
+    "lang": "fr",
+    "dir": "ltr",
+    "file": "app-journal-fr.pdf",
+    "badge": "A",
+    "phasesStat": "phases de développement",
+    "commitsStat": "modifications publiées",
+    "linesStat": "lignes dans la page principale",
+    "filesStat": "fichiers dans le projet",
+    "fromTo": "Du {from} au {to}",
+    "updated": "Dernière mise à jour de ce fichier : {today}",
+    "aboutH": "Présentation de l’application",
+    "stackH": "Architecture technique",
+    "stackPart": "Partie",
+    "stackDesc": "Description",
+    "timelineH": "Chronologie",
+    "dateCol": "Date",
+    "phaseCol": "Phase",
+    "detailsH": "Les phases de développement en détail",
+    "request": "Demande :",
+    "tech": "Aspects techniques :",
+    "methodH": "Méthode de travail",
+    "openH": "Ce qui reste ouvert",
+    "appendixH": "Annexe : historique des modifications",
+    "gitHash": "Code",
+    "gitDate": "Date",
+    "gitChange": "Modification",
+    "generated": "Ce fichier est généré automatiquement par la commande node docs/build-journal.js à partir de docs/journal.json, de ses traductions et de l’historique git.",
+    "footer": "Journal de développement de « {title} » — page {page} / {pages}",
+    "months": ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+    "dateFmt": "{d} {m} {y}"
+  },
+  "title": "Suivi des absences des élèves",
+  "subtitle": "Journal de la construction et du développement de l’application",
+  "intro": [
+    "Application web arabe (de droite à gauche) pour enregistrer les absences des élèves séance par séance sur une feuille hebdomadaire, partagée en direct par les bureaux de l’établissement, avec des statistiques, des notifications aux parents, une liste de rattrapage et une version française.",
+    "Elle a été construite au fil de conversations successives avec le responsable de l’application : il demande un ajout ou une modification, celui-ci est réalisé, testé et publié sur les deux sites, puis le résultat est examiné et une nouvelle amélioration est demandée. Ce document raconte ces phases dans l’ordre chronologique."
+  ],
+  "stack": [
+    ["Interface", "Un seul fichier HTML en JavaScript pur (sans framework), un fichier fr.js pour la traduction française instantanée, et sw.js pour que la page fonctionne hors connexion"],
+    ["Serveur", "Fonctions Vercel dans le dossier api (comptes, enregistrement de la feuille, historique des statistiques, archive des années scolaires)"],
+    ["Stockage", "Upstash Redis, avec un préfixe de clés KEY_PREFIX qui isole les données de chaque établissement"],
+    ["Déploiement", "Deux projets Vercel à partir du même dépôt (Établissement privé Al-Mothabara, et École privée Al-Mothabara – primaire), déployés automatiquement à chaque envoi vers main"],
+    ["Tests", "Des dizaines de tests automatiques avec le navigateur Playwright (saisie des absences, impression, droits, semaines, travail hors connexion, statistiques, import…) exécutés avant chaque publication"]
+  ],
+  "phases": [
+    {
+      "title": "Fondation : la feuille d’absences partagée",
+      "goal": "Une feuille hebdomadaire où chaque bureau enregistre les absences des élèves et que les autres bureaux voient aussitôt, sans ordinateur faisant office de serveur.",
+      "done": [
+        "Tableau hebdomadaire : cinq jours × séances du matin et du soir, un onglet par classe, et une liste d’élèves avec le téléphone du parent.",
+        "Colonnes pour la matière et l’enseignant, et totaux d’heures d’absence (par séance, par jour, par semaine).",
+        "Notification du parent par un message WhatsApp prêt à envoyer, et impression de la feuille de classe avec l’en-tête et le logo de l’établissement.",
+        "Import d’une liste d’élèves depuis un fichier Excel (choix de la colonne des noms et de la ligne d’en-tête à partir d’un aperçu).",
+        "Enregistrement partagé sur Vercel et Upstash Redis avec synchronisation périodique entre les bureaux, protégé par un mot de passe unique."
+      ],
+      "tech": "Premier dépôt : index.html (environ 940 lignes), api/state.js et package.json."
+    },
+    {
+      "title": "Comptes et droits d’accès",
+      "goal": "Un seul administrateur qui modifie, et des comptes de consultation qui parcourent sans rien changer, au lieu d’un mot de passe unique.",
+      "done": [
+        "Connexion par e-mail et mot de passe ; l’administrateur est l’adresse définie dans la configuration du serveur et ne peut pas s’inscrire par le formulaire public.",
+        "Les comptes de consultation sont en lecture seule : l’écriture est refusée par le serveur lui-même (403), quoi que l’on fasse pour afficher les boutons dans le navigateur."
+      ],
+      "tech": "Sessions signées (HMAC-SHA256) valables 30 jours, et mots de passe stockés sous forme de hachage scrypt salé. Nouveaux fichiers : api/auth.js, api/_lib.js et api/_seed.js."
+    },
+    {
+      "title": "Plusieurs établissements, premières statistiques, un logo par établissement",
+      "goal": "Utiliser le même code pour plusieurs établissements avec des données séparées, et connaître les chiffres des absences au lieu de se contenter du tableau.",
+      "done": [
+        "Les variables KEY_PREFIX, INSTITUTION_NAME et SEED_BLANK : chaque projet Vercel a ses propres données, comptes et nom.",
+        "Page de statistiques : total des heures d’absence, nombre d’élèves absents et leur taux par jour, semaine et mois, par classe ou par niveau, avec impression.",
+        "Archive hebdomadaire : à chaque enregistrement, un résumé de la semaine est conservé sur le serveur (api/history.js), si bien que les semaines passées restent disponibles et que la feuille elle-même ne grossit pas.",
+        "Un logo propre à chaque établissement (LOGO_FILE) avec une mise en page pour les logos larges."
+      ],
+      "tech": "api/_stats.js résume la semaine et déduit le niveau du nom de la classe (1AIPC-2 → 1AIPC)."
+    },
+    {
+      "title": "Statistiques approfondies et confirmation avant saisie",
+      "goal": "Des rapports plus riches pour l’administration, et protéger la feuille d’un clic erroné.",
+      "done": [
+        "Affichage par élève, filtres par classe et par niveau, et graphiques inclus dans l’impression.",
+        "Export des graphiques en images PNG et du tableau vers Excel.",
+        "Chaque enregistrement ou suppression d’absence demande une confirmation qui indique l’élève, la classe et la séance."
+      ],
+      "tech": "Environ 290 lignes pour les statistiques, et modification du comportement du clic sur une cellule."
+    },
+    {
+      "title": "Notifications aux parents semi-automatiques",
+      "goal": "Informer les parents des absences sans que personne ne compte les heures à la main.",
+      "done": [
+        "Une heure d’absence → un avis au parent ; trois heures → une convocation.",
+        "Le calcul est cumulé sur le mois (semaines archivées plus la feuille actuelle), et ce qui a déjà été envoyé est mémorisé pour ne pas être répété.",
+        "Le message est préparé sous forme de texte prêt dans WhatsApp, et l’administrateur n’a plus qu’à appuyer sur « Envoyer »."
+      ],
+      "tech": "L’envoi entièrement automatique nécessite un prestataire payant ; on a donc retenu WhatsApp avec un clic de l’administrateur."
+    },
+    {
+      "title": "Garde-fous de saisie et de correction",
+      "goal": "Empêcher les erreurs courantes et corriger ce qui a été enregistré par erreur.",
+      "done": [
+        "Impossible d’enregistrer une absence pour une séance dont l’heure n’est pas encore venue ; les cellules à venir s’affichent différemment.",
+        "Un bouton pour revenir à la semaine précédente afin de corriger une absence saisie par erreur ; à l’enregistrement, le résumé de cette semaine est mis à jour automatiquement dans les statistiques.",
+        "Les lignes des jours et des séances restent visibles pendant le défilement de la liste des élèves, et se répètent en bas du tableau."
+      ],
+      "tech": "La semaine écoulée est conservée en entier (absences, matières et enseignants) dans state.other pour revenir telle qu’elle était."
+    },
+    {
+      "title": "Nombre de séances selon l’emploi du temps de l’établissement",
+      "goal": "Adapter le tableau aux établissements dont le nombre de séances diffère.",
+      "done": [
+        "Ajout ou suppression d’une séance le matin et le soir ; les matières, enseignants, absences et horaires sont réalignés pour que rien ne glisse vers une mauvaise séance.",
+        "Les semaines archivées gardent leur propre disposition, si bien que leurs chiffres restent justes."
+      ],
+      "tech": "state.pc = [séances du matin, séances du soir], stocké avec chaque résumé de semaine."
+    },
+    {
+      "title": "La grosse journée : logo, approbations, français, couleurs",
+      "goal": "Permettre à l’établissement de se gérer lui-même et étendre l’usage à des utilisateurs francophones.",
+      "done": [
+        "L’administrateur change le logo de l’établissement depuis l’application ; il est stocké sur le serveur et s’affiche sur tous les appareils.",
+        "Les nouveaux comptes de consultation attendent l’approbation de l’administrateur (bouton « Approuver un nouveau compte »).",
+        "La version française : changement de langue dans la même page et sens de lecture de gauche à droite, couvrant les messages WhatsApp, l’impression, les graphiques et Excel (fichier fr.js).",
+        "L’interface s’appelle « Suivi des absences des élèves », de même que l’onglet du navigateur.",
+        "Un séparateur épais entre le matin et le soir et après chaque jour dans le tableau et à l’impression, et une couche de couleurs (couleurs des jours, boutons colorés et barre de la semaine).",
+        "Réorganisation des boutons : la rangée d’onglets sous les boutons, et l’import de liste à côté de « Ajouter un élève »."
+      ],
+      "tech": "fr.js est un traducteur qui fonctionne à l’exécution : un dictionnaire pour les expressions fixes et des motifs pour les phrases contenant des nombres, avec un observateur de page qui traduit ce qui y est ajouté."
+    },
+    {
+      "title": "Liste de rattrapage et renforcement de « Ajouter un élève »",
+      "goal": "Permettre à l’équipe de soutien de programmer les séances de rattrapage, et traiter une plainte concernant le bouton « Ajouter un élève ».",
+      "done": [
+        "« Liste de rattrapage » : les élèves absents et les matières manquées (à partir de l’archive des semaines), avec export Excel.",
+        "Information des parents sur la date, l’heure et le lieu de la séance de rattrapage par WhatsApp, y compris pour les comptes de consultation.",
+        "Bouton « Ajouter un élève » : le curseur reste dans le champ du nom, avertissement si le nom est vide, prêt pour le nom suivant, et empêchement qu’un stockage local ou une ancienne interrogation n’annule l’enregistrement."
+      ],
+      "tech": "La panne n’a pas pu être reproduite chez nous ; un renforcement préventif a donc été ajouté, puis l’utilisateur a confirmé que tout fonctionne."
+    },
+    {
+      "title": "Notifications réservées à l’administrateur",
+      "goal": "Les comptes de consultation ne doivent pas envoyer d’avis d’absence ni de convocations.",
+      "done": [
+        "Les panneaux de notification automatique et de convocation et leurs boutons d’envoi ne s’affichent qu’à l’administrateur.",
+        "Un cadre plus net autour du champ du nom du nouvel élève."
+      ],
+      "tech": "Les avis de séance de rattrapage restent disponibles pour les comptes de consultation, selon une demande antérieure."
+    },
+    {
+      "title": "Travail hors connexion et boutons de semaine",
+      "goal": "Continuer à enregistrer les absences quand le réseau est coupé, et simplifier la navigation entre les semaines.",
+      "done": [
+        "Les modifications non envoyées sont conservées sur l’appareil et envoyées automatiquement au retour de la connexion ; la page s’ouvre sans internet, avec une barre indiquant l’état et une fenêtre d’avertissement si un autre administrateur a modifié entre-temps.",
+        "Les boutons de semaine sont sous les deux champs de date et s’appellent « Précédent » et « Suivant », et le bouton « Semaine en cours » est placé avant la date sur sa ligne."
+      ],
+      "tech": "Copie de la feuille dans localStorage avec les marqueurs « non envoyé » et « base de la copie » ; sw.js ne met en cache que la structure de la page et jamais /api. Un test a révélé que les modifications étaient effacées au retour de la connexion, la conception a donc été corrigée."
+    },
+    {
+      "title": "Horaires par classe, ordre de l’en-tête et année scolaire",
+      "goal": "Un détail plus fin par classe, puis une année scolaire complète pouvant être archivée.",
+      "done": [
+        "Horaires des séances classe par classe ; une classe non réglée suit l’horaire par défaut.",
+        "Ordre de l’en-tête : « Logo » avant « Semaine en cours », et « Déconnexion » en fin de première ligne.",
+        "L’année scolaire apparaît en haut de la page (déduite de la date ou modifiée par l’administrateur).",
+        "« Archiver la saison » transfère les absences de toutes les semaines vers l’archive de la saison et repart de zéro pour les statistiques de la saison suivante, en conservant les listes et les matières.",
+        "Un sélecteur « Saison » dans les statistiques pour parcourir les saisons archivées (lecture, impression et export), leur suppression étant réservée à l’administrateur.",
+        "Le bouton « Archiver la saison » est placé sous le tableau à côté de « Ajouter un élève »."
+      ],
+      "tech": "api/season.js : chaque semaine est conservée dans un champ distinct de Redis, et l’archivage d’une saison deux fois est empêché. Deux corrections dues à une mauvaise compréhension de deux demandes : le bouton « Changer la saison » devait servir à nommer la saison et non à l’archiver."
+    },
+    {
+      "title": "Import de l’organisation pédagogique depuis Excel",
+      "goal": "Ne plus saisir à la main le nom de la matière et de l’enseignant pour chaque séance de chaque classe.",
+      "done": [
+        "Le bouton « Importer l’organisation pédagogique » lit le fichier « organisation pédagogique » : les blocs des enseignants (code → enseignant + matière), le tableau des classes et les feuilles « emploi du temps de la classe ».",
+        "Une fenêtre détermine, pour chaque classe du fichier, la classe à laquelle elle s’applique (correspondance par nom, création d’une nouvelle classe ou omission).",
+        "Correction des fautes d’orthographe à partir du tableau de la classe, et nettoyage des noms (lettres allongées, espaces répétés).",
+        "Les listes d’élèves et les absences ne changent pas."
+      ],
+      "tech": "Essayé sur le fichier réel : 6 classes, 15 enseignants et 28 séances par classe, avec un lecteur Excel de remplacement dans le test car le téléchargement du vrai lecteur est bloqué dans l’environnement de développement."
+    },
+    {
+      "title": "Feuille d’absences : colonnes fixes, lignes du bas, barre et glissement du tableau",
+      "goal": "La colonne du téléphone disparaissait en passant d’un jour à l’autre, contrairement à la colonne des noms. Puis demande de pouvoir déplacer le tableau à droite et à gauche par un clic prolongé et un glissement. Puis les boutons « Ajouter un élève », « Importer une liste depuis Excel » et « Archiver la saison » devaient rester visibles pendant le déplacement du tableau, le bouton d’archivage étant à l’extrême gauche de la ligne. Puis les lignes « nombre d’absences par séance » et « jours de la semaine et séances » sous la liste devaient rester visibles aussi. Enfin la ligne « matières » et « enseignants » devait être fixée également.",
+      "done": [
+        "La colonne « Téléphone du parent » reste visible, collée à la colonne des noms, pendant le défilement horizontal entre les jours.",
+        "Les titres des deux colonnes (« Nom complet » et « Téléphone du parent ») restent visibles eux aussi.",
+        "Déplacement du tableau à la souris : clic gauche prolongé puis glissement à droite ou à gauche (et en haut/en bas), le curseur devenant une main qui saisit.",
+        "Le glissement n’enregistre jamais une absence par erreur ; un clic normal ouvre la fenêtre de confirmation comme d’habitude, et la saisie dans les champs de téléphone et les boutons n’est pas affectée.",
+        "La barre d’ajout (nom du nouvel élève + les trois boutons) est désormais fixée en bas du tableau et reste visible quel que soit le déplacement latéral du tableau ou le défilement de la liste.",
+        "Le bouton « Archiver la saison » est à l’extrême gauche de la ligne, et la barre passe sur deux lignes sur les écrans étroits.",
+        "La ligne « nombre d’absences par séance » et les lignes « jours de la semaine et séances » sous la liste sont désormais fixées juste au-dessus de la barre d’ajout, et restent visibles pendant la navigation dans le tableau ou dans la liste des noms et des téléphones.",
+        "La ligne des matières et des enseignants est désormais fixée sous les lignes des jours et des séances en haut du tableau pendant la descente dans la liste."
+      ],
+      "tech": "position:sticky pour la colonne du téléphone avec un décalage égal à la largeur de la colonne des noms, mesuré après chaque affichage du tableau (variable --namew), donc correct avec des noms longs. Glissement : événements mousedown, mousemove et mouseup avec un seuil de 5 pixels, et le clic qui suit un glissement est annulé (sans effet au toucher, qui défile déjà). La barre est dans une enveloppe large en position:sticky (bas et droite) dont la largeur égale celle de la zone visible (variable --hostw). Les hauteurs des lignes fixes sont mesurées après chaque affichage (variables --b0, --b1 et --b2) pour s’empiler depuis le bas. Les trois en-têtes du haut s’empilent en mesurant leurs hauteurs (--hr1 et --hr12), et les cellules d’étiquettes fixes ne couvrent que les colonnes du nom et du téléphone afin de ne pas masquer les séances sur les écrans étroits."
+    },
+    {
+      "title": "Justification dans la case d’absence et son détail dans les statistiques",
+      "goal": "Un choix « justifiée ou non justifiée » est plus utile s’il est ajouté dans la case d’enregistrement de l’absence elle-même, à côté de « A ». (Il a d’abord été essayé comme colonne par élève avant le téléphone, puis la colonne a été supprimée et cette solution retenue.) Puis le détail des absences justifiées et non justifiées dans les statistiques a été demandé.",
+      "done": [
+        "Un clic sur une case vide fait demander par la fenêtre de confirmation : « Enregistrer une absence non justifiée » ou « Enregistrer une absence justifiée ».",
+        "L’absence non justifiée affiche un « A » rouge comme avant, la justifiée un « A » avec un petit « J » vert, et une info-bulle explique l’état au survol de la souris.",
+        "Un clic sur une absence enregistrée permet de la supprimer ou de la basculer entre justifiée et non justifiée sans renotifier le parent.",
+        "L’absence justifiée compte dans les compteurs et les statistiques comme les autres, et est conservée dans l’historique des semaines, ce qui la restitue telle quelle au retour à la semaine précédente.",
+        "À l’impression, elle apparaît sous la forme d’un petit « J » au-dessus du « A », et dans la version française « absence justifiée / non justifiée ».",
+        "Cartes principales : sous « Heures d’absence (aujourd’hui) » et « Total des absences de la semaine » deux pastilles : combien d’heures non justifiées et combien justifiées ; et sous « Absences par matière / enseignant » la mention « dont n justifiées ».",
+        "Fenêtre des statistiques (jour / semaine / mois, par classe / niveau / élève) : deux nouvelles colonnes « dont justifiées » et « dont non justifiées » après « Heures d’absence », dans le tableau, à l’impression et dans l’export Excel."
+      ],
+      "tech": "La valeur de la case est devenue true (non justifiée) ou 'j' (justifiée), si bien que tous les calculs fondés sur vrai/faux restent corrects. Dans le résumé hebdomadaire du serveur (api/_stats.js) il y a un chiffre par séance : 0 présent, 1 absent, 2 absence justifiée. Le résumé hebdomadaire du serveur porte un tableau colsJ (justifiées par séance) à côté de cols ; les semaines enregistrées avant cette fonction sont comptées entièrement comme non justifiées."
+    },
+    {
+      "title": "Semaine de vacances intermédiaires : feuille verrouillée",
+      "goal": "La semaine du 19 au 23 octobre 2026 est une période de vacances intermédiaires : elle reste verrouillée, rien n’y est enregistré, et un texte bien visible « Vacances intermédiaires » s’étend sur les jours de la semaine.",
+      "done": [
+        "À l’affichage de cette semaine, les cases d’absence sont masquées et remplacées par de grands blocs hachurés portant la mention « Vacances intermédiaires » au-dessus de chaque demi-journée (matin / soir) ; les cases matière et enseignant sont verrouillées et un clic n’ouvre aucune fenêtre.",
+        "La semaine verrouillée n’entre pas dans les statistiques (son résumé n’est pas enregistré et elle ne compte pas comme jour enregistré), et le passage à la suivante avec « Suivant » ne remplace pas la vraie « semaine précédente ».",
+        "L’impression affiche la même mention à la place des cases ; la version française indique « Vacances intermédiaires ».",
+        "Correction accessoire : l’impression d’une feuille contenant une absence justifiée se bloquait, et a été corrigée."
+      ],
+      "tech": "La liste des semaines est dans state.breaks (du / au / libellé), avec une valeur par défaut dans l’interface et dans api/_stats.js (summarizeState renvoie vide pour la semaine de vacances). Il n’existe pas encore d’écran pour modifier la liste ; ajouter une autre période de vacances se fait donc en modifiant les données."
+    },
+    {
+      "title": "Compte « enseignant » qui enregistre les absences à l’appel",
+      "goal": "Essai d’accorder à l’enseignant le droit d’enregistrer les absences lors de l’appel au début de la séance, sans pouvoir modifier le reste de la feuille.",
+      "done": [
+        "Un troisième rôle à côté de l’administrateur et de la consultation : l’administrateur transforme tout compte approuvé en « enseignant » depuis la fenêtre des comptes, avec un nom d’enseignant facultatif tel qu’il figure dans le tableau, et retire l’autorisation d’un seul bouton.",
+        "L’enseignant voit la feuille en lecture seule, mais les cases d’absence deviennent cliquables pour les séances du jour dont l’heure a commencé : un seul appui enregistre l’absence sans question, et un appui sur une absence enregistrée demande de confirmer la suppression. Si son nom est enregistré, il est limité à ses propres séances.",
+        "L’interface de l’enseignant est simplifiée pour le téléphone : seulement la saison, la date de la semaine, la barre des classes, le tableau de la classe avec les noms de ses élèves, un bouton « Ajouter un élève », le changement de langue et la déconnexion ; les statistiques, l’impression, le rattrapage, l’import, l’approbation, les notifications aux parents, les colonnes de téléphone et la suppression sont masqués ; les boutons de langue et de déconnexion sont sur une seule ligne sur un écran de téléphone.",
+        "L’enseignant ajoute un élève par son nom seulement via le serveur (qui refuse les doublons et les noms vides), et ne peut ni supprimer ni modifier ; les numéros de téléphone des parents ne lui parviennent jamais depuis le serveur.",
+        "L’absence justifiée relève de la seule décision de l’administrateur : l’enseignant ne la crée ni ne la retire, et ne voit ni les boutons de modification ni les notifications aux parents.",
+        "Le serveur impose tout cela (date du jour à l’heure de Casablanca, séance commencée, pas une semaine de vacances, correspondance du nom et de l’emplacement de l’élève), et l’enregistrement de la feuille entière reste réservé à l’administrateur.",
+        "Deux appels simultanés de deux enseignants ne se perdent pas l’un l’autre, car le serveur verrouille la lecture et l’écriture de la feuille ; cela a été testé avec six requêtes parallèles.",
+        "La version française de tous les nouveaux textes et messages.",
+        "Vérification des deux cas : un compte enseignant sans nom enregistré enregistre dans n’importe quelle séance du jour déjà commencée, et un compte avec nom enregistré n’enregistre que dans ses séances. La correspondance des noms tolère désormais un ordre différent, les titres, les graphies de l’alef, du ya et du ta marbouta, et les lettres latines accentuées, avec la même règle sur le serveur et sur la page.",
+        "Quand l’enseignant appuie sur une case verrouillée, un message en explique la raison (week-end, feuille sur une semaine passée, autre jour, séance non commencée, séance d’un autre enseignant avec les deux noms, absence justifiée), en arabe et en français, au lieu de laisser la case muette."
+      ],
+      "tech": "Un nouveau point d’accès api/mark.js modifie une seule case dans la feuille stockée (lecture puis écriture sous verrou SET NX de Redis). Le rôle est enregistré dans la fiche du compte et l’emporte sur celui du jeton signé (actualisé en une minute). Limite connue : si l’administrateur enregistre une ancienne feuille au même instant, il pourrait écraser l’appel d’un enseignant ; le serveur utilise donc le même verrou et la page de l’administrateur se resynchronise à sa première interrogation. api/mark.js ajoute l’action addstudent, api/state.js renvoie les téléphones des parents vides pour un compte enseignant, et le masquage dans l’interface utilise la classe body.tch."
+    },
+    {
+      "title": "Import de liste sans perte des absences, et sauvegardes de la feuille",
+      "goal": "L’import d’une liste presque identique à celle existante a effacé les absences de la semaine et les numéros de téléphone. Il faut que cela ne se reproduise pas, et disposer d’un moyen de récupérer ce qui se perd.",
+      "done": [
+        "L’import propose désormais trois boutons : « Mettre à jour la liste en gardant les absences et les téléphones » (le premier), « Ajouter », et « Remplacer » qui demande maintenant une confirmation explicite indiquant le nombre d’absences et de téléphones qui seront effacés.",
+        "La mise à jour fait correspondre les noms mot par mot sans tenir compte de l’ordre ni des différences d’écriture de l’alef, du ya et du ta marbouta, et accepte une différence d’une ou deux lettres si elle n’est pas ambiguë ; celui qui figure dans le fichier et dans la liste garde son absence et son téléphone, et l’administrateur est interrogé sur ceux qui ne sont pas dans le fichier (les supprimer ou les garder). « Ajouter » ne duplique plus un nom existant.",
+        "Sauvegardes automatiques sur le serveur avant tout enregistrement qui fait perdre d’un coup des absences, des téléphones ou des élèves, et au plus toutes les 12 heures, en gardant les 15 dernières copies.",
+        "Un bouton « Sauvegardes » pour l’administrateur : afficher les copies, en enregistrer une aussitôt, et restaurer partiellement (absences et téléphones des élèves de la liste actuelle, par correspondance de nom) ou entièrement ; chaque restauration enregistre d’abord une copie pour pouvoir l’annuler.",
+        "Correction accessoire : les messages de confirmation s’affichent désormais au-dessus de la fenêtre d’import au lieu de se cacher dessous.",
+        "La version française de tous les nouveaux textes."
+      ],
+      "tech": "api/_backup.js (instantané en cas de perte ou périodique, l’index, la restauration par correspondance) et api/backups.js sous le même verrou que celui utilisé par api/state.js. L’instantané est pris dans POST /api/state après lecture de l’état stocké. Ce qui a été perdu avant cet ajout n’a pas de copie dans l’application ; il reste ce qui peut exister dans les sauvegardes d’Upstash ou dans l’archive hebdomadaire des statistiques (pour les semaines précédentes seulement)."
+    },
+    {
+      "title": "Changer la date « du » affiche aussitôt les données de cette semaine",
+      "goal": "Quand on change la date de début de semaine dans le champ « du » et qu’on appuie sur Entrée, les données du tableau changent pour correspondre à la semaine choisie, au lieu de se contenter de changer l’étiquette.",
+      "done": [
+        "Si la nouvelle date est dans la même semaine (le même lundi), seule l’étiquette change et les données restent.",
+        "Si elle est dans une autre semaine, la semaine actuelle est d’abord enregistrée, puis la semaine choisie est affichée : en entier (absences, matières et enseignants) s’il s’agit de l’autre semaine conservée dans la feuille, sinon reconstruite à partir de l’historique des statistiques (élèves absents, matières et enseignants). La semaine qui était affichée reste conservée, si bien qu’en saisissant à nouveau sa date on la retrouve en entier.",
+        "La semaine de vacances intermédiaires s’ouvre directement, verrouillée.",
+        "Pour une semaine sans données, l’administrateur doit choisir : afficher une semaine vide à cette date, ou changer seulement la date en gardant les données actuelles, ou annuler (l’ancienne date revient). Une date vide ou invalide rétablit la précédente.",
+        "Une semaine future vide n’est pas ajoutée à l’archive des statistiques (les statistiques ne se remplissent pas de semaines vides).",
+        "La version française des nouveaux textes."
+      ],
+      "tech": "jumpToWeek et archivedWeekAt dans index.html (utilisant state.other, snapshotWeek, applyWeek et ntLoad), et une garde dans archiveWeek de api/_stats.js qui ignore une semaine pas encore commencée et sans absence. Un nouveau test Playwright couvre : une semaine précédente, le retour, la même semaine, une semaine sans données (3 boutons), la semaine de vacances, une date vide, et l’état du serveur."
+    }
+  ],
+  "method": [
+    "Chaque modification est d’abord construite dans une copie de test locale, et ses tests sont exécutés avec les anciens tests avant la publication.",
+    "Les droits ne reposent jamais sur le seul masquage des boutons : chaque écriture est vérifiée par le serveur.",
+    "L’archive ne grossit pas la feuille interrogée toutes les secondes et demie : des résumés séparés sont conservés sur le serveur.",
+    "La traduction française couvre chaque nouveau texte (dictionnaire + motifs de phrases) et est vérifiée par un test.",
+    "En cas d’ambiguïté dans une demande (par exemple l’emplacement d’un bouton), la compréhension la plus proche est réalisée, puis corrigée selon la remarque de l’utilisateur, et la lecture retenue est indiquée."
+  ],
+  "open": [
+    "Supprimer à la main les anciens domaines Vercel (à la charge de l’utilisateur).",
+    "Essayer « Archiver la saison » pour la première fois à la fin réelle de la saison, car l’effacement des absences du tableau est irréversible.",
+    "Essayer l’import de l’organisation pédagogique sur le site avec le vrai lecteur Excel.",
+    "Essayer le compte enseignant lors d’une vraie séance : un seul appui sans confirmation convient-il, et faut-il lier le compte au nom de l’enseignant dans tous les comptes ?",
+    "Essayer la restauration depuis « Sauvegardes » sur des données réelles, et activer la sauvegarde quotidienne d’Upstash si l’offre le permet."
+  ],
+  "gitNote": "Les messages de commit restent en anglais, tels qu’écrits."
+}
