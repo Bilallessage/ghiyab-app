@@ -317,6 +317,18 @@
       ],
       "tech": "Dans api/mark.js : nouvelle action 'called' qui stocke columns[i].called={at,by}, fonction commune teacherRules pour les règles du professeur, champ facultatif at avec tapTime (plafond 18 h, futur refusé) et suppression du marqueur quand une absence est saisie. Dans index.html : file locale ghiyab_tq (opérations à valeur absolue, donc un renvoi est sans danger ; le dernier appui sur une case remplace les précédents), couche tqOverlay réappliquée sur chaque copie du serveur pour que la synchronisation automatique n’efface pas ce qui n’est pas encore envoyé, tqFlush qui envoie dans l’ordre et s’arrête à la coupure ou à une 5xx, abandonne définitivement les refus (409 stale réessayé trois fois), et nom du professeur conservé dans USER_KEY pour ouvrir l’application hors connexion avec ses droits. Tests : 28 vérifications côté serveur (règles et heures) et un test navigateur avec coupure simulée, rechargement de la page sans réseau, envoi automatique, refus à l’arrivée et avertissement à la déconnexion, plus un test en français qui vérifie qu’aucun texte arabe ne reste à l’écran.",
       "date": "2026-10-18"
+    },
+    {
+      "title": "Écran d’accueil avec icônes",
+      "goal": "Simplifier l’usage avec un écran d’accueil de cartes colorées (icône, titre, description) à la manière des applications de gestion scolaire, au lieu d’une rangée de boutons empilés au-dessus du tableau.",
+      "done": [
+        "Écran d’accueil affiché à l’administrateur et aux comptes en consultation après la connexion : 17 cartes pour l’administrateur (feuille d’absences, statistiques, liste de rattrapage, suivi de l’appel, avis aux parents, organisation pédagogique, liste des élèves, nombre de séances, horaires, nouvelle semaine, archivage de l’année, sauvegardes, comptes, logo, impression, langue, déconnexion) et 7 pour la consultation. Chaque carte a une icône linéaire colorée, un titre et une courte description ; la carte « Comptes » porte une pastille avec le nombre de demandes en attente et la carte « Déconnexion » est rouge.",
+        "Chaque carte appelle ce qu’appelait le bouton correspondant : les règles et le serveur ne changent pas. « Feuille d’absences » ouvre le tableau comme avant, le bouton « 🏠 Accueil » ramène aux cartes, et fermer les statistiques ou la liste de rattrapage ramène à l’endroit d’où elles ont été ouvertes.",
+        "Le professeur ouvre directement le tableau, sans écran d’accueil, pour que l’appel reste rapide sur téléphone ; le lien `/?view=sheet` ouvre directement le tableau.",
+        "Mise en page adaptative (deux colonnes sur téléphone), mode sombre pris en charge, traduction française complète des cartes et section du README."
+      ],
+      "tech": "Dans index.html : élément homeView et fonctions showView et leaveMain (elles mémorisent l’origine viewOrigin, donc statistiques et rattrapage y reviennent), cartes définies dans homeTiles() avec filtrage par rôle, icônes SVG intégrées (trait de la couleur de la carte via color-mix) sans bibliothèque externe, pastille des comptes mise à jour par usersBadge. Test Playwright : arrivée sur l’accueil, nombre de cartes selon le rôle, ouverture de chaque fenêtre, retour depuis statistiques et rattrapage, bouton Accueil, `?view=sheet`, professeur, français, téléphone et mode sombre ; les autres tests ont été relancés avec le lien `?view=sheet`.",
+      "date": "2026-10-19"
     }
   ],
   "method": [

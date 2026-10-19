@@ -317,6 +317,18 @@
       ],
       "tech": "In api/mark.js: a new action 'called' storing columns[i].called={at,by}, a shared teacherRules function for the teacher’s rules, an optional at field with tapTime (18-hour ceiling, future refused), and the marker removed when an absence is recorded. In index.html: a local queue ghiyab_tq (operations carry absolute values so a resend is harmless; the last tap on a cell replaces earlier ones), a tqOverlay layer re-applied over every server copy so automatic sync never erases what is not yet sent, tqFlush sending in order and stopping on a dropout or 5xx, dropping refusals for good (409 stale retried three times), and the teacher’s name kept in USER_KEY so the app opens offline with their rights. Tests: 28 server checks (rules and times) and a browser test with simulated dropout, page reload with no network, automatic sending, refusal on arrival and the logout warning, plus a French test checking that no Arabic text is left on screen.",
       "date": "2026-10-18"
+    },
+    {
+      "title": "Home screen with icons",
+      "goal": "Make the app easier to use with a home screen of colourful tiles (icon, title, description) in the style of school-management apps, instead of a row of buttons stacked above the table.",
+      "done": [
+        "A home screen shown to the administrator and read-only accounts after signing in: 17 tiles for the administrator (absence sheet, statistics, catch-up list, roll-call follow-up, parent notices, teaching organisation, student list, number of periods, period times, new week, season archive, backups, accounts, logo, print, language, log out) and 7 for read-only. Each tile has a coloured line icon, a title and a short description; the “Accounts” tile carries a badge with the number of pending requests and the “Log out” tile is red.",
+        "Each tile calls what the matching button used to call, so the rules and the server are unchanged. “Absence sheet” opens the table as before, the “🏠 Home” button goes back to the tiles, and closing statistics or the catch-up list returns to where they were opened from.",
+        "The teacher opens the sheet directly, with no home screen, so the roll call stays quick on a phone; the link `/?view=sheet` opens the sheet directly.",
+        "Responsive layout (two columns on a phone), dark mode supported, complete French translation of the tiles, and a README section."
+      ],
+      "tech": "In index.html: a homeView element and showView / leaveMain functions (they remember the origin viewOrigin, so statistics and catch-up return to it), tiles defined in homeTiles() filtered by role, inline SVG icons (stroke in the tile colour through color-mix) with no external library, accounts badge updated by usersBadge. Playwright test: landing on home, number of tiles by role, opening each dialog, returning from statistics and catch-up, the Home button, `?view=sheet`, the teacher, French, phone and dark mode; the other tests were re-run with the `?view=sheet` link.",
+      "date": "2026-10-19"
     }
   ],
   "method": [
