@@ -234,28 +234,6 @@ table.cu th:nth-child(1){width:24%}table.cu th:nth-child(2){width:13%}table.cu t
 .chartbox{border:1px solid var(--line);border-radius:8px;background:#fff;padding:6px;margin:0 0 12px;overflow-x:auto}
 .chartbox svg{display:block;width:100%;min-width:560px;height:auto}
 
-
-/* ---- home screen: one colourful icon tile per feature ---- */
-#homeBtn{display:none}
-body.hashome:not(.onhome) #homeBtn{display:inline-block}
-body.onhome .wkbox,body.onhome .btncol,body.onhome #printBtn,body.onhome #weekBanner{display:none!important}
-.homehead{margin:4px 2px 14px}
-.hhello{font-size:19px;font-weight:800;color:var(--ink)}
-.hsub{font-size:13px;color:var(--ink-soft);margin-top:2px}
-.homegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:14px}
-.tile{--tc:var(--teal);position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:start;font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 16px 14px;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:transform .15s,box-shadow .15s,border-color .15s;min-height:128px}
-.tile:hover,.tile:focus-visible{transform:translateY(-3px);box-shadow:0 10px 24px color-mix(in srgb,var(--tc) 22%,transparent);border-color:color-mix(in srgb,var(--tc) 55%,var(--line));outline:none}
-.tile .ti{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--tc) 14%,var(--panel));color:var(--tc);margin-bottom:4px}
-.tile .ti svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.tile .tt{font-size:15px;font-weight:800}
-.tile .ts{font-size:12px;color:var(--ink-soft);line-height:1.5}
-.tile .tb{position:absolute;top:12px;inset-inline-end:12px;background:var(--absent);color:#fff;border-radius:11px;min-width:22px;height:22px;padding:0 6px;font-size:12px;font-weight:800;display:none;align-items:center;justify-content:center}
-.tile.danger{background:var(--tc);border-color:var(--tc);color:#fff}
-.tile.danger .ti{background:rgba(255,255,255,.2);color:#fff}
-.tile.danger .ts{color:rgba(255,255,255,.88)}
-@media(max-width:560px){.homegrid{grid-template-columns:repeat(2,1fr);gap:10px}.tile{min-height:116px;padding:12px}.tile .ts{font-size:11.5px}}
-@media print{#homeView{display:none!important}}
-
 /* ---- colour layer: one hue per weekday, one hue per kind of action ---- */
 :root{
   --d0:#2F6FB8; --d1:#25784F; --d2:#A96A06; --d3:#7B52B4; --d4:#C4405E;
@@ -341,7 +319,6 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
       <div class="wkdates"><button class="btn ghost" id="logoBtn" style="display:none" onclick="logoDialog()" title="تغيير شعار المؤسسة الظاهر في أعلى الصفحة وفي الطباعة">🖼️ شعار المؤسسة</button><button class="btn ghost" id="curWeekBtn" style="display:none" onclick="goCurrentWeek()" title="العودة إلى الأسبوع الجاري بعد عرض الأسبوع السابق">📍 الأسبوع الجاري</button><label>من</label><input type="date" id="wFrom"><label>إلى</label><input type="date" id="wTo"></div>
       <div class="wkbtns"><button class="btn ghost" id="prevWeekBtn" style="display:none" onclick="goPrevWeek()" title="عرض الأسبوع السابق لتصحيح غياب سُجّل بالخطأ">⏪ السابق</button><button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()" title="بدء الأسبوع التالي: يُحفظ غياب الأسبوع الجاري ثم يُمسح الجدول">⏩ التالي</button></div>
     </div>
-    <button class="btn ghost" id="homeBtn" type="button" onclick="showView('home')" title="العودة إلى الشاشة الرئيسية">🏠 الرئيسية</button>
     <span class="userchip" id="userChip" style="display:none"></span>
     <button class="btn ghost" id="logoutBtn" style="display:none" onclick="logout()">خروج</button>
     <br>
@@ -407,10 +384,6 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
   <div class="panel" id="cuBody"></div>
 </div>
 
-<div id="homeView" style="display:none">
-  <div class="homehead"><div class="hhello" id="homeHello"></div><div class="hsub" id="homeSub"></div></div>
-  <div class="homegrid" id="homeGrid"></div>
-</div>
 <div id="mainView">
 <div class="toolbar">
   <button class="btn ghost" id="periodsBtn" style="display:none" onclick="periodsDialog()" title="إضافة حصة أو حذفها صباحا أو مساء لتلائم النظام الدراسي للمؤسسة">🧮 عدد الحصص</button>
@@ -682,7 +655,6 @@ let lanServerOk=false;
 function applyPermissionUI(){
   const ro=!canWrite;
   document.body.classList.toggle('tch',!!canMark);
-  document.body.classList.toggle('hashome',!canMark);
   const banner=document.getElementById('viewBanner');
   if(banner){
     banner.style.display=ro?'block':'none';
@@ -2521,7 +2493,8 @@ async function svLoad(){
   }
 }
 async function openStats(archived){
-  svOpen=true; leaveMain();
+  svOpen=true;
+  document.getElementById('mainView').style.display='none';
   document.getElementById('statsView').style.display='block';
   window.scrollTo(0,0);
   await svLoad();
@@ -2531,7 +2504,7 @@ function closeStats(){
   svOpen=false;
   if(svSeasonView){ if(svCurWeeks) svWeeks=svCurWeeks; svSeasonView=''; svCurWeeks=null; }
   document.getElementById('statsView').style.display='none';
-  showView(viewOrigin);
+  document.getElementById('mainView').style.display='block';
 }
 function svPick(kind,v){ if(kind==='period') svPeriod=v; else svGroup=v; svRender(kind==='period'); }
 
@@ -2819,7 +2792,8 @@ function cuInit(){
   document.getElementById('cuMinSel').onchange=e=>{ cuMin=+e.target.value||1; cuRender(); };
 }
 function openCatch(){
-  cuInit(); cuOpen=true; leaveMain();
+  cuInit(); cuOpen=true;
+  document.getElementById('mainView').style.display='none';
   document.getElementById('catchView').style.display='block';
   window.scrollTo(0,0);
   cuLoad();
@@ -2827,7 +2801,7 @@ function openCatch(){
 function closeCatch(){
   cuOpen=false;
   document.getElementById('catchView').style.display='none';
-  showView(viewOrigin);
+  document.getElementById('mainView').style.display='block';
 }
 
 // ---- tell the parents the date and time of the catch-up session (WhatsApp, same mechanism as the absence notices) ----
@@ -3461,7 +3435,6 @@ async function usersFetch(all){
 function usersBadge(n){
   const b=document.getElementById('usersBadge'); if(!b) return;
   b.textContent=n; b.style.display=n?'inline-block':'none';
-  const t=document.getElementById('usersBadge2'); if(t){ t.textContent=n; t.style.display=n?'flex':'none'; }
 }
 async function usersRefreshCount(){
   if(!canWrite) return;
@@ -3652,78 +3625,6 @@ function logoReset(){
   ]);
 }
 
-
-// ================= home screen (icon tiles) =================
-// The home screen is the landing page of the administrator and of read-only accounts; a teacher goes straight to the sheet.
-// Every tile only calls what the buttons of the sheet page already call. ?view=sheet opens the sheet directly.
-let curView='sheet', viewOrigin='sheet';
-function leaveMain(){
-  viewOrigin=curView==='home'?'home':'sheet'; curView='other';
-  document.getElementById('mainView').style.display='none';
-  document.getElementById('homeView').style.display='none';
-  document.body.classList.remove('onhome');
-}
-function showView(v){
-  if(canMark) v='sheet';
-  curView=v;
-  document.getElementById('homeView').style.display=v==='home'?'block':'none';
-  document.getElementById('mainView').style.display=v==='sheet'?'block':'none';
-  document.body.classList.toggle('onhome',v==='home');
-  if(v==='home') renderHome(); else syncHeaderOffset();
-  window.scrollTo(0,0);
-}
-const HI={
-  sheet:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/>',
-  stats:'<path d="M12 20V10M18 20V4M6 20v-4"/>',
-  catch:'<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
-  call:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>',
-  bell:'<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>',
-  org:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M7 14h4M7 18h4M14 14h3"/>',
-  list:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/>',
-  sliders:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
-  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
-  next:'<path d="M13 19l9-7-9-7zM2 19l9-7-9-7z"/>',
-  season:'<path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4"/>',
-  backup:'<path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/>',
-  users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
-  image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
-  print:'<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>',
-  globe:'<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>',
-  out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>'
-};
-// w: 'a' administrator only, 'v' administrator + read-only
-function homeTiles(){
-  return [
-    {ic:'sheet',c:'indigo',t:'ورقة الغياب',s:'تسجيل الغياب حصة بحصة وعرض الأقسام',w:'v',go:()=>showView('sheet')},
-    {ic:'stats',c:'blue',t:'الإحصائيات',s:'غياب اليوم والأسبوع والشهر والموسم',w:'v',go:()=>openStats()},
-    {ic:'catch',c:'amber',t:'قائمة التعويض',s:'المتغيبون والمواد التي فاتتهم',w:'v',go:()=>openCatch()},
-    {ic:'call',c:'green',t:'متابعة النداء',s:'هل قام الأساتذة بالنداء؟',w:'v',go:()=>openCallFollow()},
-    {ic:'bell',c:'rose',t:'إشعارات الأولياء',s:'إشعار واستدعاء عبر واتساب',w:'a',go:()=>{ showView('sheet'); setTimeout(()=>{ const e=document.getElementById('autoPanel'); if(e) e.scrollIntoView({behavior:'smooth',block:'start'}); },60); }},
-    {ic:'org',c:'violet',t:'التنظيم التربوي',s:'استيراد المواد والأساتذة من إكسيل',w:'a',go:()=>document.getElementById('orgFile').click()},
-    {ic:'list',c:'green',t:'لائحة التلاميذ',s:'استيراد أو تحديث اللائحة من إكسيل',w:'a',go:()=>document.getElementById('xlsFile').click()},
-    {ic:'sliders',c:'slate',t:'عدد الحصص',s:'حصص الصباح والمساء',w:'a',go:()=>periodsDialog()},
-    {ic:'clock',c:'amber',t:'توقيت الحصص',s:'بداية كل حصة في القسم الحالي',w:'a',go:()=>editPeriodTimes()},
-    {ic:'next',c:'indigo',t:'أسبوع جديد',s:'حفظ الأسبوع الحالي وبدء التالي',w:'a',go:()=>startNewWeek()},
-    {ic:'season',c:'blue',t:'أرشفة الموسم',s:'حفظ الموسم الدراسي وبدء موسم جديد',w:'a',go:()=>seasonDialog()},
-    {ic:'backup',c:'slate',t:'النسخ الاحتياطية',s:'استرجاع الغياب والهواتف',w:'a',go:()=>backupsDialog()},
-    {ic:'users',c:'rose',t:'الحسابات',s:'الموافقة على الطلبات وأدوار الأساتذة',w:'a',badge:true,go:()=>usersDialog()},
-    {ic:'image',c:'violet',t:'شعار المؤسسة',s:'تغيير الشعار في الصفحة والطباعة',w:'a',go:()=>logoDialog()},
-    {ic:'print',c:'slate',t:'طباعة الورقة',s:'طباعة جدول القسم الحالي',w:'v',go:()=>{ showView('sheet'); setTimeout(triggerPrint,150); }},
-    {ic:'globe',c:'blue',t:LANG==='fr'?'العربية':'Français',s:LANG==='fr'?'Passer à la version arabe':'التبديل إلى النسخة الفرنسية',w:'v',go:()=>setLang(LANG==='fr'?'ar':'fr')},
-    {ic:'out',c:'rose',t:'خروج',s:'إنهاء الجلسة على هذا الجهاز',w:'v',danger:true,go:()=>logout()}
-  ].filter(x=>canWrite||(x.w==='v'));
-}
-let homeActs=[];
-function renderHome(){
-  const g=document.getElementById('homeGrid'); if(!g) return;
-  const tiles=homeTiles(); homeActs=tiles.map(x=>x.go);
-  g.innerHTML=tiles.map((x,i)=>`<button type="button" class="tile${x.danger?' danger':''}" style="--tc:var(--c-${x.c})" onclick="homeActs[${i}]()" data-tile="${x.ic}"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true">${HI[x.ic]}</svg></span><span class="tt">${x.t}</span><span class="ts">${x.s}</span>${x.badge?'<span class="tb" id="usersBadge2"></span>':''}</button>`).join('');
-  const nm=instDisplay?instDisplay():'';
-  document.getElementById('homeHello').textContent=canWrite?'الشاشة الرئيسية':'الشاشة الرئيسية (اطلاع فقط)';
-  document.getElementById('homeSub').textContent=(nm?nm+' — ':'')+'اختاروا ما تريدون من الأيقونات';
-  const b=document.getElementById('usersBadge'); if(b&&b.textContent&&b.style.display!=='none') usersBadge(+b.textContent||0);
-}
-
 async function startApp(){
   updateInstName();
   applyPermissionUI();      // sets controls for the current role and renders
@@ -3731,7 +3632,6 @@ async function startApp(){
   const branding=applyBranding();
   await initSync();         // read the shared sheet first...
   await branding;
-  showView(!canMark&&!/[?&]view=sheet\b/.test(location.search)?'home':'sheet');
   showApp();                // ...then reveal the page, so nobody sees placeholder data
   ntLoad();                 // earlier weeks of the month, for the automatic parent notices
   setInterval(ntLoad,10*60*1000);
