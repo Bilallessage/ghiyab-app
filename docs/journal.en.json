@@ -326,6 +326,19 @@
       ],
       "tech": "Undone with git revert of the home-screen commit (index.html, fr.js, README).",
       "date": "2026-10-19"
+    },
+    {
+      "date": "2026-10-23",
+      "title": "Inviting teachers by e-mail: a ready account with one click on the link",
+      "goal": "So that teachers no longer wait for an approval: they receive a link by e-mail and their account becomes a teacher account as soon as they open it, while the “Approve a new account” button stays for unknown people who registered themselves.",
+      "done": [
+        "In the “Approve a new account” window, an “Invite teachers” box: one line per teacher (the e-mail, then the name as in the timetable, optional) and a “Send the invitations” button that handles several lines at once and skips duplicates. Below it, the “Invitations waiting” list with “Resend” and “Cancel”.",
+        "The link is random, valid for 7 days and works once. The teacher opens it and the “Activate the teacher account” page shows the locked e-mail; they choose a password (at least 8 characters) and go straight in with an approved teacher account (tied to their name if the administration entered it). If the link is opened again or has expired, the ordinary login page appears with the reason.",
+        "The e-mail goes out through any SMTP account (for example Gmail with an app password), set with Vercel variables, without any external library. If nothing is configured or sending fails, the window shows the link with “Copy the link” and “WhatsApp” so the administrator sends it themselves: the feature always works, e-mail is only a convenience.",
+        "Security: only the SHA-256 of the link is stored; activation can be used once even with two simultaneous requests; an account request filed by someone who does not own the address is removed at invitation time (or its password is replaced by the link holder's); the link never changes the password of an already approved account; attempts are limited per IP address; the SMTP password never travels over an unencrypted connection. An already approved account is simply promoted to teacher by the invitation, with no link.",
+        "Complete French translation (window, activation page, messages) and a fix in fr.js: text typed into a text area stays as typed but its hint (placeholder) is now translated. README updated with the “Inviting teachers by e-mail” section and the Gmail setup."
+      ],
+      "tech": "New file api/_mail.js (a small SMTP client on net and tls: direct TLS on 465 or STARTTLS on 587, AUTH PLAIN/LOGIN, base64 multipart MIME message with UTF-8 headers, 9 s timeout). In api/_lib.js, the invitation helpers (loadInvite, hashToken, keys <KEY_PREFIX>:inv:<hash> with a 7-day ex and <KEY_PREFIX>:invites as the administrator's index). In api/users.js, the invite and uninvite actions and the invites and mail fields in GET ?all=1; in api/auth.js, the accept action (the token is consumed with DEL and only the request that really deleted it goes on) and GET ?invite=. In index.html, the invite mode of the login screen and invParse/invSend/invShow. Tests: 40 server checks (including simultaneous use and address squatting), 14 for the mail client against a fake SMTP server in its three modes, and interface checks in Arabic and French at phone width."
     }
   ],
   "method": [
@@ -340,7 +353,8 @@
     "Try “Archive the season” for the first time at the real end of the season, because clearing absences from the table cannot be undone.",
     "Try the teaching-organisation import on the live site with the real Excel reader.",
     "Try the teacher account in a real lesson: is a single tap without confirmation appropriate, and must the account be linked to the teacher's name in every account? Also try the “Nobody” button (is the 20-minute delay before the “!” right?) and working without internet in a room with no coverage.",
-    "Try restoring from “Backups” on real data, and enable the daily backup in Upstash if the plan allows it."
+    "Try restoring from “Backups” on real data, and enable the daily backup in Upstash if the plan allows it.",
+    "Set up e-mail sending (SMTP) on Vercel and try a real invitation to a teacher, checking that the message lands in the inbox and not in spam."
   ],
   "gitNote": "Commit messages are kept in English as written."
 }

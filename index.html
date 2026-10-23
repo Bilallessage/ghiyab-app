@@ -289,8 +289,8 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
 <div id="authGate" style="display:none;min-height:100vh;align-items:center;justify-content:center;padding:20px">
   <form class="modal-box" id="authForm" style="max-width:360px" onsubmit="return submitAuth(event)">
     <h2 style="margin:0 0 4px;color:var(--teal);font-size:18px;text-align:center">تتبع غياب التلاميذ</h2>
-    <p class="sub" style="margin:0 0 14px;text-align:center">سجّلوا الدخول للاطلاع على البيانات</p>
-    <div class="auth-tabs">
+    <p class="sub" id="authSub" style="margin:0 0 14px;text-align:center">سجّلوا الدخول للاطلاع على البيانات</p>
+    <div class="auth-tabs" id="authTabs">
       <button type="button" class="tab active" id="tabLogin" onclick="setAuthMode('login')">دخول</button>
       <button type="button" class="tab" id="tabRegister" onclick="setAuthMode('register')">إنشاء حساب</button>
     </div>
@@ -322,7 +322,7 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
     <span class="userchip" id="userChip" style="display:none"></span>
     <button class="btn ghost" id="logoutBtn" style="display:none" onclick="logout()">خروج</button>
     <br>
-    <div class="btncol"><button class="btn ghost" id="statsBtn" onclick="openStats()">📊 الإحصائيات</button><button class="btn ghost" id="catchBtn" onclick="openCatch()" title="التلاميذ المتغيبون والمواد التي فاتتهم، لبرمجة حصص التعويض والدعم">📚 قائمة التعويض</button><button class="btn ghost" id="callBtn" onclick="openCallFollow()" title="هل قام الأساتذة بالنداء؟ الحصص التي سُجّل فيها غياب أو «لا أحد» والحصص بلا نداء">✅ متابعة النداء</button><button class="btn ghost" id="usersBtn" style="display:none" onclick="usersDialog()" title="الموافقة على طلبات حسابات الاطلاع">👥 الموافقة على حساب جديد <span id="usersBadge" style="display:none;background:var(--absent);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-inline-start:4px">0</span></button></div>
+    <div class="btncol"><button class="btn ghost" id="statsBtn" onclick="openStats()">📊 الإحصائيات</button><button class="btn ghost" id="catchBtn" onclick="openCatch()" title="التلاميذ المتغيبون والمواد التي فاتتهم، لبرمجة حصص التعويض والدعم">📚 قائمة التعويض</button><button class="btn ghost" id="callBtn" onclick="openCallFollow()" title="هل قام الأساتذة بالنداء؟ الحصص التي سُجّل فيها غياب أو «لا أحد» والحصص بلا نداء">✅ متابعة النداء</button><button class="btn ghost" id="usersBtn" style="display:none" onclick="usersDialog()" title="دعوة الأساتذة بالبريد والموافقة على طلبات الحسابات">👥 الموافقة على حساب جديد <span id="usersBadge" style="display:none;background:var(--absent);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-inline-start:4px">0</span></button></div>
     <button class="btn ghost" id="printBtn" onclick="triggerPrint()">طباعة</button>
     <button class="btn ghost langBtn" type="button" onclick="setLang(LANG==='fr'?'ar':'fr')">Français</button>
   </div>
@@ -451,9 +451,17 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
 </div>
 
 <div class="modal-overlay" id="usersOverlay" style="display:none">
-  <div class="modal-box" style="max-width:520px;max-height:85vh;overflow:auto">
-    <h3 style="margin:0 0 6px;color:var(--teal);font-size:15px">حسابات الاطلاع</h3>
-    <p class="sub" style="margin:0 0 12px;line-height:1.6">من يسجّل حسابا جديدا من صفحة الدخول لا يستطيع الدخول حتى توافقوا على طلبه هنا. الحسابات المقبولة تطلع على الجدول والإحصائيات فقط دون تعديل، ويمكنكم تحويل أي حساب إلى «أستاذ» ليسجّل الغياب عند النداء في حصص اليوم (وإن كتبتم اسمه كما في الجدول فلن يسجّل إلا في حصصه).</p>
+  <div class="modal-box" style="max-width:540px;max-height:85vh;overflow:auto">
+    <h3 style="margin:0 0 6px;color:var(--teal);font-size:15px">الحسابات</h3>
+    <p class="sub" style="margin:0 0 12px;line-height:1.6">الأساتذة لا يحتاجون إلى موافقة: ادعوهم من الأعلى بإدخال بريد كل أستاذ(ة)، فيصله رابط تفعيل، وبمجرد فتحه واختيار كلمة مرور يصبح حسابه «أستاذا» جاهزا لتسجيل الغياب. أما من يسجّل حسابا بنفسه من صفحة الدخول فلا يدخل حتى توافقوا على طلبه، وحسابه المقبول يطلع على الجدول والإحصائيات فقط دون تعديل.</p>
+    <div id="invBox" style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px;background:var(--teal-soft)">
+      <div style="font-weight:700;font-size:13px;color:var(--teal);margin-bottom:4px">دعوة أساتذة</div>
+      <p class="sub" style="margin:0 0 8px;line-height:1.6">سطر لكل أستاذ(ة): البريد الإلكتروني ثم اسمه كما في الجدول (اختياري، وبه لا يسجّل الحساب إلا في حصصه). الرابط صالح 7 أيام ويُستعمل مرة واحدة.</p>
+      <textarea id="invText" class="modal-input" rows="3" dir="auto" placeholder="prof@gmail.com، نعيمة بداوي" style="margin-bottom:8px;min-height:64px;resize:vertical;line-height:1.6"></textarea>
+      <div id="invMailNote" class="sub" style="display:none;margin:0 0 8px;line-height:1.6;color:var(--gold)">إرسال البريد غير مُعدّ في الخادم بعد: ستحصلون على رابط لكل أستاذ تنسخونه وترسلونه بواتساب أو أي وسيلة أخرى (إعداد البريد موضَّح في README).</div>
+      <button class="btn" id="invSendBtn" type="button" onclick="invSend()">✉ إرسال الدعوات</button>
+      <div id="invOut"></div>
+    </div>
     <div id="usersBody" style="margin-bottom:12px"></div>
     <div class="modal-actions"><button class="btn ghost" type="button" onclick="usersClose()">إغلاق</button></div>
   </div>
@@ -717,16 +725,22 @@ function clearSession(){
 let authMode='login';
 function setAuthMode(m,keepMsg){
   authMode=m;
-  const reg=(m==='register');
-  document.getElementById('tabLogin').classList.toggle('active',!reg);
+  const reg=(m==='register'), inv=(m==='invite');
+  document.getElementById('authTabs').style.display=inv?'none':'';
+  document.getElementById('tabLogin').classList.toggle('active',m==='login');
   document.getElementById('tabRegister').classList.toggle('active',reg);
-  document.getElementById('authPass2').style.display=reg?'block':'none';
-  document.getElementById('authPass2').required=reg;
-  document.getElementById('authPass').autocomplete=reg?'new-password':'current-password';
-  document.getElementById('authSubmit').textContent=reg?'إنشاء الحساب':'دخول';
-  document.getElementById('authHint').textContent=reg
-    ? 'سيُرسَل طلب حساب للاطلاع فقط (كلمة المرور 8 أحرف على الأقل). لا يعمل الحساب إلا بعد موافقة المسؤول.'
-    : 'حسابات الاطلاع الجديدة تحتاج إلى موافقة المسؤول قبل الدخول. التعديل مخصّص للمسؤول.';
+  document.getElementById('authPass2').style.display=(reg||inv)?'block':'none';
+  document.getElementById('authPass2').required=(reg||inv);
+  document.getElementById('authPass').autocomplete=(reg||inv)?'new-password':'current-password';
+  document.getElementById('authPass').placeholder=inv?'اختاروا كلمة مرور':'كلمة المرور';
+  document.getElementById('authEmail').readOnly=inv;
+  document.getElementById('authSub').textContent=inv?'تفعيل حساب الأستاذ(ة)':'سجّلوا الدخول للاطلاع على البيانات';
+  document.getElementById('authSubmit').textContent=inv?'تفعيل حسابي':(reg?'إنشاء الحساب':'دخول');
+  document.getElementById('authHint').textContent=inv
+    ? 'اختاروا كلمة مرور من 8 أحرف على الأقل، وستدخلون بها إلى التطبيق في كل مرة. بمجرد التفعيل يصبح حسابكم جاهزا لتسجيل الغياب عند النداء دون أي موافقة أخرى.'
+    : (reg
+      ? 'سيُرسَل طلب حساب للاطلاع فقط (كلمة المرور 8 أحرف على الأقل). لا يعمل الحساب إلا بعد موافقة المسؤول.'
+      : 'حسابات الاطلاع الجديدة تحتاج إلى موافقة المسؤول قبل الدخول. التعديل مخصّص للمسؤول.');
   if(!keepMsg) document.getElementById('authError').textContent='';
 }
 function showGate(msg){
@@ -735,7 +749,7 @@ function showGate(msg){
   document.getElementById('authGate').style.display='flex';
   setAuthMode(authMode,true);
   document.getElementById('authError').textContent=msg||'';
-  setTimeout(()=>document.getElementById('authEmail').focus(),50);
+  setTimeout(()=>document.getElementById(authMode==='invite'?'authPass':'authEmail').focus(),50);
 }
 function showApp(){
   document.getElementById('loadingBox').style.display='none';
@@ -753,12 +767,24 @@ async function submitAuth(ev){
   if(authMode==='register' && pass!==document.getElementById('authPass2').value){
     err.textContent='كلمتا المرور غير متطابقتين'; return false;
   }
+  if(authMode==='invite' && pass!==document.getElementById('authPass2').value){
+    err.textContent='كلمتا المرور غير متطابقتين'; return false;
+  }
   const label=btn.textContent;
   btn.disabled=true; btn.textContent='جارٍ التحقق…';
   try{
+    const inv=(authMode==='invite');
     const res=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:authMode,email:email,password:pass})});
+      body:JSON.stringify(inv?{action:'accept',token:inviteToken,password:pass}:{action:authMode,email:email,password:pass})});
     let data={}; try{ data=await res.json(); }catch(e){}
+    if(inv && (res.status===404||res.status===409)){
+      // dead or already used link: back to the ordinary login form, with the reason
+      inviteToken=''; clearInviteFromUrl();
+      document.getElementById('authPass').value=''; document.getElementById('authPass2').value='';
+      authMode='login'; setAuthMode('login',true);
+      err.style.color=''; err.textContent=data.message||'رابط الدعوة غير صالح.';
+      btn.disabled=false; return false;
+    }
     if(res.ok && data.pending){
       // sign-up request filed: no session yet, the admin must approve it first
       authMode='login'; setAuthMode('login');
@@ -773,12 +799,29 @@ async function submitAuth(ev){
       btn.disabled=false; btn.textContent=label; return false;
     }
     saveSession(data);
+    clearInviteFromUrl();
     location.reload(); // start the app cleanly with the new session
   }catch(e){
     err.textContent='تعذر الاتصال بالخادم، تأكدوا من الإنترنت وأعيدوا المحاولة';
     btn.disabled=false; btn.textContent=label;
   }
   return false;
+}
+// ---- teacher invitation link: ?invite=<token> -----------------------------------
+let inviteToken='';
+function inviteParam(){ try{ return new URLSearchParams(location.search).get('invite')||''; }catch(e){ return ''; } }
+function clearInviteFromUrl(){ try{ const q=new URLSearchParams(location.search); q.delete('invite'); const rest=q.toString(); history.replaceState(null,'',location.pathname+(rest?'?'+rest:'')); }catch(e){} }
+async function inviteInit(tok){
+  inviteToken=tok;
+  let d=null, msg='';
+  try{
+    const r=await fetchT('/api/auth?invite='+encodeURIComponent(tok),{},8000);
+    let b={}; try{ b=await r.json(); }catch(e){}
+    if(r.ok&&b.email) d=b; else msg=b.message||'رابط الدعوة غير صالح أو انتهت صلاحيته. اطلبوا من الإدارة دعوة جديدة.';
+  }catch(e){ msg='تعذر الاتصال بالخادم، تأكدوا من الإنترنت ثم أعيدوا فتح الرابط.'; }
+  if(!d){ inviteToken=''; clearInviteFromUrl(); authMode='login'; showGate(msg); return; }
+  authMode='invite'; showGate();
+  document.getElementById('authEmail').value=d.email;
 }
 function logout(){
   if(canMark && tqCount()){
@@ -3451,9 +3494,10 @@ async function usersDialog(){
   usersBadge(d.pending.length);
   body.innerHTML='';
   const day=t=>t?new Date(t).toISOString().slice(0,10):'';
-  const section=(title,list,buttons,empty,extra)=>{
+  const section=(title,list,buttons,empty,extra,note)=>{
     const h=document.createElement('div'); h.style.cssText='font-weight:700;font-size:13px;color:var(--teal);margin:10px 0 6px';
     h.textContent=title+' ('+list.length+')'; body.appendChild(h);
+    if(note){ const n=document.createElement('div'); n.className='sub'; n.style.cssText='margin:-2px 0 6px;line-height:1.6'; n.textContent=note; body.appendChild(n); }
     if(!list.length){ const e=document.createElement('div'); e.className='sub'; e.textContent=empty; body.appendChild(e); return; }
     list.forEach(u=>{
       const row=document.createElement('div');
@@ -3469,10 +3513,17 @@ async function usersDialog(){
       body.appendChild(row);
     });
   };
+  document.getElementById('invMailNote').style.display=d.mail?'none':'block';
+  section('دعوات بانتظار القبول',d.invites||[],[
+    {label:'إعادة الإرسال',cls:'btn ghost',go:(e,bt)=>{ const u=(d.invites||[]).find(x=>x.email===e)||{}; invResend(e,u.teacher||'',bt); }},
+    {label:'إلغاء',cls:'btn ghost',go:(e)=>showConfirm('سيتوقف رابط الدعوة المرسل إلى '+e+' عن العمل. المتابعة؟',()=>usersAct('uninvite',e))},
+  ],'لا توجد دعوات معلّقة.',(u,row)=>{
+    if(u.teacher){ const t=document.createElement('span'); t.className='sub'; t.textContent=u.teacher; row.insertBefore(t,row.children[1]); }
+  });
   section('طلبات بانتظار موافقتكم',d.pending,[
     {label:'✔ قبول',cls:'btn',go:(e,bt)=>usersAct('approve',e,bt)},
     {label:'✖ رفض',cls:'btn danger',go:(e,bt)=>usersAct('reject',e,bt)},
-  ],'لا توجد طلبات معلّقة.');
+  ],'لا توجد طلبات معلّقة.',null,'أشخاص سجّلوا بأنفسهم من صفحة الدخول: لا تقبلوا إلا من تعرفونه. أما الأساتذة فادعوهم من الأعلى.');
   // accepted accounts: read-only («اطلاع») or teacher («أستاذ»: may also record absences at roll call)
   const tInputs={};
   section('الحسابات المقبولة',d.viewers||[],[
@@ -3503,6 +3554,94 @@ async function usersAct(action,email,btn,extra){
     if(r.status===401){ onAuthRejected(); return; }
     if(!r.ok && r.status!==404){ showAlert('تعذر تنفيذ العملية، أعيدوا المحاولة.'); if(btn) btn.disabled=false; return; }
   }catch(e){ showAlert('تعذر الاتصال بالخادم.'); if(btn) btn.disabled=false; return; }
+  usersDialog();
+}
+
+// ---- inviting teachers by e-mail (admin) -------------------------------------
+// One line per teacher: the e-mail address, then the name as in the timetable (optional).
+function invParse(text){
+  const out=[], seen={};
+  String(text||'').split(/\r?\n/).forEach(line=>{
+    if(!line.trim()) return;
+    const m=/[^\s,;،\t|]+@[^\s,;،\t|]+\.[^\s,;،\t|]+/.exec(line);
+    if(!m){ out.push({bad:line.trim()}); return; }
+    const email=m[0].toLowerCase(); if(seen[email]) return; seen[email]=1;
+    const name=(line.slice(0,m.index)+' '+line.slice(m.index+m[0].length)).replace(/[,;،\t|]+/g,' ').replace(/\s+/g,' ').trim();
+    out.push({email,name});
+  });
+  return out;
+}
+async function invCall(email,name){
+  try{
+    const r=await fetch('/api/users',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({action:'invite',email,teacher:name||''})});
+    if(r.status===401){ onAuthRejected(); return {auth:true}; }
+    let d={}; try{ d=await r.json(); }catch(e){}
+    return {status:r.status,data:d};
+  }catch(e){ return {net:true}; }
+}
+function invWaText(link,name){
+  return 'السلام عليكم'+(name?' '+name:'')+'،\nهذا رابط تفعيل حسابكم في تطبيق «تتبع غياب التلاميذ» لتسجيل الغياب عند النداء. افتحوه واختاروا كلمة مرور (الرابط صالح 7 أيام ويُستعمل مرة واحدة):\n'+link;
+}
+function invCopy(inp,btn){
+  const done=()=>{ btn.textContent='✓ نُسخ'; setTimeout(()=>{ btn.textContent='نسخ الرابط'; },1800); };
+  inp.focus(); inp.select();
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(inp.value).then(done,()=>{ try{ document.execCommand('copy'); done(); }catch(e){} }); return; } }catch(e){}
+  try{ document.execCommand('copy'); done(); }catch(e){}
+}
+// shows the outcome of one invitation in #invOut (link + copy / WhatsApp when no mail went out)
+function invShow(out,email,name,res){
+  const row=document.createElement('div');
+  row.style.cssText='padding:8px 0;border-top:1px solid var(--line);margin-top:8px';
+  const head=document.createElement('div'); head.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:baseline';
+  const em=document.createElement('span'); em.dir='ltr'; em.textContent=email; em.style.cssText='font-size:13px;word-break:break-all';
+  const st=document.createElement('b'); st.style.cssText='font-size:12.5px';
+  head.appendChild(em); head.appendChild(st); row.appendChild(head);
+  const d=res.data||{};
+  const bad=(t)=>{ st.textContent=t; st.style.color='var(--absent)'; };
+  if(res.net){ bad('تعذر الاتصال بالخادم.'); }
+  else if(res.status!==200){ bad(d.message||'تعذر إرسال الدعوة.'); }
+  else if(d.upgraded){ st.textContent='الحساب موجود: صار أستاذا'; st.style.color='var(--teal)'; }
+  else if(d.emailed){ st.textContent='✔ أُرسلت الدعوة'; st.style.color='var(--teal)'; }
+  else {
+    st.style.color='var(--gold)';
+    st.textContent=d.mailConfigured?'تعذر إرسال البريد. أرسلوا هذا الرابط بأنفسكم:':'أرسلوا هذا الرابط إلى الأستاذ(ة):';
+    if(d.mailConfigured&&d.mailError){ const why=document.createElement('span'); why.className='sub'; why.dir='ltr'; why.textContent=d.mailError; head.appendChild(why); }
+    const line=document.createElement('div'); line.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-top:6px';
+    const inp=document.createElement('input'); inp.type='text'; inp.readOnly=true; inp.dir='ltr'; inp.value=d.link||'';
+    inp.style.cssText='flex:1 1 220px;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:12px;background:var(--panel);color:var(--ink)';
+    inp.onfocus=()=>inp.select();
+    const cp=document.createElement('button'); cp.type='button'; cp.className='btn ghost'; cp.textContent='نسخ الرابط'; cp.onclick=()=>invCopy(inp,cp);
+    const wa=document.createElement('a'); wa.className='btn wa'; wa.target='_blank'; wa.rel='noopener noreferrer'; wa.textContent='📲 واتساب';
+    wa.href='https://wa.me/?text='+encodeURIComponent(invWaText(d.link||'',name));
+    line.appendChild(inp); line.appendChild(cp); line.appendChild(wa); row.appendChild(line);
+  }
+  out.appendChild(row);
+}
+async function invSend(){
+  if(!canWrite) return;
+  const items=invParse(document.getElementById('invText').value);
+  const out=document.getElementById('invOut'), btn=document.getElementById('invSendBtn');
+  if(!items.length){ showAlert('اكتبوا بريد الأستاذ(ة) في الخانة، سطرا لكل أستاذ.'); return; }
+  btn.disabled=true; out.innerHTML='';
+  const keep=[];
+  for(const it of items){
+    if(it.bad){ invShow(out,it.bad,'',{status:400,data:{message:'لا يوجد بريد إلكتروني في هذا السطر.'}}); keep.push(it.bad); continue; }
+    const res=await invCall(it.email,it.name);
+    if(res.auth){ return; }
+    invShow(out,it.email,it.name,res);
+    if(res.status!==200) keep.push(it.name?it.email+'، '+it.name:it.email);
+  }
+  document.getElementById('invText').value=keep.join('\n');
+  btn.disabled=false;
+  usersDialog();
+}
+async function invResend(email,name,btn){
+  if(btn) btn.disabled=true;
+  const out=document.getElementById('invOut'); out.innerHTML='';
+  const res=await invCall(email,name);
+  if(res.auth) return;
+  invShow(out,email,name,res);
+  out.scrollIntoView({block:'nearest'});
   usersDialog();
 }
 
@@ -3641,6 +3780,8 @@ async function startApp(){
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ try{ navigator.serviceWorker.register('/sw.js').catch(()=>{}); }catch(e){} }); }
 
 (async function boot(){
+  const itok=inviteParam();
+  if(itok){ await inviteInit(itok); return; }
   if(!getToken()){ showGate(); return; }
   let me=null;
   try{

@@ -326,6 +326,19 @@
       ],
       "tech": "Annulation par git revert du commit de l’écran d’accueil (index.html, fr.js, README).",
       "date": "2026-10-19"
+    },
+    {
+      "date": "2026-10-23",
+      "title": "Invitation des professeurs par e-mail : un compte prêt d’un clic sur le lien",
+      "goal": "Que les professeurs n’aient plus à attendre une approbation : ils reçoivent un lien par e-mail et leur compte devient « professeur » dès qu’ils l’ouvrent ; le bouton « Approuver un nouveau compte » reste pour les inconnus qui se sont inscrits eux-mêmes.",
+      "done": [
+        "Dans la fenêtre « Approuver un nouveau compte », une zone « Inviter des professeurs » : une ligne par professeur(e) (l’e-mail puis le nom comme dans le tableau, facultatif) et un bouton « Envoyer les invitations » qui traite plusieurs lignes d’un coup et ignore les doublons. Dessous, la liste « Invitations en attente » avec « Renvoyer » et « Annuler ».",
+        "Le lien est aléatoire, valable 7 jours et ne sert qu’une fois. Le professeur l’ouvre : la page « Activation du compte professeur » affiche son e-mail verrouillé, il choisit un mot de passe (8 caractères minimum) et entre aussitôt avec un compte professeur approuvé (lié à son nom si l’administration l’a saisi). Si le lien est rouvert ou expiré, la page de connexion ordinaire s’affiche avec l’explication.",
+        "L’e-mail part par n’importe quel compte SMTP (par exemple Gmail avec un mot de passe d’application), réglé par des variables Vercel, sans bibliothèque externe. Si rien n’est réglé ou si l’envoi échoue, la fenêtre montre le lien avec « Copier le lien » et « WhatsApp » pour que l’administrateur l’envoie lui-même : la fonction marche toujours, l’e-mail n’est qu’un confort.",
+        "Sécurité : seule l’empreinte SHA-256 du lien est conservée ; l’activation ne peut servir qu’une fois, même avec deux requêtes simultanées ; une demande de compte déposée par une personne qui n’est pas propriétaire de l’adresse est supprimée à l’invitation (ou son mot de passe est remplacé par celui du détenteur du lien) ; le lien ne change jamais le mot de passe d’un compte déjà approuvé ; les tentatives sont limitées par adresse IP ; le mot de passe SMTP ne circule jamais sur une connexion non chiffrée. Un compte déjà approuvé est simplement promu professeur par l’invitation, sans lien.",
+        "Traduction française complète (fenêtre, page d’activation, messages) et correction dans fr.js : le texte saisi dans une zone de texte reste tel quel mais son indication (placeholder) est désormais traduite. README mis à jour avec la section « Invitation des professeurs par e-mail » et le réglage de Gmail."
+      ],
+      "tech": "Nouveau fichier api/_mail.js (petit client SMTP en net et tls : TLS direct sur 465 ou STARTTLS sur 587, AUTH PLAIN/LOGIN, message MIME multipart en base64 avec en-têtes UTF-8, délai de 9 s). Dans api/_lib.js, les fonctions d’invitation (loadInvite, hashToken, clés <KEY_PREFIX>:inv:<hash> avec ex 7 jours et <KEY_PREFIX>:invites comme index de l’administrateur). Dans api/users.js, les actions invite et uninvite et les champs invites et mail dans GET ?all=1 ; dans api/auth.js, l’action accept (le jeton est consommé par DEL et seule la requête qui l’a réellement supprimé continue) et GET ?invite=. Dans index.html, le mode invite de l’écran de connexion et invParse/invSend/invShow. Tests : 40 contrôles côté serveur (dont l’usage simultané et l’usurpation d’adresse), 14 pour le client e-mail face à un faux serveur SMTP dans ses trois modes, et des contrôles de l’interface en arabe et en français et en largeur téléphone."
     }
   ],
   "method": [
@@ -340,7 +353,8 @@
     "Essayer « Archiver la saison » pour la première fois à la fin réelle de la saison, car l’effacement des absences du tableau est irréversible.",
     "Essayer l’import de l’organisation pédagogique sur le site avec le vrai lecteur Excel.",
     "Essayer le compte enseignant lors d’une vraie séance : un seul appui sans confirmation convient-il, et faut-il lier le compte au nom de l’enseignant dans tous les comptes ? Essayer aussi le bouton « Aucun » (le délai de 20 minutes avant le « ! » est-il adapté ?) et le travail sans Internet dans une salle sans couverture.",
-    "Essayer la restauration depuis « Sauvegardes » sur des données réelles, et activer la sauvegarde quotidienne d’Upstash si l’offre le permet."
+    "Essayer la restauration depuis « Sauvegardes » sur des données réelles, et activer la sauvegarde quotidienne d’Upstash si l’offre le permet.",
+    "Régler l’envoi d’e-mails (SMTP) sur Vercel et essayer une vraie invitation à un professeur, en vérifiant que le message arrive dans la boîte de réception et non dans les courriers indésirables."
   ],
   "gitNote": "Les messages de commit restent en anglais, tels qu’écrits."
 }

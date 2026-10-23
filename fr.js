@@ -105,7 +105,7 @@
     'خروج': 'Déconnexion',
     '📊 الإحصائيات': '📊 Statistiques',
     '👥 الموافقة على حساب جديد': '👥 Approuver un nouveau compte',
-    'الموافقة على طلبات حسابات الاطلاع': 'Approuver les demandes de comptes de consultation',
+    'دعوة الأساتذة بالبريد والموافقة على طلبات الحسابات': "Inviter les professeurs par e-mail et approuver les demandes de compte",
     'طباعة': 'Imprimer',
     'مسؤول': 'Administrateur',
     'اطلاع': 'Consultation',
@@ -258,8 +258,37 @@
     'لم تُدخل بعد أسماء الأساتذة': "Aucun nom de professeur saisi pour l'instant",
 
     // users dialog
-    'حسابات الاطلاع': 'Comptes de consultation',
-    'من يسجّل حسابا جديدا من صفحة الدخول لا يستطيع الدخول حتى توافقوا على طلبه هنا. الحسابات المقبولة تطلع على الجدول والإحصائيات فقط دون تعديل، ويمكنكم تحويل أي حساب إلى «أستاذ» ليسجّل الغياب عند النداء في حصص اليوم (وإن كتبتم اسمه كما في الجدول فلن يسجّل إلا في حصصه).': "Toute personne qui crée un compte depuis la page de connexion ne peut pas se connecter tant que vous n'avez pas approuvé sa demande ici. Les comptes approuvés peuvent seulement consulter le tableau et les statistiques, sans rien modifier ; vous pouvez transformer un compte en « professeur » pour qu'il note les absences à l'appel dans les séances du jour (si vous saisissez son nom comme dans le tableau, il ne pourra noter que dans ses propres séances).",
+    'الحسابات': 'Comptes',
+    'الأساتذة لا يحتاجون إلى موافقة: ادعوهم من الأعلى بإدخال بريد كل أستاذ(ة)، فيصله رابط تفعيل، وبمجرد فتحه واختيار كلمة مرور يصبح حسابه «أستاذا» جاهزا لتسجيل الغياب. أما من يسجّل حسابا بنفسه من صفحة الدخول فلا يدخل حتى توافقوا على طلبه، وحسابه المقبول يطلع على الجدول والإحصائيات فقط دون تعديل.': "Les professeurs n'ont pas besoin d'approbation : invitez-les depuis le haut en saisissant l'adresse e-mail de chacun(e) ; il/elle reçoit un lien d'activation et, dès qu'il/elle l'ouvre et choisit un mot de passe, son compte devient « professeur », prêt à noter les absences. Quant à celui ou celle qui crée un compte lui/elle-même depuis la page de connexion, il/elle ne peut pas se connecter tant que vous n'avez pas approuvé sa demande, et son compte approuvé consulte seulement le tableau et les statistiques, sans rien modifier.",
+    'دعوة أساتذة': 'Inviter des professeurs',
+    'سطر لكل أستاذ(ة): البريد الإلكتروني ثم اسمه كما في الجدول (اختياري، وبه لا يسجّل الحساب إلا في حصصه). الرابط صالح 7 أيام ويُستعمل مرة واحدة.': "Une ligne par professeur(e) : l'adresse e-mail puis son nom comme dans le tableau (facultatif ; avec lui, le compte ne note que dans ses séances). Le lien est valable 7 jours et ne sert qu'une fois.",
+    'prof@gmail.com، نعيمة بداوي': 'prof@gmail.com, Naïma Bedaoui',
+    'إرسال البريد غير مُعدّ في الخادم بعد: ستحصلون على رابط لكل أستاذ تنسخونه وترسلونه بواتساب أو أي وسيلة أخرى (إعداد البريد موضَّح في README).': "L'envoi d'e-mails n'est pas encore configuré sur le serveur : vous obtiendrez un lien par professeur(e) à copier et à envoyer par WhatsApp ou autrement (la configuration du courrier est expliquée dans le README).",
+    '✉ إرسال الدعوات': '✉ Envoyer les invitations',
+    'دعوات بانتظار القبول': 'Invitations en attente',
+    'إعادة الإرسال': 'Renvoyer',
+    'لا توجد دعوات معلّقة.': 'Aucune invitation en attente.',
+    'أشخاص سجّلوا بأنفسهم من صفحة الدخول: لا تقبلوا إلا من تعرفونه. أما الأساتذة فادعوهم من الأعلى.': "Personnes inscrites elles-mêmes depuis la page de connexion : n'approuvez que celles que vous connaissez. Les professeurs, invitez-les depuis le haut.",
+    'اكتبوا بريد الأستاذ(ة) في الخانة، سطرا لكل أستاذ.': "Saisissez l'e-mail du/de la professeur(e) dans la zone, une ligne par professeur.",
+    'لا يوجد بريد إلكتروني في هذا السطر.': "Aucune adresse e-mail dans cette ligne.",
+    'تعذر إرسال الدعوة.': "Impossible d'envoyer l'invitation.",
+    'الحساب موجود: صار أستاذا': 'Le compte existe : il est devenu professeur',
+    '✔ أُرسلت الدعوة': '✔ Invitation envoyée',
+    'تعذر إرسال البريد. أرسلوا هذا الرابط بأنفسكم:': "Impossible d'envoyer l'e-mail. Envoyez ce lien vous-même :",
+    'أرسلوا هذا الرابط إلى الأستاذ(ة):': 'Envoyez ce lien au/à la professeur(e) :',
+    'نسخ الرابط': 'Copier le lien',
+    '✓ نُسخ': '✓ Copié',
+    '📲 واتساب': '📲 WhatsApp',
+    'تفعيل حساب الأستاذ(ة)': 'Activation du compte professeur',
+    'اختاروا كلمة مرور': 'Choisissez un mot de passe',
+    'تفعيل حسابي': 'Activer mon compte',
+    'اختاروا كلمة مرور من 8 أحرف على الأقل، وستدخلون بها إلى التطبيق في كل مرة. بمجرد التفعيل يصبح حسابكم جاهزا لتسجيل الغياب عند النداء دون أي موافقة أخرى.': "Choisissez un mot de passe d'au moins 8 caractères ; vous l'utiliserez à chaque connexion. Dès l'activation, votre compte est prêt pour noter les absences à l'appel, sans autre approbation.",
+    'رابط الدعوة غير صالح أو انتهت صلاحيته. اطلبوا من الإدارة دعوة جديدة.': "Lien d'invitation invalide ou expiré. Demandez une nouvelle invitation à l'administration.",
+    'رابط الدعوة غير صالح.': "Lien d'invitation invalide.",
+    'تعذر الاتصال بالخادم، تأكدوا من الإنترنت ثم أعيدوا فتح الرابط.': "Impossible de joindre le serveur : vérifiez la connexion Internet puis rouvrez le lien.",
+    'لهذا البريد حساب مفعّل بالفعل. سجّلوا الدخول من تبويب «دخول».': "Cette adresse a déjà un compte activé. Connectez-vous depuis l'onglet « Se connecter ».",
+    'محاولات كثيرة، انتظروا قليلا ثم أعيدوا المحاولة': 'Trop de tentatives : patientez un peu puis réessayez.',
+    'عدد الدعوات المعلّقة كبير، ألغوا بعضها أولا': "Trop d'invitations en attente : annulez-en d'abord quelques-unes.",
     'إغلاق': 'Fermer',
     'تعذر تحميل القائمة، تحقّقوا من الاتصال وأعيدوا المحاولة.': 'Impossible de charger la liste : vérifiez la connexion et réessayez.',
     'طلبات بانتظار موافقتكم': 'Demandes en attente de votre approbation',
@@ -487,6 +516,7 @@
   /* ---------- sentence patterns: [regex, template or function] ----------
    * template: $n = group n as it is, %n = group n translated again.  */
   var SENT = [
+    [/^سيتوقف رابط الدعوة المرسل إلى (.+) عن العمل\. المتابعة؟$/, "Le lien d'invitation envoyé à $1 cessera de fonctionner. Continuer ?"],
     [/^تم العثور على (\d+) (?:قسم|أقسام) و(\d+) (?:أستاذ|أساتذة) في الملف\. اختاروا القسم الذي يُطبَّق عليه كل جدول:$/, 'Trouvé dans le fichier : $1 classe(s) et $2 professeur(s). Choisissez la classe à laquelle appliquer chaque emploi du temps :'],
     [/^➕ إنشاء قسم «(.*)»$/, '➕ Créer la classe « $1 »'],
     [/^لا يمكن تطبيق قسمين من الملف على القسم نفسه «(.*)»\.$/, 'Impossible d\'appliquer deux classes du fichier à la même classe « $1 ».'],
@@ -737,7 +767,8 @@
     if (n.nodeType === 3) { fixText(n); return; }
     if (n.nodeType !== 1) return;
     var tag = n.nodeName;
-    if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'TEXTAREA') return;
+    if (tag === 'TEXTAREA') { if (n.hasAttribute('placeholder')) fixAttr(n, 'placeholder'); return; } // typed text stays as typed
+    if (tag === 'SCRIPT' || tag === 'STYLE') return;
     for (var i = 0; i < ATTRS.length; i++) if (n.hasAttribute(ATTRS[i])) fixAttr(n, ATTRS[i]);
     var c = n.firstChild;
     while (c) { var nx = c.nextSibling; walk(c); c = nx; }

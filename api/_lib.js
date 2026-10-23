@@ -151,6 +151,24 @@ function getSession(req) {
 const userKey = (email) => PREFIX + ':user:' + email;
 const PENDING_KEY = PREFIX + ':pending';
 
+// ---- teacher invitations ---------------------------------------------------------
+// The admin invites a teacher by e-mail address. The link carries a random token; only its
+// SHA-256 is stored (inviteKey), so a leak of the database does not leak working links.
+// INVITES_KEY is the admin's list: {email: {h:<hash>, t:<created ms>, teacher:<name>}}.
+// Opening the link and choosing a password creates an already-approved teacher account
+// (see /api/auth action:'accept'); the link works once and for INVITE_DAYS days.
+const INVITE_DAYS = 7;
+const INVITES_KEY = PREFIX + ':invites';
+const inviteKey = (hash) => PREFIX + ':inv:' + hash;
+const hashToken = (t) => crypto.createHash('sha256').update(String(t)).digest('hex');
+async function loadInvite(token) {
+  if (typeof token !== 'string' || token.length < 20 || token.length > 100) return null;
+  const key = inviteKey(hashToken(token));
+  const inv = await getRedis().get(key);
+  if (!inv || !inv.email || !(Date.now() - Number(inv.createdAt || 0) < INVITE_DAYS * 86400000)) return null;
+  return { key, email: String(inv.email), teacher: String(inv.teacher || ''), createdAt: Number(inv.createdAt) };
+}
+
 // Does this viewer still have an approved account? (A removed or still-pending
 // account must not keep working with a token it already holds.) The answer is
 // cached for a minute per server instance, so polling does not double the Redis traffic.
@@ -213,5 +231,5 @@ module.exports = {
   configProblem, getRedis, send, parseBody, clientIp, normalizeEmail, validEmail,
   safeEqual, hashPassword, verifyPassword, dummyVerify,
   signToken, verifyToken, getSession, getActiveSession, allow,
-  userKey, PENDING_KEY, viewerActive, accountInfo, forgetViewer, withLock,
+  userKey, PENDING_KEY, INVITE_DAYS, INVITES_KEY, inviteKey, hashToken, loadInvite, viewerActive, accountInfo, forgetViewer, withLock,
 };
