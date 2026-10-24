@@ -143,6 +143,31 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 #tableHost tr.foot td.stk{right:var(--oName,0px);z-index:7}
 #tableHost tr.foot td.lead{right:0;z-index:7}
 @media(max-width:700px){#tableHost{max-height:66vh}}
+/* phone layout: the days are stacked (scroll down to move from one day to the next) */
+#tableHost.vert{max-height:none;overflow:visible}
+.vnav{position:sticky;top:0;z-index:30;display:flex;gap:6px;padding:8px 0;margin-bottom:4px;background:var(--panel);overflow-x:auto;border-bottom:1px solid var(--line)}
+.vnav button{flex:1 1 0;min-width:0;border:1.5px solid var(--dc);background:color-mix(in srgb,var(--dc) 12%,var(--panel));color:var(--ink);border-radius:16px;padding:5px 2px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.vnav button.now{background:var(--dc);color:#fff}
+.vday{margin:14px 0 8px;scroll-margin-top:58px}
+.vdh{margin:0 0 6px;padding:7px 10px;border-radius:8px;background:var(--dc,var(--teal));color:#fff;font-size:15px}
+.vmgr{--dc:var(--teal)}
+.vtoday{display:inline-block;margin-inline-start:6px;padding:0 8px;border-radius:10px;background:rgba(255,255,255,.28);font-size:12px;font-weight:700}
+.vmeta{margin:0 0 6px;font-size:12.5px}
+.vmeta summary{cursor:pointer;color:var(--ink-soft);padding:2px 0}
+.vmrow{display:grid;grid-template-columns:74px 1fr 1fr;gap:4px;align-items:center;margin:4px 0}
+.vmrow b{font-size:12px;color:var(--ink-soft)}
+.vmrow input{width:100%;min-width:0;box-sizing:border-box;border:1px dashed var(--line);background:transparent;color:var(--ink);font-family:inherit;font-size:12px;border-radius:4px;padding:3px}
+.vscroll{overflow-x:auto}
+#tableHost.vert table.vt{min-width:0;width:100%}
+#tableHost.vert table.vt td.name{width:104px;min-width:104px;max-width:104px;white-space:normal;word-break:break-word;line-height:1.25;font-size:12.5px;padding-inline-start:4px}
+#tableHost.vert table.vt td.cell{width:27px;min-width:27px;padding:5px 1px}
+#tableHost.vert table.vt td.phcol{position:static;box-shadow:none}
+#tableHost.vert table.vt td.phcol .phone{width:100%;min-width:90px;box-sizing:border-box}
+#tableHost.vert .cbtn{width:100%;font-size:9px}
+.vfoot td{background:var(--teal-soft);font-weight:700;color:var(--teal);font-size:11.5px;white-space:normal}
+.vbreak{background:repeating-linear-gradient(45deg,var(--gold-soft),var(--gold-soft) 10px,color-mix(in srgb,var(--gold-soft) 55%,var(--panel)) 10px,color-mix(in srgb,var(--gold-soft) 55%,var(--panel)) 20px);color:var(--gold);font-weight:900;font-size:24px;text-align:center;padding:26px 8px;border-radius:8px}
+.vempty{text-align:center;color:var(--ink-soft);padding:22px 8px}
+#tableHost.vert .addbar{position:static;width:auto;margin-top:12px}
 @media print{#tableHost{max-height:none;overflow:visible}.addbar{display:none}}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
 .card h3{margin:0 0 10px;font-size:14px;color:var(--teal)}
@@ -1320,8 +1345,93 @@ function updateInstName(){
   if(t && document.activeElement!==t) t.value=state.weekTo||'';
 }
 
+// one absence cell (shared by the wide sheet and the phone layout)
+function cellHtml(cls,si,i,pc,pendSet){
+  const name=cls.names[si], ab=cls.absences[si][i];
+  const tap=!canWrite&&teacherCan(i,ab);
+  const pend=pendSet&&pendSet.has('m|'+currentClass+'|'+name+'|'+i);
+  const click=canWrite?` onclick="toggleCell(${si},${i})"`:tap?` onclick="teacherMark(${si},${i})"`:canMark?` onclick="teacherLocked(${i})"`:'';
+  return `<td class="cell${ab?' absent':''}${ab==='j'?' just':''}${(canWrite||tap)?'':' readonly'}${pend?' pend':''}${colIsFuture(i)?' future':''}${colDayCl(i,pc)}${sepCol(i,pc)}" data-ci="${i}"${ab==='j'?' title="غياب مبرر"':ab?' title="غياب غير مبرر"':''}${click}>${ab?'غ':''}${ab==='j'?'<small class="jm">م</small>':''}</td>`;
+}
+// the bar under the list: add a student, import, "nobody absent", archive...
+function addBarHtml(){
+  if(!(canWrite||canMark)) return '';
+  return `<div class="addbar">
+      <input id="newName" placeholder="اسم التلميذ الجديد" onkeydown="if(event.key==='Enter')addStudent()">
+      <button class="btn" id="addStuBtn" type="button" onmousedown="event.preventDefault()" onclick="addStudent()">إضافة تلميذ</button>
+      ${canWrite?`<button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>`:''}
+      ${canMark?`<button class="btn" id="noneBtn" type="button" onmousedown="event.preventDefault()" onclick="teacherCalledNow()" title="تمّ النداء ولا غائب في حصتكم الحالية">✅ لا أحد</button>`:''}
+      ${canWrite?`<button class="btn ghost" id="callBtn2" type="button" onclick="openCallFollow()" title="هل قام الأساتذة بالنداء؟">✅ متابعة النداء</button>
+      <button class="btn ghost" id="seasonBtn" style="margin-inline-start:auto" onclick="seasonDialog()" title="حفظ غياب الموسم الدراسي كاملا في الأرشيف وبدء موسم جديد">🗄️ أرشفة الموسم</button>`:''}
+    </div>`;
+}
+// On a phone the days are stacked one under the other (scroll down to go from day to day) instead of
+// running sideways; a wide screen keeps the usual sheet.
+const VQ=window.matchMedia?window.matchMedia('(max-width: 700px)'):null;
+function isVert(){ return !!(VQ&&VQ.matches); }
+if(VQ&&VQ.addEventListener) VQ.addEventListener('change',()=>{ try{ if(typeof state!=='undefined'&&state&&state.data&&state.data[currentClass]&&document.getElementById('tableHost').firstChild) renderTable(); }catch(e){} });
+function vJump(d){ const e=document.getElementById('vday'+d); if(e) e.scrollIntoView({behavior:'smooth',block:'start'}); }
+function renderTableVertical(host){
+  const cls=state.data[currentClass], names=cls.names;
+  const br=breakNow(), T=canMark, pc=pcount(), W=pc[0]+pc[1];
+  const dis=(canWrite&&!br)?'':'disabled';
+  const pendSet=canMark?tqPending():null;
+  const wf=ntMonday(state.weekFrom), today=todayIso();
+  const todayD=wf?[0,1,2,3,4].find(d=>addDaysIso(wf,d)===today):undefined;
+  let html='<div class="vsheet">';
+  if(br){
+    html+=`<div class="vbreak">${svEsc(br.label||'عطلة بينية')}</div>`;
+  }else if(!names.length){
+    html+='<p class="vempty">لا يوجد تلاميذ في هذا القسم بعد.</p>';
+  }else if(W){
+    html+='<div class="vnav">'+DAY_NAMES.map((n,d)=>`<button type="button" class="d${d}${d===todayD?' now':''}" onclick="vJump(${d})">${n}</button>`).join('')+'</div>';
+    for(let d=0;d<5;d++){
+      html+=`<section class="vday d${d}" id="vday${d}"><h3 class="vdh">${DAY_NAMES[d]}${d===todayD?' <span class="vtoday">اليوم الحالي</span>':''}</h3>`;
+      html+='<details class="vmeta"><summary>المواد والأساتذة</summary>';
+      for(let sh=0;sh<2;sh++) for(let q=0;q<pc[sh];q++){
+        const i=d*W+(sh?pc[0]+q:q), col=cls.columns[i]||{subject:'',teacher:''};
+        html+=`<div class="vmrow"><b>${SHIFTS[sh]} ح${q+1}</b><input ${dis} placeholder="المادة" value="${svEsc(col.subject)}" oninput="setMeta(${i},'subject',this.value)"><input ${dis} placeholder="الأستاذ(ة)" value="${svEsc(col.teacher)}" oninput="setMeta(${i},'teacher',this.value)"></div>`;
+      }
+      html+='</details>';
+      html+='<div class="vscroll"><table class="vt"><thead><tr><th class="hl numh" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th>';
+      for(let sh=0;sh<2;sh++) if(pc[sh]) html+=`<th class="day${sh?' ev':''}${sepDay(d*2+sh,pc)}" colspan="${pc[sh]}">${SHIFTS[sh]}</th>`;
+      html+='</tr><tr>';
+      for(let sh=0;sh<2;sh++) for(let q=0;q<pc[sh];q++) html+=`<th class="per${sepPer(d*2+sh,q,pc)}">ح${q+1}</th>`;
+      html+='</tr></thead><tbody>';
+      names.forEach((name,si)=>{
+        html+=`<tr><td class="num">${si+1}</td><td class="name">${svEsc(name)}</td>`;
+        for(let k=0;k<W;k++) html+=cellHtml(cls,si,d*W+k,pc,pendSet);
+        html+='</tr>';
+      });
+      html+='<tr class="vfoot"><td colspan="2">عدد الغياب في الحصة</td>';
+      for(let k=0;k<W;k++){
+        const i=d*W+k; let sum=0; cls.absences.forEach(r=>{ if(r[i]) sum++; });
+        html+=`<td class="${sepCol(i,pc).trim()}">${sum}${callMark(currentClass,i,sum,pendSet)}</td>`;
+      }
+      html+='</tr></tbody></table></div></section>';
+    }
+  }
+  if(!T && names.length){   // the list itself: selection / delete (administrator) and the parent's phone
+    html+='<section class="vday vmgr"><h3 class="vdh">لائحة التلاميذ وهواتف أولياء الأمور</h3><div class="vscroll"><table class="vt vmt"><thead><tr>';
+    if(canWrite) html+='<th><input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)"></th><th></th>';
+    html+='<th>م</th><th>الاسم الكامل</th><th>هاتف ولي الأمر</th></tr></thead><tbody>';
+    const pdis=(canWrite&&!br)?'':'disabled';
+    names.forEach((name,si)=>{
+      html+='<tr>'+(canWrite?`<td><input type="checkbox" ${selected.has(si)?'checked':''} onchange="toggleSelect(${si},this.checked)"></td><td><button class="del" title="حذف التلميذ" onclick="deleteStudent(${si})">×</button></td>`:'')
+        +`<td class="num">${si+1}</td><td class="name">${svEsc(name)}</td><td class="phcol"><input class="phone" ${pdis} placeholder="06XXXXXXXX" value="${svEsc(cls.phones[si]||'')}" oninput="setPhone(${si},this.value)"></td></tr>`;
+    });
+    html+='</tbody></table></div></section>';
+  }
+  html+=addBarHtml()+'</div>';
+  host.innerHTML=html;
+  syncHeaderOffset();
+}
+
 function renderTable(){
   const host=document.getElementById('tableHost');
+  const vert=isVert();
+  host.classList.toggle('vert',vert);
+  if(vert){ const y=window.scrollY; renderTableVertical(host); if(window.scrollY!==y) window.scrollTo(0,y); return; }
   const cls=state.data[currentClass];
   const names=cls.names;
   const br=breakNow();   // inter-term holiday week: nothing can be recorded
@@ -1349,13 +1459,7 @@ function renderTable(){
       if(si===0) for(let j=0;j<10;j++) if(pc[j&1]) html+=`<td class="breakcell" colspan="${pc[j&1]}" rowspan="${names.length}"><span>${svEsc(br.label||'عطلة بينية')}</span></td>`;
       html+='</tr>'; return;
     }
-    for(let i=0;i<NC;i++){
-      const ab=cls.absences[si][i];
-      const tap=!canWrite&&teacherCan(i,ab);
-      const pend=pendSet&&pendSet.has('m|'+currentClass+'|'+name+'|'+i);
-      const click=canWrite?` onclick="toggleCell(${si},${i})"`:tap?` onclick="teacherMark(${si},${i})"`:canMark?` onclick="teacherLocked(${i})"`:'';
-      html+=`<td class="cell${ab?' absent':''}${ab==='j'?' just':''}${(canWrite||tap)?'':' readonly'}${pend?' pend':''}${colIsFuture(i)?' future':''}${colDayCl(i,pc)}${sepCol(i,pc)}" data-ci="${i}"${ab==='j'?' title="غياب مبرر"':ab?' title="غياب غير مبرر"':''}${click}>${ab?'غ':''}${ab==='j'?'<small class="jm">م</small>':''}</td>`;
-    }
+    for(let i=0;i<NC;i++) html+=cellHtml(cls,si,i,pc,pendSet);
     html+='</tr>';
   });
   if(br&&!names.length){   // empty list: still show the label
@@ -1376,16 +1480,7 @@ function renderTable(){
   html+='</tr><tr>';
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
   html+='</tr></tfoot></table>';
-  if(canWrite||canMark){
-    html+=`<div class="addbar">
-      <input id="newName" placeholder="اسم التلميذ الجديد" onkeydown="if(event.key==='Enter')addStudent()">
-      <button class="btn" id="addStuBtn" type="button" onmousedown="event.preventDefault()" onclick="addStudent()">إضافة تلميذ</button>
-      ${canWrite?`<button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>`:''}
-      ${canMark?`<button class="btn" id="noneBtn" type="button" onmousedown="event.preventDefault()" onclick="teacherCalledNow()" title="تمّ النداء ولا غائب في حصتكم الحالية">✅ لا أحد</button>`:''}
-      ${canWrite?`<button class="btn ghost" id="callBtn2" type="button" onclick="openCallFollow()" title="هل قام الأساتذة بالنداء؟">✅ متابعة النداء</button>
-      <button class="btn ghost" id="seasonBtn" style="margin-inline-start:auto" onclick="seasonDialog()" title="حفظ غياب الموسم الدراسي كاملا في الأرشيف وبدء موسم جديد">🗄️ أرشفة الموسم</button>`:''}
-    </div>`;
-  }
+  html+=addBarHtml();
   html+='</div>';
   host.innerHTML=html;
   syncHeaderOffset();

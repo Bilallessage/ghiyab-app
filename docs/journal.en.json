@@ -361,6 +361,19 @@
         "Because Google shows the app password as four groups separated by spaces, the server now removes spaces and line breaks from SMTP_PASS, with Gmail only, and the README points out the exact variable name."
       ],
       "tech": "In api/_mail.js: when SMTP_HOST ends with gmail.com or googlemail.com the password is cleaned with replace(/\\s+/g,''). The configuration function is exported as _config for the test. The 14 mail-client tests still pass, with an extra check of the cleaning for Gmail and of no change for other servers."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Phone: the days of the week stacked, moving between them by scrolling down",
+      "goal": "On a phone, going from one day of the absence week to another meant scrolling the sheet sideways through dozens of columns. Navigation should be vertical, the way pages are browsed on a phone.",
+      "done": [
+        "On narrow screens (700 pixels or less) the app shows one section for each of the five days, with a small table holding the student number and name and that day's morning and afternoon periods; the next day is reached by scrolling down, with no sideways scrolling at all.",
+        "A bar of days stays at the top of the sheet: tapping a day name jumps to it, and the current day (when it falls in the week shown) is highlighted with a filled chip and a \"today\" badge.",
+        "Every day has its \"number of absences per period\" row (with the teacher's \"nobody\" mark and the administrator's follow-up) and a collapsible \"Subjects and teachers\" section to read, and for the administrator edit, the subject and teacher of each period.",
+        "At the bottom of the page a \"Student list and parents' phones\" section (for the administrator and the read-only viewer, not the teacher) holds selection, deletion and the parent's number, which keeps the day columns narrow.",
+        "Recording, deleting and converting an absence work as before (same confirmation window), the page keeps its scroll position after each recording, the wide screen goes back to the usual sheet when the window is enlarged or the phone is rotated, and all the new texts are translated into French."
+      ],
+      "tech": "In index.html: cellHtml and addBarHtml are extracted from renderTable so both layouts share them; renderTableVertical is called when matchMedia matches max-width: 700px (with a change listener); vJump jumps to the chosen day; CSS classes vday/vnav/vscroll/vt/vfoot/vmeta. The column numbers (data-ci) are the same, so toggleCell, teacherMark, callMark and setMeta work unchanged. Four new sentences in fr.js. New test (verttest) on a virtual phone: five sections and five day buttons, no sideways scrolling in any section or in the page, an absence recorded in the right column with the scroll kept, editing a subject and a phone, return to the wide sheet, French with no Arabic left over, viewer and teacher accounts."
     }
   ],
   "method": [
