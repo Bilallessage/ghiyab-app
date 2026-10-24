@@ -398,6 +398,17 @@
         "La bande étroite (environ 14 pixels) au bord du grand tableau, où l’on voyait passer les bords des colonnes sous les colonnes épinglées, est masquée en supprimant la marge latérale du tableau : les colonnes épinglées touchent désormais le bord (en arabe et en français)."
       ],
       "tech": "Dans api/mark.js : fonction frameFor (choisit entre la feuille et state.other la semaine contenant aujourd’hui et convertit le numéro de colonne), otherClass, otherRow, archiveView, endMinutes et PERIOD_MIN ; teacherRules est réécrit pour prendre ce cadre et ajoute le refus period_over. Dans index.html : snapshotWeekOf et applyWeekTo (la logique de bascule y a été déplacée), liveView (appliqué à ce que le serveur renvoie aux non-administrateurs), colEnd, colIsOver et PERIOD_MIN, modifications de teacherWhy, teacherMark et refreshFutureCells, suppression du padding latéral de #tableHost. Dans fr.js : trois traductions. Nouveau test livetest (32 vérifications) et tests du professeur mis à jour avec l’heure de l’appui."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Colonne de suppression masquée ; modifier ou supprimer un élève en touchant son nom",
+      "goal": "Il a été demandé de masquer la colonne du bouton de suppression (×) de la liste, et de n’offrir la suppression qu’après un clic sur le nom d’un élève, avec la possibilité de modifier le nom ou de supprimer l’élève.",
+      "done": [
+        "La colonne du bouton « × » est supprimée du grand tableau et de la liste de l’affichage téléphone ; la case de sélection pour la suppression groupée reste.",
+        "Un clic sur le nom d’un élève (administrateur seulement) ouvre une petite fenêtre avec le nom modifiable et les boutons « Enregistrer le nom », « Supprimer l’élève » (avec confirmation) et « Annuler ». Un nom vide, trop long ou déjà présent dans la classe est refusé, et les espaces sont normalisés.",
+        "Renommer conserve les absences et le téléphone de l’élève ; la semaine mise de côté et les avis déjà envoyés (associés au nom) suivent le nouveau nom. À noter : les semaines archivées dans les statistiques gardent l’ancien nom."
+      ],
+      "tech": "Dans index.html : fonctions studentDialog et renameStudent, suppression de la colonne dl dans renderTable et dans la liste de renderTableVertical, classe editable pour la cellule du nom. Dans fr.js : six traductions. Nouveau test studenttest (30 vérifications : ordinateur, téléphone, français)."
     }
   ],
   "method": [

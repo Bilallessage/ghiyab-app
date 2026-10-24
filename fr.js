@@ -301,6 +301,10 @@
     'اطلاع': 'Consultation',
     'جعله أستاذا': 'Nommer professeur(e)',
     'حفظ الاسم': 'Enregistrer le nom',
+    'عدّلوا الاسم ثم «حفظ الاسم»، أو احذفوا التلميذ(ة) من اللائحة.': "Modifiez le nom puis « Enregistrer le nom », ou supprimez l'élève de la liste.",
+    'تعديل الاسم أو حذف التلميذ': "Modifier le nom ou supprimer l'élève",
+    'الاسم طويل جدا (80 حرفا على الأكثر).': 'Le nom est trop long (80 caractères au maximum).',
+    'يوجد تلميذ(ة) بهذا الاسم في القسم بالفعل.': 'Un élève porte déjà ce nom dans la classe.',
     'إرجاعه إلى اطلاع فقط': 'Remettre en consultation seule',
     'اسم الأستاذ(ة) كما في الجدول (اختياري)': 'Nom du/de la professeur(e) comme dans le tableau (facultatif)',
     'إن كُتب الاسم، لا يسجّل الحساب الغياب إلا في الحصص التي يحمل فيها هذا الاسم': "Si le nom est renseigné, le compte ne peut noter les absences que dans les séances portant ce nom",
@@ -580,6 +584,7 @@
     [/^سُجّل غياب التلميذ\(ة\) (.+) \(القسم (.+)\)\. إشعار ولي الأمر جاهز، هل ترسلونه الآن؟$/, "L'absence de l'élève $1 (&2) a été enregistrée. L'avis au parent est prêt : l'envoyer maintenant ?"],
 
     // classes / students
+    [/^التلميذ\(ة\) رقم (\d+) — (.+)$/, 'Élève n° $1 — $2'],
     [/^حذف القسم "(.+)" نهائيا مع كل بياناته \(اللائحة والغياب والهواتف\)؟$/, 'Supprimer définitivement la classe « $1 » avec toutes ses données (liste, absences et téléphones) ?'],
     [/^اليوم عطلة نهاية الأسبوع \((السبت|الأحد)\)، ولا توجد حصص لتسجيل غيابها\.$/, function (m) { return "Aujourd'hui c'est le week-end (" + (m[1] === 'السبت' ? 'samedi' : 'dimanche') + ") : il n'y a pas de séances dont noter l'absence."; }],
     [/^الورقة تعرض الأسبوع من (\S+) إلى (\S+) وهو ليس أسبوع اليوم \((\S+)\)\. على المسؤول أن يبدأ الأسبوع الجديد \(زر «التالي»\) ليتمكن الأساتذة من تسجيل الغياب\.$/, "La feuille affiche la semaine du $1 au $2, qui n'est pas celle d'aujourd'hui ($3). L'administrateur doit démarrer la nouvelle semaine (bouton « Suivant ») pour que les professeurs puissent noter les absences."],

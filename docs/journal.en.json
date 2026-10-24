@@ -398,6 +398,17 @@
         "The narrow strip (about 14 pixels) at the edge of the wide sheet, where column edges showed while passing under the pinned columns, is hidden by removing the sheet's side padding: the pinned columns now touch the edge (Arabic and French)."
       ],
       "tech": "In api/mark.js: frameFor (picks, between the sheet and state.other, the week that contains today and converts the column number), otherClass, otherRow, archiveView, endMinutes and PERIOD_MIN; teacherRules was rewritten to take this frame and adds the period_over refusal. In index.html: snapshotWeekOf and applyWeekTo (the swap logic moved into them), liveView (applied to what the server sends to non-administrators), colEnd, colIsOver and PERIOD_MIN, changes to teacherWhy, teacherMark and refreshFutureCells, removal of the side padding of #tableHost. In fr.js: three translations. New test livetest (32 checks) and the teacher tests updated to send the time of the tap."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Delete column hidden; edit or delete a student by tapping the name",
+      "goal": "The delete-button (×) column was to be hidden from the list, with deletion offered only after clicking a student's name, together with the option of editing the name.",
+      "done": [
+        "The “×” button column is removed from the wide sheet and from the phone list; the selection checkbox for bulk deletion stays.",
+        "Clicking a student's name (administrator only) opens a small dialog with the editable name and the buttons “Save name”, “Delete student” (with confirmation) and “Cancel”. An empty, too long or duplicate name in the class is refused, and spaces are normalised.",
+        "Renaming keeps the student's absences and phone; the week kept aside and the notices already sent (matched by name) follow the new name. Note: weeks already archived in the statistics keep the old name."
+      ],
+      "tech": "In index.html: functions studentDialog and renameStudent, removal of the dl column in renderTable and in the renderTableVertical list, an editable class on the name cell. In fr.js: six translations. New test studenttest (30 checks: computer, phone, French)."
     }
   ],
   "method": [

@@ -184,6 +184,8 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 .row.top .n{color:var(--gold)}
 select{font-family:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:4px 6px;font-size:12.5px}
 .empty{color:var(--ink-soft);font-size:12.5px;padding:8px 0}
+#tableHost td.name.editable,td.name.editable{cursor:pointer}
+#tableHost td.name.editable:hover{background:var(--teal-soft)}
 .del{border:none;background:transparent;color:var(--absent);font-size:16px;cursor:pointer;line-height:1;padding:2px 6px}
 .btn.wa{background:#25D366;border-color:#25D366;padding:5px 12px;font-size:12.5px}
 .row .muted{color:var(--ink-soft);font-size:12px;margin-inline-start:6px}
@@ -1448,12 +1450,12 @@ function renderTableVertical(host){
   }
   if(!T && names.length){   // the list itself: selection / delete (administrator) and the parent's phone
     html+='<section class="vday vmgr"><h3 class="vdh">لائحة التلاميذ وهواتف أولياء الأمور</h3><div class="vscroll"><table class="vt vmt"><thead><tr>';
-    if(canWrite) html+='<th><input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)"></th><th></th>';
+    if(canWrite) html+='<th><input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)"></th>';
     html+='<th>م</th><th>الاسم الكامل</th><th>هاتف ولي الأمر</th></tr></thead><tbody>';
     const pdis=(canWrite&&!br)?'':'disabled';
     names.forEach((name,si)=>{
-      html+='<tr>'+(canWrite?`<td><input type="checkbox" ${selected.has(si)?'checked':''} onchange="toggleSelect(${si},this.checked)"></td><td><button class="del" title="حذف التلميذ" onclick="deleteStudent(${si})">×</button></td>`:'')
-        +`<td class="num">${si+1}</td><td class="name">${svEsc(name)}</td><td class="phcol"><input class="phone" ${pdis} placeholder="06XXXXXXXX" value="${svEsc(cls.phones[si]||'')}" oninput="setPhone(${si},this.value)"></td></tr>`;
+      html+='<tr>'+(canWrite?`<td><input type="checkbox" ${selected.has(si)?'checked':''} onchange="toggleSelect(${si},this.checked)"></td>`:'')
+        +`<td class="num">${si+1}</td><td class="name${canWrite?' editable':''}"${canWrite?` onclick="studentDialog(${si})"`:''}>${svEsc(name)}</td><td class="phcol"><input class="phone" ${pdis} placeholder="06XXXXXXXX" value="${svEsc(cls.phones[si]||'')}" oninput="setPhone(${si},this.value)"></td></tr>`;
     });
     html+='</tbody></table></div></section>';
   }
@@ -1474,12 +1476,12 @@ function renderTable(){
   const selAllCell=canWrite?'<input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)">':'';
   const T=canMark;   // teacher: only the number and the name, no checkbox / delete / parent phone columns
   const lead=T?1:3, stk=T?1:2;
-  let html=`<div class="sheetwrap"><table><thead><tr>${T?'':`<th class="hl" rowspan="2">${selAllCell}</th><th class="hl" rowspan="2"></th>`}<th class="hl numh" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th>${T?'':'<th class="hl phh" rowspan="2">هاتف ولي الأمر</th>'}`;
+  let html=`<div class="sheetwrap"><table><thead><tr>${T?'':`<th class="hl" rowspan="2">${selAllCell}</th>`}<th class="hl numh" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th>${T?'':'<th class="hl phh" rowspan="2">هاتف ولي الأمر</th>'}`;
   const pc=pcount(), NC=totalCols(pc);
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
-  html+=`</tr><tr>${T?'':'<th class="hl" colspan="2"></th>'}<th class="hl lead"></th><th class="hl stk" colspan="${stk}"></th>`;
+  html+=`</tr><tr>${T?'':'<th class="hl"></th>'}<th class="hl lead"></th><th class="hl stk" colspan="${stk}"></th>`;
   const dis=(canWrite&&!br)?'':'disabled';
   const pendSet=canMark?tqPending():null;
   for(let i=0;i<NC;i++){
@@ -1489,8 +1491,7 @@ function renderTable(){
   html+='</tr></thead><tbody>';
   names.forEach((name,si)=>{
     const checkCell=canWrite?`<input type="checkbox" ${selected.has(si)?'checked':''} onchange="toggleSelect(${si},this.checked)">`:'';
-    const delCell=canWrite?`<button class="del" title="حذف التلميذ" onclick="deleteStudent(${si})">×</button>`:'';
-    html+=`<tr>${T?'':`<td class="ck">${checkCell}</td><td class="dl">${delCell}</td>`}<td class="num">${si+1}</td><td class="name">${name}</td>${T?'':`<td class="phcol"><input class="phone" ${dis} placeholder="06XXXXXXXX" value="${cls.phones[si]||''}" oninput="setPhone(${si},this.value)"></td>`}`;
+    html+=`<tr>${T?'':`<td class="ck">${checkCell}</td>`}<td class="num">${si+1}</td><td class="name${canWrite?' editable':''}"${canWrite?` onclick="studentDialog(${si})" title="تعديل الاسم أو حذف التلميذ"`:''}>${name}</td>${T?'':`<td class="phcol"><input class="phone" ${dis} placeholder="06XXXXXXXX" value="${cls.phones[si]||''}" oninput="setPhone(${si},this.value)"></td>`}`;
     if(br){   // one big block per day, over every student row
       if(si===0) for(let j=0;j<10;j++) if(pc[j&1]) html+=`<td class="breakcell" colspan="${pc[j&1]}" rowspan="${names.length}"><span>${svEsc(br.label||'عطلة بينية')}</span></td>`;
       html+='</tr>'; return;
@@ -1712,6 +1713,41 @@ async function addStudent(){
   renderStats();
   const again=document.getElementById('newName');
   if(again){ again.value=''; again.focus(); } // ready for the next name
+}
+// Click on a student's name (administrator): change the name, or delete the student.
+function studentDialog(si){
+  if(!canWrite) return;
+  const cls=state.data[currentClass], old=cls&&cls.names[si]; if(old==null) return;
+  const ov=document.getElementById('modalOverlay'), inp=document.getElementById('modalInput'), actions=document.getElementById('modalActions');
+  document.getElementById('modalMsg').textContent='التلميذ(ة) رقم '+(si+1)+' — '+currentClass+'\n\nعدّلوا الاسم ثم «حفظ الاسم»، أو احذفوا التلميذ(ة) من اللائحة.';
+  inp.style.display='block'; inp.value=old; actions.innerHTML='';
+  const close=()=>{ inp.style.display='none'; ov.style.display='none'; };
+  const mk=(label,cls0,fn)=>{ const b=document.createElement('button'); b.className=cls0; b.textContent=label; b.onclick=fn; actions.appendChild(b); return b; };
+  const save=mk('حفظ الاسم','btn',()=>{
+    const v=inp.value.replace(/\s+/g,' ').trim();
+    if(!v){ inp.focus(); return; }
+    if(v===old){ close(); return; }
+    if(v.length>80){ showAlert('الاسم طويل جدا (80 حرفا على الأكثر).'); return; }
+    const key=x=>String(x||'').replace(/\s+/g,'').toLowerCase();
+    if(cls.names.some((n,i)=>i!==si&&key(n)===key(v))){ showAlert('يوجد تلميذ(ة) بهذا الاسم في القسم بالفعل.'); return; }
+    close(); renameStudent(si,v);
+  });
+  mk('حذف التلميذ','btn danger',()=>{ close(); deleteStudent(si); });
+  mk('إلغاء','btn ghost',close);
+  ov.style.display='flex';
+  setTimeout(()=>{ inp.focus(); inp.select(); },50);
+  inp.onkeydown=e=>{ if(e.key==='Enter') save.click(); };
+}
+function renameStudent(si,name){
+  if(!canWrite) return;
+  const cn=currentClass, cls=state.data[cn], old=cls.names[si];
+  cls.names[si]=name;
+  // the other week kept aside matches students by name: it follows the new name
+  const o=state.other&&state.other.classes&&state.other.classes[cn];
+  if(o&&Array.isArray(o.names)) o.names=o.names.map(n=>n===old?name:n);
+  // notices already sent are keyed class|name
+  if(state.notices) Object.keys(state.notices).forEach(m=>{ const r=state.notices[m]; if(r&&r[cn+'|'+old]){ r[cn+'|'+name]=r[cn+'|'+old]; delete r[cn+'|'+old]; } });
+  save(); renderTable(); renderStats();
 }
 function deleteStudent(si){
   if(!canWrite) return;
