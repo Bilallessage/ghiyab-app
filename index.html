@@ -428,7 +428,6 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
   <button class="btn ghost" id="orgBtn" style="display:none" onclick="document.getElementById('orgFile').click()" title="ملء اسم المادة واسم الأستاذ لكل قسم من ملف إكسيل «التنظيم التربوي»">📅 استيراد التنظيم التربوي</button>
   <button class="btn ghost" id="timesBtn" style="display:none" onclick="editPeriodTimes()" title="بداية كل حصة في القسم المعروض، لمنع تسجيل غياب حصة لم يحن وقتها">⏰ توقيت الحصص</button>
   <button class="btn ghost" id="backupBtn" style="display:none" onclick="backupsDialog()" title="نسخ احتياطية تلقائية للورقة، لاسترجاع الغياب والهواتف إن ضاعت بخطأ">🕘 النسخ الاحتياطية</button>
-  <button class="btn danger" id="bulkDelBtn" style="display:none" onclick="bulkDelete()">حذف المحددين (<span id="selCount">0</span>)</button>
 </div>
 <div class="tabs" id="tabs"></div>
 <input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this.files[0])">
@@ -1448,13 +1447,12 @@ function renderTableVertical(host){
       html+='</tr></tbody></table></div></section>';
     }
   }
-  if(!T && names.length){   // the list itself: selection / delete (administrator) and the parent's phone
+  if(!T && names.length){   // the list itself: the number, the name (click = edit / delete for the administrator) and the parent's phone
     html+='<section class="vday vmgr"><h3 class="vdh">لائحة التلاميذ وهواتف أولياء الأمور</h3><div class="vscroll"><table class="vt vmt"><thead><tr>';
-    if(canWrite) html+='<th><input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)"></th>';
     html+='<th>م</th><th>الاسم الكامل</th><th>هاتف ولي الأمر</th></tr></thead><tbody>';
     const pdis=(canWrite&&!br)?'':'disabled';
     names.forEach((name,si)=>{
-      html+='<tr>'+(canWrite?`<td><input type="checkbox" ${selected.has(si)?'checked':''} onchange="toggleSelect(${si},this.checked)"></td>`:'')
+      html+='<tr>'+''
         +`<td class="num">${si+1}</td><td class="name${canWrite?' editable':''}"${canWrite?` onclick="studentDialog(${si})"`:''}>${svEsc(name)}</td><td class="phcol"><input class="phone" ${pdis} placeholder="06XXXXXXXX" value="${svEsc(cls.phones[si]||'')}" oninput="setPhone(${si},this.value)"></td></tr>`;
     });
     html+='</tbody></table></div></section>';
@@ -1473,15 +1471,14 @@ function renderTable(){
   const cls=state.data[currentClass];
   const names=cls.names;
   const br=breakNow();   // inter-term holiday week: nothing can be recorded
-  const selAllCell=canWrite?'<input type="checkbox" id="selAll" onchange="toggleSelectAll(this.checked)">':'';
-  const T=canMark;   // teacher: only the number and the name, no checkbox / delete / parent phone columns
-  const lead=T?1:3, stk=T?1:2;
-  let html=`<div class="sheetwrap"><table><thead><tr>${T?'':`<th class="hl" rowspan="2">${selAllCell}</th>`}<th class="hl numh" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th>${T?'':'<th class="hl phh" rowspan="2">هاتف ولي الأمر</th>'}`;
+  const T=canMark;   // teacher: only the number and the name, no parent phone column
+  const stk=T?1:2;
+  let html=`<div class="sheetwrap"><table><thead><tr><th class="hl numh" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th>${T?'':'<th class="hl phh" rowspan="2">هاتف ولي الأمر</th>'}`;
   const pc=pcount(), NC=totalCols(pc);
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
-  html+=`</tr><tr>${T?'':'<th class="hl"></th>'}<th class="hl lead"></th><th class="hl stk" colspan="${stk}"></th>`;
+  html+=`</tr><tr><th class="hl lead"></th><th class="hl stk" colspan="${stk}"></th>`;
   const dis=(canWrite&&!br)?'':'disabled';
   const pendSet=canMark?tqPending():null;
   for(let i=0;i<NC;i++){
@@ -1490,8 +1487,7 @@ function renderTable(){
   }
   html+='</tr></thead><tbody>';
   names.forEach((name,si)=>{
-    const checkCell=canWrite?`<input type="checkbox" ${selected.has(si)?'checked':''} onchange="toggleSelect(${si},this.checked)">`:'';
-    html+=`<tr>${T?'':`<td class="ck">${checkCell}</td>`}<td class="num">${si+1}</td><td class="name${canWrite?' editable':''}"${canWrite?` onclick="studentDialog(${si})" title="تعديل الاسم أو حذف التلميذ"`:''}>${name}</td>${T?'':`<td class="phcol"><input class="phone" ${dis} placeholder="06XXXXXXXX" value="${cls.phones[si]||''}" oninput="setPhone(${si},this.value)"></td>`}`;
+    html+=`<tr><td class="num">${si+1}</td><td class="name${canWrite?' editable':''}"${canWrite?` onclick="studentDialog(${si})" title="تعديل الاسم أو حذف التلميذ"`:''}>${name}</td>${T?'':`<td class="phcol"><input class="phone" ${dis} placeholder="06XXXXXXXX" value="${cls.phones[si]||''}" oninput="setPhone(${si},this.value)"></td>`}`;
     if(br){   // one big block per day, over every student row
       if(si===0) for(let j=0;j<10;j++) if(pc[j&1]) html+=`<td class="breakcell" colspan="${pc[j&1]}" rowspan="${names.length}"><span>${svEsc(br.label||'عطلة بينية')}</span></td>`;
       html+='</tr>'; return;
@@ -1504,7 +1500,7 @@ function renderTable(){
     for(let j=0;j<10;j++) if(pc[j&1]) html+=`<td class="breakcell" colspan="${pc[j&1]}"><span>${svEsc(br.label||'عطلة بينية')}</span></td>`;
     html+='</tr>';
   }
-  html+=`<tr class="foot">${T?'':'<td colspan="2"></td>'}<td class="lead"></td><td colspan="${stk}" class="stk">عدد الغياب في الحصة</td>`;
+  html+=`<tr class="foot"><td class="lead"></td><td colspan="${stk}" class="stk">عدد الغياب في الحصة</td>`;
   if(br) html+=`<td colspan="${NC}"></td>`;
   else for(let i=0;i<NC;i++){
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
@@ -1512,7 +1508,7 @@ function renderTable(){
   }
   html+='</tr></tbody>';
   // the days / periods rows again at the bottom of the list
-  html+=`<tfoot><tr>${T?'':'<th colspan="2" rowspan="2"></th>'}<th rowspan="2" class="lead"></th><th colspan="${stk}" rowspan="2" class="stk">أيام الأسبوع والحصص</th>`;
+  html+=`<tfoot><tr><th rowspan="2" class="lead"></th><th colspan="${stk}" rowspan="2" class="stk">أيام الأسبوع والحصص</th>`;
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
@@ -1649,32 +1645,6 @@ th.d0:not(.day){background:#EAF2FB}th.d1:not(.day){background:#E8F6EF}th.d2:not(
 }
 
 let selected=new Set();
-
-function toggleSelect(si,checked){
-  if(checked) selected.add(si); else selected.delete(si);
-  updateSelUI();
-}
-function toggleSelectAll(checked){
-  selected.clear();
-  if(checked) state.data[currentClass].names.forEach((_,i)=>selected.add(i));
-  renderTable();
-  updateSelUI();
-}
-function updateSelUI(){
-  document.getElementById('selCount').textContent=selected.size;
-  document.getElementById('bulkDelBtn').style.display=selected.size? 'inline-block':'none';
-}
-function bulkDelete(){
-  if(!canWrite) return;
-  const cls=state.data[currentClass];
-  const idx=[...selected].sort((a,b)=>b-a);
-  if(!idx.length) return;
-  showConfirm('حذف '+idx.length+' تلميذ(ة) من لائحة القسم؟',()=>{
-    idx.forEach(i=>{ cls.names.splice(i,1); cls.absences.splice(i,1); cls.phones.splice(i,1); });
-    selected.clear();
-    save(); renderTable(); renderStats(); updateSelUI();
-  });
-}
 
 async function teacherAddStudent(cls0,name){
   if(!navigator.onLine){ showAlert('لا يوجد اتصال بالإنترنت: لا يمكن إضافة التلميذ الآن، أعيدوا المحاولة عند عودة الاتصال.'); return false; }
@@ -2400,7 +2370,7 @@ function renderStats(){
   renderNotify();
 }
 
-function renderAll(){ renderTabs(); renderTable(); renderStats(); updateSelUI(); renderWeekNav(); }
+function renderAll(){ renderTabs(); renderTable(); renderStats(); renderWeekNav(); }
 
 document.getElementById('wFrom').value=state.weekFrom;
 document.getElementById('wTo').value=state.weekTo;

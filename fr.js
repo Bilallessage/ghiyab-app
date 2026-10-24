@@ -228,7 +228,6 @@
     'بدء الأسبوع التالي: يُحفظ غياب الأسبوع الجاري ثم يُمسح الجدول': "Commencer la semaine suivante : les absences de la semaine en cours sont enregistrées puis le tableau est vidé",
     'عرض الأسبوع السابق لتصحيح غياب سُجّل بالخطأ': 'Afficher la semaine précédente pour corriger une absence enregistrée par erreur',
     'عرض الأسبوع الماضي لتصحيح غياب سُجّل بالخطأ': 'Afficher la semaine précédente pour corriger une absence enregistrée par erreur',
-    'حذف المحددين (': 'Supprimer la sélection (',
 
     // automatic notices / WhatsApp
     '⚡ إشعارات تلقائية لأولياء الأمور — شهر': '⚡ Avis automatiques aux parents — mois :',

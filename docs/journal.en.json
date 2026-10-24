@@ -401,14 +401,15 @@
     },
     {
       "date": "2026-10-24",
-      "title": "Delete column hidden; edit or delete a student by tapping the name",
-      "goal": "The delete-button (×) column was to be hidden from the list, with deletion offered only after clicking a student's name, together with the option of editing the name.",
+      "title": "Delete and selection columns hidden; edit or delete a student by tapping the name",
+      "goal": "The delete-button (×) column was to be hidden from the list, with deletion offered only after clicking a student's name, together with the option of editing the name. It was then asked to drop the selection-checkbox column that sat before the numbering column as well.",
       "done": [
-        "The “×” button column is removed from the wide sheet and from the phone list; the selection checkbox for bulk deletion stays.",
+        "The “×” button column is removed from the wide sheet and from the phone list.",
+        "The selection-checkbox column (and the “Delete selected” bulk deletion that depended on it) is removed from the wide sheet and from the phone list, so the list now starts with the numbering column; the number of columns of the “absence count” and “days and periods” rows at the bottom of the sheet is corrected to match the remaining columns.",
         "Clicking a student's name (administrator only) opens a small dialog with the editable name and the buttons “Save name”, “Delete student” (with confirmation) and “Cancel”. An empty, too long or duplicate name in the class is refused, and spaces are normalised.",
         "Renaming keeps the student's absences and phone; the week kept aside and the notices already sent (matched by name) follow the new name. Note: weeks already archived in the statistics keep the old name."
       ],
-      "tech": "In index.html: functions studentDialog and renameStudent, removal of the dl column in renderTable and in the renderTableVertical list, an editable class on the name cell. In fr.js: six translations. New test studenttest (30 checks: computer, phone, French)."
+      "tech": "In index.html: functions studentDialog and renameStudent, removal of the dl column in renderTable and in the renderTableVertical list, an editable class on the name cell. In fr.js: six translations. New test studenttest (34 checks: computer, phone, French). Removal of the selection column, the bulk-delete button and the selection functions."
     }
   ],
   "method": [
