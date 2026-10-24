@@ -267,7 +267,7 @@ https://ghiyab-app-xxxx.vercel.app
 |---|---|
 | `SMTP_HOST` | `smtp.gmail.com` |
 | `SMTP_USER` | عنوان Gmail كاملا |
-| `SMTP_PASS` | كلمة مرور التطبيق (من غير مسافات) |
+| `SMTP_PASS` | كلمة مرور التطبيق (16 حرفا؛ مع Gmail تُتجاهل المسافات تلقائيا). تنبيه: الاسم `SMTP_PASS` وليس `SMPT_PASS` |
 | `SMTP_PORT` | `465` (الافتراضي؛ التشفير الكامل) أو `587` (STARTTLS) |
 | `SMTP_FROM` | اختياري: اسم المُرسِل، مثال `"مؤسسة المثابرة" <school@gmail.com>` |
 | `PUBLIC_URL` | اختياري: عنوان الموقع الثابت، مثال `https://ghiyab-app.vercel.app`، إن أردتم رابطا لا يتغيّر مع عنوان الطلب |

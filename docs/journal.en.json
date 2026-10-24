@@ -350,6 +350,17 @@
         "The numbering itself never changes from one day to another: it is the student's rank in the class list, unrelated to the days or the absences."
       ],
       "tech": "In index.html, td.num is pinned with position:sticky and an --oNum offset; the offsets of the pinned columns (م, name, phone) are measured cumulatively in syncHeaderOffset and stored in --oNum, --oName and --oPh, replacing the old --namew; a lead class is added to the empty cells under «م» in the header and footer. New test (pintest) with an automated browser: after scrolling the sheet to its end, the positions of م, the name and the phone do not move, on computer, on phone and with a teacher account."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Setting up e-mail sending on Vercel and tolerance for spaces in the Gmail password",
+      "goal": "Set the e-mail variables of the two Vercel projects to try a real teacher invitation, and deal with what showed up on the first try.",
+      "done": [
+        "The variables SMTP_HOST, SMTP_USER, SMTP_FROM and PUBLIC_URL were added from the Vercel dashboard in both projects (sending address collegealmotabara@gmail.com, each project's link in PUBLIC_URL).",
+        "On the first try the message \"e-mail not configured\" appeared because the password had been saved under the name SMPT_PASS instead of SMTP_PASS; then Gmail refused with code 535 5.7.8 (BadCredentials), so the app password value itself was not accepted, and one of the two projects still carried the wrong name.",
+        "Because Google shows the app password as four groups separated by spaces, the server now removes spaces and line breaks from SMTP_PASS, with Gmail only, and the README points out the exact variable name."
+      ],
+      "tech": "In api/_mail.js: when SMTP_HOST ends with gmail.com or googlemail.com the password is cleaned with replace(/\\s+/g,''). The configuration function is exported as _config for the test. The 14 mail-client tests still pass, with an extra check of the cleaning for Gmail and of no change for other servers."
     }
   ],
   "method": [

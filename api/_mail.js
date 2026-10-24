@@ -19,7 +19,9 @@ const crypto = require('crypto');
 function config() {
   const host = (process.env.SMTP_HOST || '').trim();
   const user = (process.env.SMTP_USER || '').trim();
-  const pass = process.env.SMTP_PASS || '';
+  let pass = process.env.SMTP_PASS || '';
+  // Google shows an app password as 4 groups of 4 letters separated by spaces: spaces (or a stray line break from copy/paste) are never part of it
+  if (/(^|\.)(gmail|googlemail)\.com$/i.test(host)) pass = pass.replace(/\s+/g, '');
   if (!host || !user || !pass) return null;
   const port = Number(process.env.SMTP_PORT) || 465;
   const secure = process.env.SMTP_SECURE ? process.env.SMTP_SECURE !== '0' : port === 465;
@@ -138,4 +140,4 @@ async function send(msg) {
   }
 }
 
-module.exports = { configured, send };
+module.exports = { configured, send, _config: config };

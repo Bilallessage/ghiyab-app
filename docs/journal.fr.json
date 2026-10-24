@@ -350,6 +350,17 @@
         "La numérotation elle-même ne change pas d’un jour à l’autre : c’est le rang de l’élève dans la liste de la classe, sans lien avec les jours ni les absences."
       ],
       "tech": "Dans index.html, td.num est épinglé par position:sticky avec un décalage --oNum ; les décalages des colonnes épinglées (م, nom, téléphone) sont mesurés cumulativement dans syncHeaderOffset et stockés dans --oNum, --oName et --oPh, à la place de l’ancien --namew ; une classe lead est ajoutée aux cellules vides sous « م » dans l’en-tête et le pied. Nouveau test (pintest) avec un navigateur automatisé : après avoir fait défiler le tableau au maximum, les positions de م, du nom et du téléphone ne bougent pas, sur ordinateur, sur téléphone et avec un compte professeur."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Configuration de l’envoi d’e-mails sur Vercel et tolérance aux espaces dans le mot de passe Gmail",
+      "goal": "Régler les variables d’e-mail des deux projets Vercel pour essayer une vraie invitation de professeur, et traiter ce qui est apparu au premier essai.",
+      "done": [
+        "Les variables SMTP_HOST, SMTP_USER, SMTP_FROM et PUBLIC_URL ont été ajoutées depuis le tableau de bord Vercel dans les deux projets (adresse d’envoi collegealmotabara@gmail.com, lien de chaque projet dans PUBLIC_URL).",
+        "Au premier essai, le message « e-mail non configuré » est apparu parce que le mot de passe avait été enregistré sous le nom SMPT_PASS au lieu de SMTP_PASS ; puis Gmail a refusé avec le code 535 5.7.8 (BadCredentials), donc la valeur du mot de passe d’application elle-même n’était pas acceptée, et l’un des deux projets portait encore le mauvais nom.",
+        "Comme Google affiche le mot de passe d’application en quatre groupes séparés par des espaces, le serveur retire désormais les espaces et les sauts de ligne de SMTP_PASS, uniquement avec Gmail, et le README signale le nom exact de la variable."
+      ],
+      "tech": "Dans api/_mail.js : quand SMTP_HOST se termine par gmail.com ou googlemail.com, le mot de passe est nettoyé par replace(/\\s+/g,''). La fonction de configuration est exportée sous le nom _config pour le test. Les 14 tests du client e-mail passent toujours, avec un contrôle supplémentaire du nettoyage pour Gmail et de l’absence de modification pour les autres serveurs."
     }
   ],
   "method": [
