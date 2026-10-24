@@ -410,6 +410,16 @@
         "Renaming keeps the student's absences and phone; the week kept aside and the notices already sent (matched by name) follow the new name. Note: weeks already archived in the statistics keep the old name."
       ],
       "tech": "In index.html: functions studentDialog and renameStudent, removal of the dl column in renderTable and in the renderTableVertical list, an editable class on the name cell. In fr.js: six translations. New test studenttest (34 checks: computer, phone, French). Removal of the selection column, the bulk-delete button and the selection functions."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Wider absence cells on the phone",
+      "goal": "The absence cells of the phone layout looked a little narrow; it was asked to widen them, even by making the names column slightly smaller.",
+      "done": [
+        "The absence cell in the phone layout is now about 34 to 37 pixels wide (27 before) and 41 tall (27 before), so it is easier to tap with a finger, and the “غ” letter is larger.",
+        "The name column goes from 104 to 72 pixels (a long name wraps onto two or three lines) and the number column to 20 pixels; the table with its six periods therefore fits a 360-pixel screen with no sideways scrolling; with more periods or a narrower screen a slight sideways scroll appears."
+      ],
+      "tech": "In index.html: CSS rules of #tableHost.vert table.vt (td.num, td.name, th.nmh, td.cell, th.per) only, with no change of data or logic."
     }
   ],
   "method": [

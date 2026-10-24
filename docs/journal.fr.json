@@ -410,6 +410,16 @@
         "Renommer conserve les absences et le téléphone de l’élève ; la semaine mise de côté et les avis déjà envoyés (associés au nom) suivent le nouveau nom. À noter : les semaines archivées dans les statistiques gardent l’ancien nom."
       ],
       "tech": "Dans index.html : fonctions studentDialog et renameStudent, suppression de la colonne dl dans renderTable et dans la liste de renderTableVertical, classe editable pour la cellule du nom. Dans fr.js : six traductions. Nouveau test studenttest (34 vérifications : ordinateur, téléphone, français). Suppression de la colonne de sélection, du bouton de suppression groupée et des fonctions de sélection."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Cases d’absence plus larges sur téléphone",
+      "goal": "Les cases d’enregistrement des absences de l’affichage téléphone paraissaient étroites ; il a été demandé de les élargir, quitte à réduire un peu la colonne des noms.",
+      "done": [
+        "La case d’absence mesure désormais environ 34 à 37 pixels de large (27 avant) et 41 de haut (27 avant) : elle se touche plus facilement du doigt, et la lettre « غ » est plus grande.",
+        "La colonne du nom passe de 104 à 72 pixels (un nom long se coupe sur deux ou trois lignes) et celle du numéro à 20 pixels ; le tableau, avec ses six séances, tient donc sur un écran de 360 pixels sans défilement latéral ; avec plus de séances ou un écran plus étroit, un léger défilement latéral apparaît."
+      ],
+      "tech": "Dans index.html : règles CSS de #tableHost.vert table.vt (td.num, td.name, th.nmh, td.cell, th.per) uniquement, sans changement de données ni de logique."
     }
   ],
   "method": [
