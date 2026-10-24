@@ -420,6 +420,17 @@
         "La colonne du nom passe de 104 à 72 pixels (un nom long se coupe sur deux ou trois lignes) et celle du numéro à 20 pixels ; le tableau, avec ses six séances, tient donc sur un écran de 360 pixels sans défilement latéral ; avec plus de séances ou un écran plus étroit, un léger défilement latéral apparaît."
       ],
       "tech": "Dans index.html : règles CSS de #tableHost.vert table.vt (td.num, td.name, th.nmh, td.cell, th.per) uniquement, sans changement de données ni de logique."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Publication du site de formation sur Vercel",
+      "goal": "Retour à l’établissement fictif aux données inventées destiné aux sessions de formation, déjà prêt dans le code (phase 20) mais sans site publié.",
+      "done": [
+        "Un troisième projet Vercel « ghiyab-training » est créé, relié au même dépôt (il se met à jour avec chaque mise à jour de l’application), à l’adresse ghiyab-training.vercel.app, sans protection de connexion Vercel pour que les stagiaires l’ouvrent directement.",
+        "Il est configuré avec KEY_PREFIX=training (isolement des données de formation), SEED_DEMO=1 (emploi du temps vide que les stagiaires remplissent en important le fichier d’organisation pédagogique) et un SESSION_SECRET généré au hasard. Le contenu fictif a été revérifié automatiquement : 6 classes, 121 élèves, quatre semaines passées avec absences fictives et aucun enseignant dans deux classes à la fois.",
+        "Restent à la charge de l’utilisateur le mot de passe de l’administrateur de formation (ADMIN_PASSWORD) et la connexion de la base Upstash au projet, puis un redéploiement ; c’est expliqué dans docs/training/README.md."
+      ],
+      "tech": "Création du projet et déploiement via le MCP Vercel ; aucun changement dans le code de l’application."
     }
   ],
   "method": [
@@ -436,7 +447,8 @@
     "Essayer le compte enseignant lors d’une vraie séance : un seul appui sans confirmation convient-il, et faut-il lier le compte au nom de l’enseignant dans tous les comptes ? Essayer aussi le bouton « Aucun » (le délai de 20 minutes avant le « ! » est-il adapté ?) et le travail sans Internet dans une salle sans couverture.",
     "Essayer la restauration depuis « Sauvegardes » sur des données réelles, et activer la sauvegarde quotidienne d’Upstash si l’offre le permet.",
     "Régler l’envoi d’e-mails (SMTP) sur Vercel et essayer une vraie invitation à un professeur, en vérifiant que le message arrive dans la boîte de réception et non dans les courriers indésirables.",
-    "Essayer la règle de fin de séance lors d’une vraie séance : la durée d’une heure (ou jusqu’au début de la suivante) convient-elle à l’établissement, ou faut-il une durée réglable dans « Horaires des séances » ?"
+    "Essayer la règle de fin de séance lors d’une vraie séance : la durée d’une heure (ou jusqu’au début de la suivante) convient-elle à l’établissement, ou faut-il une durée réglable dans « Horaires des séances » ?",
+    "Terminer la configuration du site de formation (ADMIN_PASSWORD et connexion Upstash) et l’essayer pour une session complète avec un compte enseignant et un compte lecteur."
   ],
   "gitNote": "Les messages de commit restent en anglais, tels qu’écrits."
 }

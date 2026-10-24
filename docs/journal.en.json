@@ -420,6 +420,17 @@
         "The name column goes from 104 to 72 pixels (a long name wraps onto two or three lines) and the number column to 20 pixels; the table with its six periods therefore fits a 360-pixel screen with no sideways scrolling; with more periods or a narrower screen a slight sideways scroll appears."
       ],
       "tech": "In index.html: CSS rules of #tableHost.vert table.vt (td.num, td.name, th.nmh, td.cell, th.per) only, with no change of data or logic."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Training site published on Vercel",
+      "goal": "Back to the fictional institution with invented data meant for training sessions, already ready in the code (phase 20) but with no published site.",
+      "done": [
+        "A third Vercel project, “ghiyab-training”, is created and linked to the same repository (it updates with every application update), at ghiyab-training.vercel.app, without Vercel login protection so trainees can open it directly.",
+        "It is configured with KEY_PREFIX=training (training data kept apart), SEED_DEMO=1 (an empty timetable the trainees fill by importing the educational-organisation file) and a randomly generated SESSION_SECRET. The fictional content was re-checked automatically: 6 classes, 121 students, four past weeks with invented absences and no teacher in two classes at once.",
+        "Left to the user: the training administrator's password (ADMIN_PASSWORD) and connecting the Upstash database to the project, then a redeploy; this is explained in docs/training/README.md."
+      ],
+      "tech": "Project creation and deployment through the Vercel MCP; no change to the application code."
     }
   ],
   "method": [
@@ -436,7 +447,8 @@
     "Try the teacher account in a real lesson: is a single tap without confirmation appropriate, and must the account be linked to the teacher's name in every account? Also try the “Nobody” button (is the 20-minute delay before the “!” right?) and working without internet in a room with no coverage.",
     "Try restoring from “Backups” on real data, and enable the daily backup in Upstash if the plan allows it.",
     "Set up e-mail sending (SMTP) on Vercel and try a real invitation to a teacher, checking that the message lands in the inbox and not in spam.",
-    "Try the end-of-period rule in a real lesson: is a one-hour period (or until the next one starts) right for your school, or must the length be adjustable in “Period times”?"
+    "Try the end-of-period rule in a real lesson: is a one-hour period (or until the next one starts) right for your school, or must the length be adjustable in “Period times”?",
+    "Finish setting up the training site (ADMIN_PASSWORD and Upstash connection) and try a complete session on it with a teacher account and a viewer account."
   ],
   "gitNote": "Commit messages are kept in English as written."
 }
