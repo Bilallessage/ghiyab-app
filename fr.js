@@ -329,6 +329,8 @@
     'الأسبوع غير محدد في الورقة': "La semaine n'est pas définie dans la feuille",
     'القسم غير موجود': 'Classe introuvable',
     'هذه الحصة لم يحن وقتها بعد': "Cette séance n'a pas encore commencé",
+    'انتهت هذه الحصة، فلا يمكن تسجيل غيابها ولا تعديله بعد نهايتها. أخبروا المسؤول ليصحّحه.': "Cette séance est terminée : son absence ne peut plus être notée ni modifiée après la fin de la séance. Prévenez l'administrateur pour qu'il la corrige.",
+    'حصة غير موجودة في هذا الأسبوع': "Cette séance n'existe pas cette semaine",
     // roll call «لا أحد» + teacher without internet
     'لا أحد': 'Aucun',
     '✅ لا أحد': '✅ Aucun',
@@ -583,6 +585,7 @@
     [/^الورقة تعرض الأسبوع من (\S+) إلى (\S+) وهو ليس أسبوع اليوم \((\S+)\)\. على المسؤول أن يبدأ الأسبوع الجديد \(زر «التالي»\) ليتمكن الأساتذة من تسجيل الغياب\.$/, "La feuille affiche la semaine du $1 au $2, qui n'est pas celle d'aujourd'hui ($3). L'administrateur doit démarrer la nouvelle semaine (bouton « Suivant ») pour que les professeurs puissent noter les absences."],
     [/^يمكن تسجيل غياب حصص اليوم فقط: اليوم (\S+) وهذه الخانة من يوم (\S+)\.$/, function (m, t) { return "Seules les absences des séances d'aujourd'hui peuvent être notées : aujourd'hui c'est " + t(m[1]).toLowerCase() + " et cette case est celle de " + t(m[2]).toLowerCase() + "."; }],
     [/^هذه الحصة لم يحن وقتها بعد \(تبدأ على الساعة (\d{2}:\d{2})\)\.$/, "Cette séance n'a pas encore commencé (début à $1)."],
+    [/^انتهت هذه الحصة \(على الساعة (\d{2}:\d{2})\)، فلا يمكن تسجيل غيابها ولا تعديله بعد نهايتها\. أخبروا المسؤول ليصحّحه\.$/, "Cette séance est terminée (fin à $1) : son absence ne peut plus être notée ni modifiée après la fin de la séance. Prévenez l'administrateur pour qu'il la corrige."],
     [/^هذه الحصة ليست من حصصكم: اسم الأستاذ\(ة\) المكتوب فيها «(.*)» واسم حسابكم «(.*)»\.$/, "Cette séance n'est pas l'une des vôtres : le nom du/de la professeur(e) inscrit est « $1 » et le nom de votre compte est « $2 »."],
     [/^سيُمسح غياب كل تلاميذ القسم \((\d+) غيابا\) وأرقام هواتفهم \((\d+)\) ويبدأ الجدول فارغا\.$/, function (m) { return "Les absences de tous les élèves de la classe (" + m[1] + ") et leurs numéros de téléphone (" + m[2] + ") seront effacés ; le tableau repartira vide."; }],
     [/^سيُحتفظ بغياب وهواتف (\d+) تلميذا، وسيُضاف (\d+) تلميذا جديدا\.$/, function (m) { return "Les absences et téléphones de " + pl(m[1], 'élève', 'élèves') + " seront conservés, et " + pl(m[2], 'nouvel élève', 'nouveaux élèves') + " seront ajoutés."; }],

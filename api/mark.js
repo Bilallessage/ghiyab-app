@@ -2,11 +2,15 @@
 // Records (value:true) or removes (value:false) ONE absence cell of the shared sheet. This
 // is the only write a TEACHER account may do (the whole-sheet POST /api/state stays
 // admin-only). The server enforces every rule, the page only hides controls:
-//   - the week on the sheet must be the current one and not an inter-term holiday week;
+//   - the week must be the CURRENT one (the one that contains today) and not an inter-term holiday week. The
+//     administrator may be browsing another week (the sheet then holds that week and the current one waits in
+//     state.other): a teacher's tap always goes to the current week wherever it is kept;
 //   - only a column of TODAY (school time, Africa/Casablanca) can be changed;
 //   - when the admin gave the account a teacher name, only columns whose «الأستاذ(ة)»
 //     field contains that name;
-//   - a period that has not started yet cannot get an absence (start times as on the sheet);
+//   - a period that has not started yet cannot get an absence (start times as on the sheet), and once it is over
+//     (its start + PERIOD_MIN, or the start of the next period of the same half-day when that comes first)
+//     nothing can be recorded, changed or removed any more: the administrator corrects it;
 //   - a justified absence («م») is the administrator's decision: a teacher can neither
 //     create nor remove one;
 //   - `name` must match the student at index `si` (a list that changed in the meantime
@@ -62,6 +66,15 @@ function startMinutes(state, cls, pc, ci) {
   const [h, m] = x.split(':').map(Number);
   return h * 60 + m;
 }
+const PERIOD_MIN = 60;   // a period lasts one hour unless the next one of the same half-day starts sooner
+// end of column ci, in minutes since midnight (same rule as colEnd() in index.html)
+function endMinutes(state, cls, pc, ci) {
+  const W = pc[0] + pc[1], r = ci % W, s = r < pc[0] ? 0 : 1, p = s ? r - pc[0] : r;
+  const st = startMinutes(state, cls, pc, ci);
+  let end = st + PERIOD_MIN;
+  if (p + 1 < pc[s]) { const nx = startMinutes(state, cls, pc, ci + 1); if (nx > st && nx < end) end = nx; }
+  return end;
+}
 function nowMinutes(now) {
   const parts = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now || new Date());
   const g = (t) => Number((parts.find((x) => x.type === t) || {}).value);
@@ -78,27 +91,86 @@ function tapTime(at) {
   return { ok: true, d: new Date(Math.min(at, now)), late: now - at > 60000 };
 }
 
+// Where does a teacher's tap go? The sheet normally holds the current week. When the administrator is browsing
+// another week the sheet holds THAT week and the current one is kept in state.other (see snapshotWeek() in
+// index.html: weekFrom, weekTo, pc and classes[name] = {names, columns, absences}). Columns are numbered as
+// on the sheet (pc of the state), so ci is mapped to the layout the other week was saved with.
+// Returns {weekFrom, tgt, map(ci) -> column of tgt or -1, other, o, opc}. The administrator always works on the sheet.
+function frameFor(state, clsName, pc, d, isAdmin) {
+  const cls = state.data[clsName];
+  const sheet = { weekFrom: state.weekFrom, tgt: cls, map: (ci) => ci, other: false };
+  if (isAdmin) return sheet;
+  const tm = S.mondayOf(todayIso(d));
+  const o = state.other;
+  if (!tm || S.mondayOf(state.weekFrom) === tm || !o || typeof o !== 'object' || S.mondayOf(o.weekFrom) !== tm) return sheet;
+  const opc = S.periodCounts({ pc: o.pc }), Wo = opc[0] + opc[1], W = pc[0] + pc[1];
+  const map = (ci) => {
+    const day = Math.floor(ci / W), r = ci % W, s = r < pc[0] ? 0 : 1, p = s ? r - pc[0] : r;
+    return p >= opc[s] ? -1 : day * Wo + (s ? opc[0] : 0) + p;
+  };
+  const classes = o.classes && typeof o.classes === 'object' ? o.classes : null;
+  const tgt = (classes && classes[clsName]) || { names: [], columns: [], absences: [] };
+  return { weekFrom: o.weekFrom, tgt, map, other: true, o, opc, Wo, clsName };
+}
+// the row of student `name` in the other week (added when that week was saved before the student joined)
+function otherClass(fr) {
+  const o = fr.o;
+  if (!o.classes || typeof o.classes !== 'object') o.classes = {};
+  let t = o.classes[fr.clsName];
+  if (!t || typeof t !== 'object') t = o.classes[fr.clsName] = { names: [], columns: [], absences: [] };
+  if (!Array.isArray(t.names)) t.names = [];
+  if (!Array.isArray(t.absences)) t.absences = [];
+  if (!Array.isArray(t.columns)) t.columns = [];
+  return t;
+}
+function otherRow(fr, name) {
+  const t = otherClass(fr);
+  let i = t.names.indexOf(name);
+  if (i < 0) { t.names.push(name); i = t.names.length - 1; }
+  while (t.absences.length <= i) t.absences.push([]);
+  if (!Array.isArray(t.absences[i])) t.absences[i] = [];
+  const row = t.absences[i];
+  while (row.length < 5 * fr.Wo) row.push(false);
+  return { t, row };
+}
+// the state as the statistics archive should see the week the tap went to
+function archiveView(state, fr) {
+  if (!fr.other) return state;
+  const data = {};
+  for (const c of state.classNames) {
+    const t = fr.o.classes && fr.o.classes[c];
+    data[c] = Object.assign({}, state.data[c], t ? { names: t.names, absences: t.absences, columns: t.columns } : { names: [], absences: [], columns: [] });
+  }
+  return Object.assign({}, state, { weekFrom: fr.o.weekFrom, weekTo: fr.o.weekTo, pc: fr.o.pc, data });
+}
+
 function fail(res, code, error, message) { return L.send(res, code, { ok: false, error, message }); }
 
 // The rules a teacher is bound by for column ci (same for an absence and for «لا أحد»). Returns a failure
 // description or null. `d` = the moment of the tap.
-function teacherRules(state, cls, pc, W, ci, session, d, needStarted) {
-  const monday = S.mondayOf(state.weekFrom);
+function teacherRules(state, cls, pc, W, ci, session, d, needStarted, fr) {
+  const monday = S.mondayOf(fr.weekFrom);
   if (!monday) return ['conflict', 409, 'no_week', 'الأسبوع غير محدد في الورقة'];
   const breaks = Array.isArray(state.breaks) ? state.breaks : S.DEFAULT_BREAKS;
-  if (breaks.some((x) => x && S.validIso(x.from) && S.validIso(x.to) && state.weekFrom >= x.from && state.weekFrom <= x.to)) {
+  if (breaks.some((x) => x && S.validIso(x.from) && S.validIso(x.to) && fr.weekFrom >= x.from && fr.weekFrom <= x.to)) {
     return ['x', 403, 'break', 'هذا الأسبوع عطلة، لا يُسجَّل فيه غياب'];
   }
   const colDate = S.addDays(monday, Math.floor(ci / W));
   if (colDate !== todayIso(d)) return ['x', 403, 'not_today', 'يمكن تسجيل غياب حصص اليوم فقط'];
-  if (needStarted && nowMinutes(d) < startMinutes(state, cls, pc, ci)) {
+  const ci2 = fr.map(ci);
+  if (ci2 < 0) return ['x', 400, 'bad_column', 'حصة غير موجودة في هذا الأسبوع'];
+  const now = nowMinutes(d);
+  if (needStarted && now < startMinutes(state, cls, pc, ci)) {
     return ['x', 403, 'not_started', 'هذه الحصة لم يحن وقتها بعد'];
   }
   if (session.teacher) {
-    const have = cls.columns && cls.columns[ci] && cls.columns[ci].teacher;
+    const have = fr.tgt.columns && fr.tgt.columns[ci2] && fr.tgt.columns[ci2].teacher;
     if (!sameTeacher(session.teacher, have)) {
       return ['x', 403, 'not_yours', 'هذه الحصة ليست من حصصكم: اسم الأستاذ(ة) المكتوب فيها «' + (String(have || '').trim() || '—') + '» واسم حسابكم «' + session.teacher + '».'];
     }
+  }
+  if (now >= endMinutes(state, cls, pc, ci)) {
+    return ['x', 403, 'period_over', 'انتهت هذه الحصة، فلا يمكن تسجيل غيابها ولا تعديله بعد نهايتها. أخبروا المسؤول ليصحّحه.'];
   }
   return null;
 }
@@ -118,15 +190,21 @@ async function calledAction(res, session, b, isAdmin) {
       if (!state.classNames.includes(b.cls) || !cls || !Array.isArray(cls.names)) return fail(res, 404, 'no_class', 'القسم غير موجود');
       const pc = S.periodCounts(state), W = pc[0] + pc[1];
       if (ci >= 5 * W) return fail(res, 400, 'bad_column', 'حصة غير موجودة');
+      const fr = frameFor(state, b.cls, pc, tap.d, isAdmin);
       if (!isAdmin) {
-        const bad = teacherRules(state, cls, pc, W, ci, session, tap.d, b.value === true);
+        const bad = teacherRules(state, cls, pc, W, ci, session, tap.d, b.value === true, fr);
         if (bad) return fail(res, bad[1], bad[2], bad[3]);
       }
-      if (!Array.isArray(cls.columns)) cls.columns = [];
-      while (cls.columns.length <= ci) cls.columns.push({ subject: '', teacher: '' });
-      const col = cls.columns[ci] && typeof cls.columns[ci] === 'object' ? cls.columns[ci] : (cls.columns[ci] = { subject: '', teacher: '' });
+      let tc = cls, cj = ci;
+      if (fr.other) {
+        cj = fr.map(ci);
+        tc = otherClass(fr);
+      }
+      if (!Array.isArray(tc.columns)) tc.columns = [];
+      while (tc.columns.length <= cj) tc.columns.push({ subject: '', teacher: '' });
+      const col = tc.columns[cj] && typeof tc.columns[cj] === 'object' ? tc.columns[cj] : (tc.columns[cj] = { subject: '', teacher: '' });
       if (b.value === true) {
-        const n = (cls.absences || []).filter((r) => Array.isArray(r) && r[ci]).length;
+        const n = (tc.absences || []).filter((r) => Array.isArray(r) && r[cj]).length;
         if (n) return fail(res, 409, 'has_absences', 'سُجّل غياب في هذه الحصة، فلا يصحّ التصريح بأنه «لا أحد».');
         col.called = { at: tap.d.getTime(), by: String(session.teacher || session.email || '').slice(0, 80) };
       } else {
@@ -207,20 +285,27 @@ module.exports = async function handler(req, res) {
       const pc = S.periodCounts(state), W = pc[0] + pc[1];
       if (ci >= 5 * W) return fail(res, 400, 'bad_column', 'حصة غير موجودة');
 
+      const fr = frameFor(state, b.cls, pc, tap.d, isAdmin);
       if (!isAdmin) {
-        const bad = teacherRules(state, cls, pc, W, ci, session, tap.d, value === true);
+        const bad = teacherRules(state, cls, pc, W, ci, session, tap.d, value === true, fr);
         if (bad) return fail(res, bad[1], bad[2], bad[3]);
       }
 
-      if (!Array.isArray(cls.absences)) cls.absences = [];
-      if (!Array.isArray(cls.absences[si])) cls.absences[si] = [];
-      const row = cls.absences[si];
-      while (row.length < 5 * W) row.push(false);
-      if (!isAdmin && row[ci] === 'j') return fail(res, 403, 'justified', 'هذا الغياب مبرَّر من المسؤول ولا يمكن تغييره');
-      row[ci] = value;
-      if (value && cls.columns && cls.columns[ci] && cls.columns[ci].called) delete cls.columns[ci].called;   // an absence is recorded: «لا أحد» no longer holds
+      let row, tc = cls, cj = ci;
+      if (fr.other) {                          // the current week is kept aside while the administrator browses another one
+        cj = fr.map(ci);
+        ({ t: tc, row } = otherRow(fr, b.name));
+      } else {
+        if (!Array.isArray(cls.absences)) cls.absences = [];
+        if (!Array.isArray(cls.absences[si])) cls.absences[si] = [];
+        row = cls.absences[si];
+        while (row.length < 5 * W) row.push(false);
+      }
+      if (!isAdmin && row[cj] === 'j') return fail(res, 403, 'justified', 'هذا الغياب مبرَّر من المسؤول ولا يمكن تغييره');
+      row[cj] = value;
+      if (value && tc.columns && tc.columns[cj] && tc.columns[cj].called) delete tc.columns[cj].called;   // an absence is recorded: «لا أحد» no longer holds
       await redis.set(STATE_KEY, state);
-      try { await S.archiveWeek(redis, L.PREFIX, state); } catch (e) { /* the sheet itself is saved */ }
+      try { await S.archiveWeek(redis, L.PREFIX, archiveView(state, fr)); } catch (e) { /* the sheet itself is saved */ }
       return L.send(res, 200, { ok: true, value });
     });
   } catch (e) {

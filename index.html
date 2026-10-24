@@ -118,7 +118,10 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 .calltbl th{position:sticky;top:0;background:var(--teal-soft);color:var(--teal)}
 .callok{color:#15803d;font-weight:700}
 /* the sheet scrolls inside its own box so the days / periods rows stay visible while going down the list */
-#tableHost{max-height:82vh;overflow:auto;padding-top:0;padding-bottom:0}
+#tableHost{max-height:82vh;overflow:auto;padding:0}
+#tableHost .addbar{padding-inline:14px}
+#tableHost.vert{padding:0 14px}
+#tableHost.vert .addbar{padding-inline:0}
 #tableHost th,#tableHost td.name,#tableHost td.num{cursor:grab}
 #tableHost.dragging,#tableHost.dragging *{cursor:grabbing!important;user-select:none}
 #tableHost thead tr:nth-child(1) th{position:sticky;top:0;z-index:5;box-shadow:inset 0 -1px 0 var(--line)}
@@ -982,7 +985,7 @@ async function initSync(){
     if(res.status===401){ onAuthRejected(); return false; }
     if(!res.ok) throw new Error('bad status');
     const rawText=await res.text();
-    const remote=JSON.parse(rawText);
+    const remote=liveView(JSON.parse(rawText));
     if(remote && remote.classNames && remote.classNames.length){
       if(canWrite && isDirty()){
         // edits made on this device that the server has not confirmed: keep them, the next poll reconciles
@@ -1024,7 +1027,7 @@ async function pollRemote(){
     if(startedAt<=lastWriteDone) return; // this answer was requested before our last save landed: it may predate it
     if(canWrite && isDirty()){ await reconcile(raw); return; }
     if(raw===lastAppliedStr){ syncedOnce=true; setBase(raw); setSyncStatus('online'); return; }
-    const incoming=JSON.parse(raw);
+    const incoming=liveView(JSON.parse(raw));
     if(!incoming || !incoming.classNames || !incoming.classNames.length) return;
     syncedOnce=true;
     if(tableFocused){ pendingRemoteState=incoming; pendingRemoteStr=raw; return; }
@@ -1522,7 +1525,7 @@ function renderTable(){
 function syncHeaderOffset(retry){
   const host=document.getElementById('tableHost'), r1=host&&host.querySelector('thead tr');
   if(!r1) return;
-  host.style.setProperty('--hostw',Math.max(200,host.clientWidth-28)+'px'); // visible width of the sheet box, minus its padding
+  host.style.setProperty('--hostw',Math.max(200,host.clientWidth-(host.classList.contains('vert')?28:0))+'px'); // visible width of the sheet box (the wide sheet has no side padding: pinned columns reach the very edge)
   // the pinned columns (number, name, phone) sit side by side from the right edge: each one's offset = the widths of the ones before it
   let off=0;
   [['num','--oNum'],['name','--oName'],['phcol','--oPh']].forEach(([c,v])=>{
@@ -1934,11 +1937,12 @@ function teacherWhy(ci,cur){
   const o=colInfo(ci);
   if(o.d!==dow) return 'يمكن تسجيل غياب حصص اليوم فقط: اليوم '+DAY_NAMES[dow]+' وهذه الخانة من يوم '+DAY_NAMES[o.d]+'.';
   if(colIsFuture(ci)){ const st=colStart(ci); return 'هذه الحصة لم يحن وقتها بعد (تبدأ على الساعة '+String(st.getHours()).padStart(2,'0')+':'+String(st.getMinutes()).padStart(2,'0')+').'; }
-  if(cur==='j') return 'هذا الغياب مبرَّر من المسؤول ولا يمكن تغييره.';
   if(teacherName){
     const cls=state.data[currentClass], have=cls&&cls.columns&&cls.columns[ci]&&cls.columns[ci].teacher;
     if(!tchSame(teacherName,have)) return 'هذه الحصة ليست من حصصكم: اسم الأستاذ(ة) المكتوب فيها «'+((have||'').trim()||'—')+'» واسم حسابكم «'+teacherName+'».';
   }
+  if(colIsOver(ci)){ const en=colEnd(ci); return 'انتهت هذه الحصة (على الساعة '+String(en.getHours()).padStart(2,'0')+':'+String(en.getMinutes()).padStart(2,'0')+')، فلا يمكن تسجيل غيابها ولا تعديله بعد نهايتها. أخبروا المسؤول ليصحّحه.'; }
+  if(cur==='j') return 'هذا الغياب مبرَّر من المسؤول ولا يمكن تغييره.';
   return '';
 }
 function teacherCan(ci,cur){ return !teacherWhy(ci,cur); }
@@ -2131,7 +2135,7 @@ function teacherCalled(ci){
 }
 function teacherMark(si,ci){
   const cls=state.data[currentClass], cls0=currentClass, name=cls.names[si], cur=cls.absences[si][ci];
-  if(!teacherCan(ci,cur)) return;
+  const why=teacherWhy(ci,cur); if(why){ showAlert(why); return; }
   const subj=(cls.columns[ci]&&cls.columns[ci].subject||'').trim();
   const wi=colInfo(ci), where=DAYS[wi.d*2+wi.s]+' — ح'+(wi.p+1)+(subj?' ('+subj+')':'');
   if(cur){
@@ -2144,8 +2148,23 @@ function teacherMark(si,ci){
   }
 }
 function colIsFuture(ci,cname){ const d=colStart(ci,cname); return !!d&&d.getTime()>Date.now(); }
+// A period lasts PERIOD_MIN minutes, or less when the next one of the same half-day starts sooner (same rule as
+// the server, api/mark.js). A teacher can record or change nothing in it once it is over.
+const PERIOD_MIN=60;
+function colEnd(ci,cname){
+  const st=colStart(ci,cname); if(!st) return null;
+  let end=st.getTime()+PERIOD_MIN*60000;
+  const o=colInfo(ci);
+  if(o.p+1<pcount()[o.s]){ const nx=colStart(ci+1,cname); if(nx&&nx.getTime()>st.getTime()&&nx.getTime()<end) end=nx.getTime(); }
+  return new Date(end);
+}
+function colIsOver(ci,cname){ const e=colEnd(ci,cname); return !!e&&e.getTime()<=Date.now(); }
 function refreshFutureCells(){
-  document.querySelectorAll('td.cell[data-ci]').forEach(td=>td.classList.toggle('future',colIsFuture(+td.dataset.ci)));
+  document.querySelectorAll('td.cell[data-ci]').forEach(td=>{
+    const ci=+td.dataset.ci;
+    td.classList.toggle('future',colIsFuture(ci));
+    if(canMark&&colIsOver(ci)) td.classList.add('readonly');       // the period ended while the page was open
+  });
 }
 setInterval(refreshFutureCells,60*1000);
 function editPeriodTimes(){
@@ -3425,23 +3444,40 @@ function startNewWeek(){
 // The sheet holds one week. «الأسبوع الماضي» swaps it with the other week kept in
 // state.other (filled when a new week starts), or rebuilds the previous week from
 // the statistics archive. Saving then corrects that week's archived summary too.
-function snapshotWeek(){
-  const o={weekFrom:state.weekFrom,weekTo:state.weekTo,pc:pcount().slice(),classes:{}};
-  state.classNames.forEach(c=>{ const k=state.data[c];
+function snapshotWeekOf(st){
+  const o={weekFrom:st.weekFrom,weekTo:st.weekTo,pc:validPc(st.pc).slice(),classes:{}};
+  st.classNames.forEach(c=>{ const k=st.data[c];
     o.classes[c]={names:k.names.slice(),columns:JSON.parse(JSON.stringify(k.columns)),absences:k.absences.map(r=>r.slice())}; });
   return o;
 }
-function applyWeek(w){
-  state.weekFrom=w.weekFrom||''; state.weekTo=w.weekTo||'';
-  state.classNames.forEach(c=>{
-    const k=state.data[c], src=(w.classes||{})[c];
-    if(!src){ k.absences=k.names.map(()=>blankRow()); return; }
-    const from=validPc(src.pc||w.pc), to=pcount();       // the week may have been saved with another number of periods
-    k.absences=k.names.map(n=>{ const i=src.names.indexOf(n); return i>=0?convertArr((src.absences[i]||[]).map(v=>v==='j'?'j':!!v),from,to,()=>false):blankRow(); });
+function snapshotWeek(){ return snapshotWeekOf(state); }
+// put week w on the sheet of state object st (the sheet keeps its list of students and its number of periods)
+function applyWeekTo(st,w){
+  st.weekFrom=w.weekFrom||''; st.weekTo=w.weekTo||'';
+  const to=validPc(st.pc);
+  st.classNames.forEach(c=>{
+    const k=st.data[c], src=(w.classes||{})[c];
+    if(!src){ k.absences=k.names.map(()=>blankRow(totalCols(to))); return; }
+    const from=validPc(src.pc||w.pc);                    // the week may have been saved with another number of periods
+    k.absences=k.names.map(n=>{ const i=src.names.indexOf(n); return i>=0?convertArr((src.absences[i]||[]).map(v=>v==='j'?'j':!!v),from,to,()=>false):blankRow(totalCols(to)); });
     if(src.columns) k.columns=convertArr(JSON.parse(JSON.stringify(src.columns)),from,to,()=>({subject:'',teacher:''}));
   });
+}
+function applyWeek(w){
+  applyWeekTo(state,w);
   document.getElementById('wFrom').value=state.weekFrom;
   document.getElementById('wTo').value=state.weekTo;
+}
+// The administrator may browse another week: the sheet then holds that week and the current one waits in state.other.
+// Nobody else follows him: teachers and viewers always see the week that contains today (a copy of the shared
+// sheet with the two weeks put back in place; nothing is written back from here).
+function liveView(st){
+  if(canWrite||!st||!st.other||!isoOk(st.other.weekFrom)||!Array.isArray(st.classNames)||!st.data) return st;
+  const tm=ntMonday(todayIso());
+  if(!tm||ntMonday(st.weekFrom)===tm||ntMonday(st.other.weekFrom)!==tm) return st;
+  const v=JSON.parse(JSON.stringify(st));
+  try{ v.other=snapshotWeekOf(st); applyWeekTo(v,st.other); }catch(e){ return st; }
+  return v;
 }
 function weekNavInfo(){
   const o=state.other;

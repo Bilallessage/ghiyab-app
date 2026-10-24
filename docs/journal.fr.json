@@ -385,6 +385,19 @@
         "Au passage, il est apparu que l’épinglage des colonnes numéro, nom et téléphone ne fonctionnait pas dans l’interface française (de gauche à droite), sauf pour le nom ; c’est corrigé : les trois colonnes restent en place aussi dans cette langue, et la barre fonctionne dans les deux sens."
       ],
       "tech": "Dans index.html : un élément dayNav au-dessus de tableHost, les fonctions renderDayNav, hJump et todayDay (partagée avec l’affichage vertical) ; hJump calcule la largeur du bloc épinglé à partir des variables --oPh/--oName et de la largeur de la colonne, retranche bordure et marge intérieure selon le sens, puis appelle scrollBy. Dans fr.js, des règles CSS reportent à gauche les décalages des colonnes épinglées en mode gauche-à-droite. Nouveau test (navtest) : position des jours après chaque clic en arabe, en français et avec un compte professeur, avec deux largeurs d’ordinateur, disparition de la barre sur téléphone et retour à l’agrandissement, et stabilité des trois colonnes en français."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Semaine en cours pour tous, plus de saisie après la fin de la séance, et bande étroite masquée",
+      "goal": "La navigation de l’administrateur entre les semaines changeait la feuille partagée : le professeur et le lecteur voyaient la même semaine et le professeur ne pouvait plus saisir. Il a été demandé qu’ils gardent toujours la semaine en cours, que le professeur voie les absences de tous les jours de la semaine mais ne saisisse que dans la semaine en cours, dans sa séance et avant qu’elle se termine, et que la bande étroite visible au bord du tableau soit masquée.",
+      "done": [
+        "Les utilisateurs autres que l’administrateur ne suivent plus sa navigation : si la feuille affiche une autre semaine et que la semaine contenant la date du jour est mise de côté (state.other), c’est celle-ci qui est montrée au professeur et au lecteur, dans une copie locale dont rien n’est réécrit. Ce que fait l’administrateur (semaine passée, semaine suivante, semaine d’archive) ne change rien pour eux.",
+        "La saisie du professeur (absence ou « Aucun ») va toujours dans la semaine en cours, où qu’elle soit conservée, même quand l’administrateur consulte une autre semaine ; les numéros de séance sont convertis vers la disposition de cette semaine si le nombre de séances diffère, l’élève absent de sa copie y est ajouté, et les statistiques sont mises à jour pour la bonne semaine. L’administrateur, lui, travaille toujours sur la feuille qu’il a sous les yeux.",
+        "Nouvelle règle : le professeur ne peut plus noter, modifier ni supprimer une absence ou un « Aucun » après la fin de sa séance. Fin de séance = début + une heure, ou début de la séance suivante de la même demi-journée si elle est plus proche. C’est l’instant de l’appui qui compte : un appui fait pendant la séance sans internet est accepté à son arrivée. La case se verrouille à l’écran à la fin de la séance et le message affiché au toucher en explique la raison (en arabe et en français).",
+        "Le professeur consulte comme avant les absences enregistrées de tous les jours de la semaine en cours, et ne saisit que dans les séances du jour.",
+        "La bande étroite (environ 14 pixels) au bord du grand tableau, où l’on voyait passer les bords des colonnes sous les colonnes épinglées, est masquée en supprimant la marge latérale du tableau : les colonnes épinglées touchent désormais le bord (en arabe et en français)."
+      ],
+      "tech": "Dans api/mark.js : fonction frameFor (choisit entre la feuille et state.other la semaine contenant aujourd’hui et convertit le numéro de colonne), otherClass, otherRow, archiveView, endMinutes et PERIOD_MIN ; teacherRules est réécrit pour prendre ce cadre et ajoute le refus period_over. Dans index.html : snapshotWeekOf et applyWeekTo (la logique de bascule y a été déplacée), liveView (appliqué à ce que le serveur renvoie aux non-administrateurs), colEnd, colIsOver et PERIOD_MIN, modifications de teacherWhy, teacherMark et refreshFutureCells, suppression du padding latéral de #tableHost. Dans fr.js : trois traductions. Nouveau test livetest (32 vérifications) et tests du professeur mis à jour avec l’heure de l’appui."
     }
   ],
   "method": [
@@ -400,7 +413,8 @@
     "Essayer l’import de l’organisation pédagogique sur le site avec le vrai lecteur Excel.",
     "Essayer le compte enseignant lors d’une vraie séance : un seul appui sans confirmation convient-il, et faut-il lier le compte au nom de l’enseignant dans tous les comptes ? Essayer aussi le bouton « Aucun » (le délai de 20 minutes avant le « ! » est-il adapté ?) et le travail sans Internet dans une salle sans couverture.",
     "Essayer la restauration depuis « Sauvegardes » sur des données réelles, et activer la sauvegarde quotidienne d’Upstash si l’offre le permet.",
-    "Régler l’envoi d’e-mails (SMTP) sur Vercel et essayer une vraie invitation à un professeur, en vérifiant que le message arrive dans la boîte de réception et non dans les courriers indésirables."
+    "Régler l’envoi d’e-mails (SMTP) sur Vercel et essayer une vraie invitation à un professeur, en vérifiant que le message arrive dans la boîte de réception et non dans les courriers indésirables.",
+    "Essayer la règle de fin de séance lors d’une vraie séance : la durée d’une heure (ou jusqu’au début de la suivante) convient-elle à l’établissement, ou faut-il une durée réglable dans « Horaires des séances » ?"
   ],
   "gitNote": "Les messages de commit restent en anglais, tels qu’écrits."
 }
