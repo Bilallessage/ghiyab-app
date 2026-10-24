@@ -339,6 +339,17 @@
         "Traduction française complète (fenêtre, page d’activation, messages) et correction dans fr.js : le texte saisi dans une zone de texte reste tel quel mais son indication (placeholder) est désormais traduite. README mis à jour avec la section « Invitation des professeurs par e-mail » et le réglage de Gmail."
       ],
       "tech": "Nouveau fichier api/_mail.js (petit client SMTP en net et tls : TLS direct sur 465 ou STARTTLS sur 587, AUTH PLAIN/LOGIN, message MIME multipart en base64 avec en-têtes UTF-8, délai de 9 s). Dans api/_lib.js, les fonctions d’invitation (loadInvite, hashToken, clés <KEY_PREFIX>:inv:<hash> avec ex 7 jours et <KEY_PREFIX>:invites comme index de l’administrateur). Dans api/users.js, les actions invite et uninvite et les champs invites et mail dans GET ?all=1 ; dans api/auth.js, l’action accept (le jeton est consommé par DEL et seule la requête qui l’a réellement supprimé continue) et GET ?invite=. Dans index.html, le mode invite de l’écran de connexion et invParse/invSend/invShow. Tests : 40 contrôles côté serveur (dont l’usage simultané et l’usurpation d’adresse), 14 pour le client e-mail face à un faux serveur SMTP dans ses trois modes, et des contrôles de l’interface en arabe et en français et en largeur téléphone."
+    },
+    {
+      "date": "2026-10-23",
+      "title": "Numéro d’ordre épinglé à côté des noms en passant d’un jour à l’autre",
+      "goal": "En faisant défiler le tableau vers les jours de la semaine, la colonne des noms restait en place mais le numéro de l’élève (colonne « م ») disparaissait, et l’on perdait le rang de l’élève dans la liste. Le numéro doit rester visible devant chaque nom, quel que soit le défilement.",
+      "done": [
+        "La colonne « م » est maintenant épinglée à côté de la colonne du nom (puis de celle du téléphone du parent pour l’administrateur), sur ordinateur, sur téléphone et pour le compte professeur ; son en-tête et la cellule de total en bas restent épinglés avec elle.",
+        "Les colonnes de sélection et de suppression (administrateur) disparaissent toujours au défilement, pour ne pas réduire la place des jours sur un écran de téléphone, et reviennent au retour au début du tableau.",
+        "La numérotation elle-même ne change pas d’un jour à l’autre : c’est le rang de l’élève dans la liste de la classe, sans lien avec les jours ni les absences."
+      ],
+      "tech": "Dans index.html, td.num est épinglé par position:sticky avec un décalage --oNum ; les décalages des colonnes épinglées (م, nom, téléphone) sont mesurés cumulativement dans syncHeaderOffset et stockés dans --oNum, --oName et --oPh, à la place de l’ancien --namew ; une classe lead est ajoutée aux cellules vides sous « م » dans l’en-tête et le pied. Nouveau test (pintest) avec un navigateur automatisé : après avoir fait défiler le tableau au maximum, les positions de م, du nom et du téléphone ne bougent pas, sur ordinateur, sur téléphone et avec un compte professeur."
     }
   ],
   "method": [
