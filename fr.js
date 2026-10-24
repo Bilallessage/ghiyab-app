@@ -746,7 +746,17 @@
   var css = w.document.createElement('style');
   css.id = 'frcss';
   css.textContent =
-    'html[dir=ltr] td.name{text-align:left;right:auto;left:0}' +
+    // the pinned columns (number, name, phone) stick to the LEFT edge in the left-to-right layout
+    'html[dir=ltr] td.name{text-align:left;right:auto;left:var(--oName,0px)}' +
+    'html[dir=ltr] td.num{right:auto;left:var(--oNum,0px)}' +
+    'html[dir=ltr] td.phcol{right:auto;left:var(--oPh,150px)}' +
+    'html[dir=ltr] #tableHost thead tr:nth-child(3) th.stk{right:auto;left:var(--oName,0px)}' +
+    'html[dir=ltr] #tableHost thead tr:nth-child(3) th.lead{right:auto;left:0}' +
+    'html[dir=ltr] #tableHost thead tr th.numh{right:auto;left:var(--oNum,0px)}' +
+    'html[dir=ltr] #tableHost thead tr th.nmh{right:auto;left:var(--oName,0px)}' +
+    'html[dir=ltr] #tableHost thead tr th.phh{right:auto;left:var(--oPh,150px)}' +
+    'html[dir=ltr] #tableHost tfoot th.stk,html[dir=ltr] #tableHost tr.foot td.stk{right:auto;left:var(--oName,0px)}' +
+    'html[dir=ltr] #tableHost tfoot th.lead,html[dir=ltr] #tableHost tr.foot td.lead{right:auto;left:0}' +
     'html[dir=ltr] .import-box{text-align:left}' +
     'html[dir=ltr] table.sv td.svn{text-align:left}' +
     'html[dir=ltr] #usersBody span[dir=ltr]{text-align:left!important}' +

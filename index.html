@@ -148,6 +148,8 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 .vnav{position:sticky;top:0;z-index:30;display:flex;gap:6px;padding:8px 0;margin-bottom:4px;background:var(--panel);overflow-x:auto;border-bottom:1px solid var(--line)}
 .vnav button{flex:1 1 0;min-width:0;border:1.5px solid var(--dc);background:color-mix(in srgb,var(--dc) 12%,var(--panel));color:var(--ink);border-radius:16px;padding:5px 2px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
 .vnav button.now{background:var(--dc);color:#fff}
+.dnav{position:static;margin:0 0 8px;padding:0;border-bottom:0;background:transparent;gap:8px}
+.dnav button{flex:0 0 auto;padding:5px 18px;font-size:13.5px}
 .vday{margin:14px 0 8px;scroll-margin-top:58px}
 .vdh{margin:0 0 6px;padding:7px 10px;border-radius:8px;background:var(--dc,var(--teal));color:#fff;font-size:15px}
 .vmgr{--dc:var(--teal)}
@@ -425,6 +427,7 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
 </div>
 <div class="tabs" id="tabs"></div>
 <input type="file" id="xlsFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this.files[0])">
+<div id="dayNav" class="vnav dnav" style="display:none"></div>
 <div class="panel" id="tableHost"></div>
 
 <div class="panel" id="autoPanel">
@@ -1370,14 +1373,43 @@ function addBarHtml(){
 const VQ=window.matchMedia?window.matchMedia('(max-width: 700px)'):null;
 function isVert(){ return !!(VQ&&VQ.matches); }
 if(VQ&&VQ.addEventListener) VQ.addEventListener('change',()=>{ try{ if(typeof state!=='undefined'&&state&&state.data&&state.data[currentClass]&&document.getElementById('tableHost').firstChild) renderTable(); }catch(e){} });
+// which weekday (0 = Monday ... 4 = Friday) of the week on screen is today, if any
+function todayDay(){
+  const wf=ntMonday(state.weekFrom); if(!wf) return undefined;
+  const t=todayIso(); return [0,1,2,3,4].find(d=>addDaysIso(wf,d)===t);
+}
+// the row of day buttons above the sheet: on a wide screen a tap slides the sheet sideways to that day,
+// on a phone (vertical layout) it scrolls down to it
+function renderDayNav(){
+  const el=document.getElementById('dayNav'); if(!el) return;
+  const pc=pcount();
+  if(isVert()||breakNow()||!(pc[0]+pc[1])){ el.style.display='none'; el.innerHTML=''; return; }
+  const td=todayDay();
+  el.style.display='flex';
+  el.innerHTML=DAY_NAMES.map((n,d)=>`<button type="button" class="d${d}${d===td?' now':''}" onclick="hJump(${d})">${n}</button>`).join('');
+}
+function hJump(d){
+  const host=document.getElementById('tableHost');
+  const th=host.querySelector('thead tr:nth-child(1) th.day.d'+d);
+  const pin=host.querySelector('thead th.phh')||host.querySelector('thead th.nmh');
+  if(!th||!pin) return;
+  // The pinned columns (number, name, phone) end at a fixed distance from the edge once the sheet is
+  // scrolled; put the first column of the day right beside them. Works in both reading directions.
+  const cs=getComputedStyle(host), hr=host.getBoundingClientRect(), tr=th.getBoundingClientRect();
+  const off=parseFloat(cs.getPropertyValue(pin.classList.contains('phh')?'--oPh':'--oName'))||0;
+  const block=off+pin.getBoundingClientRect().width;
+  const delta=cs.direction==='rtl'
+    ? tr.right-(hr.right-(parseFloat(cs.borderRightWidth)||0)-(parseFloat(cs.paddingRight)||0)-block)
+    : tr.left-(hr.left+(parseFloat(cs.borderLeftWidth)||0)+(parseFloat(cs.paddingLeft)||0)+block);
+  host.scrollBy({left:delta,behavior:'smooth'});
+}
 function vJump(d){ const e=document.getElementById('vday'+d); if(e) e.scrollIntoView({behavior:'smooth',block:'start'}); }
 function renderTableVertical(host){
   const cls=state.data[currentClass], names=cls.names;
   const br=breakNow(), T=canMark, pc=pcount(), W=pc[0]+pc[1];
   const dis=(canWrite&&!br)?'':'disabled';
   const pendSet=canMark?tqPending():null;
-  const wf=ntMonday(state.weekFrom), today=todayIso();
-  const todayD=wf?[0,1,2,3,4].find(d=>addDaysIso(wf,d)===today):undefined;
+  const todayD=todayDay();
   let html='<div class="vsheet">';
   if(br){
     html+=`<div class="vbreak">${svEsc(br.label||'عطلة بينية')}</div>`;
@@ -1431,6 +1463,7 @@ function renderTable(){
   const host=document.getElementById('tableHost');
   const vert=isVert();
   host.classList.toggle('vert',vert);
+  renderDayNav();
   if(vert){ const y=window.scrollY; renderTableVertical(host); if(window.scrollY!==y) window.scrollTo(0,y); return; }
   const cls=state.data[currentClass];
   const names=cls.names;

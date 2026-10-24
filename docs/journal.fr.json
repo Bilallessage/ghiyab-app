@@ -374,6 +374,17 @@
         "L’enregistrement, la suppression et la conversion d’une absence se font comme avant (même fenêtre de confirmation), la position de défilement de la page est conservée après chaque enregistrement, l’écran large retrouve le tableau habituel quand on agrandit la fenêtre ou fait pivoter le téléphone, et tous les nouveaux textes sont traduits en français."
       ],
       "tech": "Dans index.html : les fonctions cellHtml et addBarHtml sont extraites de renderTable pour servir aux deux affichages ; renderTableVertical est appelée quand matchMedia correspond à max-width: 700px (avec un écouteur de changement) ; vJump saute au jour voulu ; classes CSS vday/vnav/vscroll/vt/vfoot/vmeta. Les numéros de colonne (data-ci) sont les mêmes, donc toggleCell, teacherMark, callMark et setMeta fonctionnent sans changement. Quatre nouvelles phrases dans fr.js. Nouveau test (verttest) sur un téléphone virtuel : cinq sections et cinq boutons de jour, aucun défilement latéral dans une section ni dans la page, absence enregistrée dans la bonne colonne avec défilement conservé, modification d’une matière et d’un téléphone, retour au tableau large, français sans arabe restant, compte lecteur et compte professeur."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Barre des jours sur ordinateur et colonnes épinglées en français",
+      "goal": "L’utilisateur a apprécié la barre des jours de l’affichage téléphone (toucher le nom d’un jour y mène) et a demandé de l’ajouter à la version ordinateur pour faciliter le passage d’un jour à l’autre.",
+      "done": [
+        "Une barre de cinq boutons (lundi à vendredi), aux couleurs des jours, est ajoutée au-dessus du tableau large ; un clic fait glisser le tableau latéralement jusqu’à ce que la première colonne du jour soit collée aux colonnes épinglées du numéro, du nom et du téléphone, et le jour courant est mis en évidence s’il fait partie de la semaine affichée.",
+        "La barre fonctionne pour l’administrateur, le lecteur et le professeur ; elle disparaît sur téléphone (qui a sa propre barre entre les jours empilés) et pendant les vacances intercalaires.",
+        "Au passage, il est apparu que l’épinglage des colonnes numéro, nom et téléphone ne fonctionnait pas dans l’interface française (de gauche à droite), sauf pour le nom ; c’est corrigé : les trois colonnes restent en place aussi dans cette langue, et la barre fonctionne dans les deux sens."
+      ],
+      "tech": "Dans index.html : un élément dayNav au-dessus de tableHost, les fonctions renderDayNav, hJump et todayDay (partagée avec l’affichage vertical) ; hJump calcule la largeur du bloc épinglé à partir des variables --oPh/--oName et de la largeur de la colonne, retranche bordure et marge intérieure selon le sens, puis appelle scrollBy. Dans fr.js, des règles CSS reportent à gauche les décalages des colonnes épinglées en mode gauche-à-droite. Nouveau test (navtest) : position des jours après chaque clic en arabe, en français et avec un compte professeur, avec deux largeurs d’ordinateur, disparition de la barre sur téléphone et retour à l’agrandissement, et stabilité des trois colonnes en français."
     }
   ],
   "method": [

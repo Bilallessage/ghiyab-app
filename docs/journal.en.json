@@ -374,6 +374,17 @@
         "Recording, deleting and converting an absence work as before (same confirmation window), the page keeps its scroll position after each recording, the wide screen goes back to the usual sheet when the window is enlarged or the phone is rotated, and all the new texts are translated into French."
       ],
       "tech": "In index.html: cellHtml and addBarHtml are extracted from renderTable so both layouts share them; renderTableVertical is called when matchMedia matches max-width: 700px (with a change listener); vJump jumps to the chosen day; CSS classes vday/vnav/vscroll/vt/vfoot/vmeta. The column numbers (data-ci) are the same, so toggleCell, teacherMark, callMark and setMeta work unchanged. Four new sentences in fr.js. New test (verttest) on a virtual phone: five sections and five day buttons, no sideways scrolling in any section or in the page, an absence recorded in the right column with the scroll kept, editing a subject and a phone, return to the wide sheet, French with no Arabic left over, viewer and teacher accounts."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Day bar on the computer version, and pinned columns in French",
+      "goal": "The user liked the day bar of the phone layout (tapping a day name jumps to it) and asked for it on the computer version too, to make moving between the days of the week easier.",
+      "done": [
+        "A bar of five buttons (Monday to Friday), in the days' own colours, is added above the wide sheet; a click slides the sheet sideways until the first column of that day sits right against the pinned number, name and phone columns, and the current day is highlighted when it is in the week shown.",
+        "The bar works for the administrator, the viewer and the teacher; it is hidden on a phone (which has its own bar between the stacked days) and during an inter-term break.",
+        "On the way it turned out that pinning the number, name and phone columns did not work in the French (left-to-right) interface except for the name; this is fixed: the three columns stay in place in that language too, and the bar works in both directions."
+      ],
+      "tech": "In index.html: a dayNav element above tableHost, and the functions renderDayNav, hJump and todayDay (shared with the vertical layout); hJump computes the width of the pinned block from the --oPh/--oName variables and the column width, subtracts border and padding according to the direction, then calls scrollBy. In fr.js, CSS rules move the pinned columns' offsets to the left in the left-to-right direction. New test (navtest): position of the days after each click in Arabic, in French and with a teacher account, at two computer widths, the bar disappearing on a phone and coming back when enlarged, and the three columns staying put in French."
     }
   ],
   "method": [
