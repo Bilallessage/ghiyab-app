@@ -1390,7 +1390,7 @@ function todayDay(){
 function renderDayNav(){
   const el=document.getElementById('dayNav'); if(!el) return;
   const pc=pcount();
-  if(isVert()||breakNow()||!(pc[0]+pc[1])){ el.style.display='none'; el.innerHTML=''; return; }
+  if(isVert()||!(pc[0]+pc[1])){ el.style.display='none'; el.innerHTML=''; return; }   // also shown in a holiday week: its day columns are still there
   const td=todayDay();
   el.style.display='flex';
   el.innerHTML=DAY_NAMES.map((n,d)=>`<button type="button" class="d${d}${d===td?' now':''}" onclick="hJump(${d})">${n}</button>`).join('');

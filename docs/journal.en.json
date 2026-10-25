@@ -431,6 +431,16 @@
         "Left to the user: the training administrator's password (ADMIN_PASSWORD) and connecting the Upstash database to the project, then a redeploy; this is explained in docs/training/README.md."
       ],
       "tech": "Project creation and deployment through the Vercel MCP; no change to the application code."
+    },
+    {
+      "date": "2026-10-25",
+      "title": "The day bar also shows during the holiday week",
+      "goal": "The row of day buttons (Monday to Friday) did not appear on the computer layout for the week of 19-23 October, because it was hidden during the inter-term holiday; the feature seemed to exist only on the training site.",
+      "done": [
+        "The bar now shows in a holiday week too: the day columns are there and tapping a day works as in other weeks.",
+        "It stays hidden only when the timetable has no periods (no column to jump to) and on a phone (which has its own bar inside the sheet)."
+      ],
+      "tech": "In index.html: the breakNow() condition is removed from renderDayNav; the holiday table draws the same day headers, so hJump finds the th.day.d cell it needs."
     }
   ],
   "method": [

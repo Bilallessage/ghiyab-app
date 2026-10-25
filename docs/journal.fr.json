@@ -431,6 +431,16 @@
         "Restent à la charge de l’utilisateur le mot de passe de l’administrateur de formation (ADMIN_PASSWORD) et la connexion de la base Upstash au projet, puis un redéploiement ; c’est expliqué dans docs/training/README.md."
       ],
       "tech": "Création du projet et déploiement via le MCP Vercel ; aucun changement dans le code de l’application."
+    },
+    {
+      "date": "2026-10-25",
+      "title": "La barre des jours s’affiche aussi pendant la semaine de vacances",
+      "goal": "La barre des boutons des jours (lundi à vendredi) n’apparaissait pas sur ordinateur pour la semaine du 19 au 23 octobre, car elle était masquée pendant les vacances entre périodes ; la fonction semblait n’exister que sur le site de formation.",
+      "done": [
+        "La barre s’affiche désormais aussi pendant une semaine de vacances : les colonnes des jours y existent et le clic sur un jour fonctionne comme les autres semaines.",
+        "Elle reste masquée uniquement quand l’emploi du temps n’a aucune séance (aucune colonne où aller) et sur téléphone (qui a sa propre barre dans la feuille)."
+      ],
+      "tech": "Dans index.html : la condition breakNow() est retirée de renderDayNav ; le tableau des vacances dessine les mêmes en-têtes de jours, donc hJump trouve la cellule th.day.d voulue."
     }
   ],
   "method": [
