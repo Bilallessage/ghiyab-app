@@ -484,6 +484,16 @@
         "Les liens d’invitation enregistrés sont liés au nom du groupe : changer la liste ne mélange pas les liens."
       ],
       "tech": "Dans api/config.js : la fonction envGroups renvoie groups dans la réponse GET ; dans index.html : pmGroups prend les noms dans PM_NAMES (rempli par applyBranding) sinon la liste par défaut, et rassemble les liens depuis state.parentGroups par nom."
+    },
+    {
+      "date": "2026-11-05",
+      "title": "Vacances entre périodes 2026/2027 d’après la liste officielle",
+      "goal": "L’administrateur(trice) a fourni la liste officielle des vacances scolaires 2026/2027 (primaire, collège et lycée) ; l’application ne connaissait que la première période de vacances.",
+      "done": [
+        "Les semaines verrouillées (un bloc « Vacances intermédiaires » remplace les cases, hors statistiques, aucune absence saisie) sont désormais cinq : semaine du 19 octobre 2026 (1re période), du 7 décembre 2026 (2e), du 25 janvier 2027 (vacances de mi-année), du 22 mars 2027 (3e) et du 10 mai 2027 (4e).",
+        "Le site de formation n’est pas touché (sa liste de vacances est volontairement vide) ; les congés d’un seul jour (fêtes nationales et religieuses) ne sont pas ajoutés car ils ne verrouillent pas une semaine entière."
+      ],
+      "tech": "Mise à jour de DEFAULT_BREAKS dans index.html et api/_stats.js (utilisé aussi par api/mark.js), et traduction de « عطلة منتصف السنة الدراسية » dans fr.js. Testé sur 14 débuts de semaine : les cinq sont verrouillées, celles d’avant et d’après sont ouvertes."
     }
   ],
   "method": [

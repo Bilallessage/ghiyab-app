@@ -135,6 +135,7 @@
     'كل المستويات': 'Tous les niveaux',
     'ساعات الغياب': "Heures d'absence",
     'عطلة بينية': 'Vacances intermédiaires',
+    'عطلة منتصف السنة الدراسية': 'Vacances de mi-année scolaire',
     'نعم، الانتقال إلى الأسبوع التالي': 'Oui, passer à la semaine suivante',
     'منها مبررة': 'Dont justifiées',
     'منها غير مبررة': 'Dont non justifiées',

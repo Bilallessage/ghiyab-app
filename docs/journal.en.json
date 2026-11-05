@@ -484,6 +484,16 @@
         "Saved invitation links are tied to the group name, so changing the list does not mix the links up."
       ],
       "tech": "In api/config.js: envGroups returns groups in the GET reply; in index.html: pmGroups takes the names from PM_NAMES (filled by applyBranding) or else the default list, and gathers the links from state.parentGroups by name."
+    },
+    {
+      "date": "2026-11-05",
+      "title": "2026/2027 inter-term holidays from the official list",
+      "goal": "The administrator supplied the official school holiday list for 2026/2027 (primary, middle and high school); the application only knew the first holiday period.",
+      "done": [
+        "The locked weeks (a “holiday” block replaces the cells, outside the statistics, no absence can be recorded) are now five: the week of 19 October 2026 (1st period), of 7 December 2026 (2nd), of 25 January 2027 (mid-year holiday), of 22 March 2027 (3rd) and of 10 May 2027 (4th).",
+        "The training site is unaffected (its holiday list is empty on purpose); one-day holidays (national and religious feasts) are not added because they do not lock a whole week."
+      ],
+      "tech": "DEFAULT_BREAKS updated in index.html and api/_stats.js (also used by api/mark.js), and the French translation of “عطلة منتصف السنة الدراسية” added in fr.js. Tested on 14 week starts: the five are locked, the weeks before and after are open."
     }
   ],
   "method": [

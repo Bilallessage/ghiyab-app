@@ -690,7 +690,14 @@ function fitLen(arr,len,fill){ const a=arr.slice(0,len); while(a.length<len) a.p
 // Inter-term holiday weeks («عطلة بينية»): the sheet of such a week is locked and shows only the label.
 // state.breaks = [{from:'YYYY-MM-DD', to:'YYYY-MM-DD', label}], a week is a break when its start date falls inside one.
 // (The same default list lives in api/_stats.js, so a break week never reaches the statistics.)
-const DEFAULT_BREAKS=[{from:'2026-10-19',to:'2026-10-23',label:'عطلة بينية'}];
+// school calendar 2026/2027 (official list of holidays): the Monday-to-Friday week inside each holiday period
+const DEFAULT_BREAKS=[
+  {from:'2026-10-19',to:'2026-10-23',label:'عطلة بينية'},                 // 1st inter-term period (Sun 18 - Sun 25 Oct)
+  {from:'2026-12-07',to:'2026-12-11',label:'عطلة بينية'},                 // 2nd (Sun 6 - Sun 13 Dec)
+  {from:'2027-01-25',to:'2027-01-29',label:'عطلة منتصف السنة الدراسية'},  // mid-year (Sun 24 - Sun 31 Jan)
+  {from:'2027-03-22',to:'2027-03-26',label:'عطلة بينية'},                 // 3rd (Sun 21 - Sun 28 Mar)
+  {from:'2027-05-10',to:'2027-05-14',label:'عطلة بينية'}                  // 4th (Sun 9 - Sun 16 May)
+];
 function breakNow(){
   const f=state&&state.weekFrom; if(!isoOk(f)) return null;
   return (Array.isArray(state.breaks)?state.breaks:DEFAULT_BREAKS).find(b=>b&&isoOk(b.from)&&isoOk(b.to)&&f>=b.from&&f<=b.to)||null;

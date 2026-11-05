@@ -13,7 +13,13 @@
 
 const DAYS = 5;
 // same default as DEFAULT_BREAKS in index.html (used while the saved state has no `breaks` list yet)
-const DEFAULT_BREAKS = [{ from: '2026-10-19', to: '2026-10-23', label: 'عطلة بينية' }];
+const DEFAULT_BREAKS = [
+  { from: '2026-10-19', to: '2026-10-23', label: 'عطلة بينية' },
+  { from: '2026-12-07', to: '2026-12-11', label: 'عطلة بينية' },
+  { from: '2027-01-25', to: '2027-01-29', label: 'عطلة منتصف السنة الدراسية' },
+  { from: '2027-03-22', to: '2027-03-26', label: 'عطلة بينية' },
+  { from: '2027-05-10', to: '2027-05-14', label: 'عطلة بينية' },
+];
 const DEFAULT_PC = [3, 3];
 const MAX_PC = 8;
 
