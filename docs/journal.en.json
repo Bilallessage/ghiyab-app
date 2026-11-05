@@ -462,6 +462,17 @@
         "Text and interface in Arabic and French; nothing is stored on the server."
       ],
       "tech": "In index.html: parentMsgOverlay element and functions parentMsgOpen, parentMsgFillStudents, parentMsgRefill, parentMsgSend and parentMsgText, wa.me link via normalizePhone; in fr.js: the window’s keys. Tested in a browser in both languages (button order, link, saving the number)."
+    },
+    {
+      "date": "2026-11-05",
+      "title": "Choosing a WhatsApp group in the “Message to a parent” window",
+      "goal": "The administrator created WhatsApp groups for the parents of each level (1st, 2nd and 3rd year of middle school) and asked for them to be added to the class list of the “Message to a parent” window.",
+      "done": [
+        "The “Class or group” list now offers three groups after the classes: 1st, 2nd and 3rd year of middle school. When a group is chosen, the pupil and phone fields disappear and a general text for that level’s parents (homework, discipline or another topic) is filled in, editable.",
+        "WhatsApp cannot pre-fill a message inside a group, so the “Copy the message and open the group” button copies the text and opens the group through its invitation link for pasting. The invitation link is pasted once and stays saved in the shared sheet.",
+        "The group links do not reach teacher and read-only accounts: the server removes them from the sheet it returns to anyone but the administrator."
+      ],
+      "tech": "In index.html: state.parentGroups field ([{name,link}]) and functions pmGroups, parentGroupText, parentGroupSend and pmCopy (copy by execCommand then clipboard), link checked against chat.whatsapp.com; in api/state.js: parentGroups removed from the reply for non-administrators; in fr.js: the interface keys. Tested in a browser (list, hidden fields, link, copy, saving, French)."
     }
   ],
   "method": [

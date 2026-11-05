@@ -43,6 +43,8 @@ module.exports = async function handler(req, res) {
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       // Fresh deployment: hand out the default class lists (kept server side).
       let out = stored || buildSeedState();
+      // the invitation links of the parents' WhatsApp groups are for the administrator only
+      if (session.role !== 'admin' && out && out.parentGroups) { out = Object.assign({}, out); delete out.parentGroups; }
       if (session.role === 'teacher' && out && out.data) {
         // a teacher records absences: parents' phone numbers are not for them
         out = Object.assign({}, out, { data: Object.fromEntries(Object.entries(out.data).map(([k, c]) => [k, c && Array.isArray(c.phones) ? Object.assign({}, c, { phones: c.phones.map(() => '') }) : c])) });

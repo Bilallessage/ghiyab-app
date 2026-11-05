@@ -462,6 +462,17 @@
         "Texte et interface en arabe et en français ; rien n’est enregistré sur le serveur."
       ],
       "tech": "Dans index.html : élément parentMsgOverlay et fonctions parentMsgOpen, parentMsgFillStudents, parentMsgRefill, parentMsgSend et parentMsgText, lien wa.me via normalizePhone ; dans fr.js : clés de la fenêtre. Testé dans un navigateur dans les deux langues (ordre du bouton, lien, enregistrement du numéro)."
+    },
+    {
+      "date": "2026-11-05",
+      "title": "Choix d’un groupe WhatsApp dans la fenêtre « Message à un parent »",
+      "goal": "L’administrateur(trice) a créé des groupes WhatsApp pour les parents de chaque niveau (1re, 2e et 3e année du collège) et a demandé de les ajouter à la liste des classes de la fenêtre « Message à un parent ».",
+      "done": [
+        "La liste « Classe ou groupe » propose désormais, après les classes, trois groupes : 1re, 2e et 3e année du collège. Quand un groupe est choisi, les champs élève et téléphone disparaissent et un texte général pour les parents du niveau (devoirs, discipline ou autre sujet) est proposé, modifiable.",
+        "WhatsApp ne permet pas de pré-remplir un message dans un groupe : le bouton « Copier le message et ouvrir le groupe » copie le texte et ouvre le groupe par son lien d’invitation pour qu’on le colle. Le lien d’invitation se colle une seule fois et reste enregistré dans la feuille partagée.",
+        "Les liens des groupes n’arrivent pas aux comptes enseignants et lecteurs : le serveur les retire de la réponse pour tout compte autre que l’administrateur."
+      ],
+      "tech": "Dans index.html : champ state.parentGroups ([{name,link}]) et fonctions pmGroups, parentGroupText, parentGroupSend et pmCopy (copie par execCommand puis clipboard), lien validé par l’expression chat.whatsapp.com ; dans api/state.js : parentGroups retiré de la réponse pour les non-administrateurs ; dans fr.js : clés de l’interface. Testé dans un navigateur (liste, champs masqués, lien, copie, enregistrement, français)."
     }
   ],
   "method": [

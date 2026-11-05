@@ -530,9 +530,9 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
   <div class="modal-box" style="max-width:460px;max-height:92vh;overflow:auto">
     <h3 style="margin:0 0 10px;color:var(--teal);font-size:15px">رسالة إلى ولي أمر</h3>
     <p class="sub" style="margin:0 0 10px;line-height:1.6">اختاروا التلميذ(ة) والموضوع، عدّلوا النص كما تشاؤون، ثم أرسلوه عبر واتساب (تُفتح المحادثة والرسالة جاهزة وتضغطون «إرسال» فيها).</p>
-    <label class="sub pmlab" for="pmClass">القسم</label>
+    <label class="sub pmlab" for="pmClass">القسم أو المجموعة</label>
     <select id="pmClass" class="modal-input" onchange="parentMsgFillStudents()"></select>
-    <label class="sub pmlab" for="pmStudent">التلميذ(ة)</label>
+    <label class="sub pmlab" for="pmStudent" id="pmStudentLab">التلميذ(ة)</label>
     <select id="pmStudent" class="modal-input" onchange="parentMsgStudentChanged()"></select>
     <label class="sub pmlab" for="pmTopic">الموضوع</label>
     <select id="pmTopic" class="modal-input" onchange="parentMsgRefill(true)">
@@ -540,9 +540,16 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
       <option value="discipline">عدم الانضباط داخل القسم</option>
       <option value="other">موضوع آخر</option>
     </select>
-    <label class="sub pmlab" for="pmPhone">هاتف ولي الأمر</label>
-    <input type="tel" id="pmPhone" class="modal-input" dir="ltr" placeholder="06XXXXXXXX" oninput="parentMsgPhoneInput()" style="text-align:right">
-    <label id="pmSaveRow" class="sub" style="display:none;margin:-8px 0 12px"><input type="checkbox" id="pmSave"> حفظ هذا الرقم في لائحة القسم</label>
+    <div id="pmPhoneBox">
+      <label class="sub pmlab" for="pmPhone">هاتف ولي الأمر</label>
+      <input type="tel" id="pmPhone" class="modal-input" dir="ltr" placeholder="06XXXXXXXX" oninput="parentMsgPhoneInput()" style="text-align:right">
+      <label id="pmSaveRow" class="sub" style="display:none;margin:-8px 0 12px"><input type="checkbox" id="pmSave"> حفظ هذا الرقم في لائحة القسم</label>
+    </div>
+    <div id="pmLinkBox" style="display:none">
+      <label class="sub pmlab" for="pmLink">رابط دعوة المجموعة</label>
+      <input type="url" id="pmLink" class="modal-input" dir="ltr" placeholder="https://chat.whatsapp.com/…" style="text-align:right;margin-bottom:6px">
+      <p class="sub" style="margin:0 0 12px;line-height:1.6">يُحفظ الرابط عند الإرسال فلا تكتبونه مرة أخرى. للحصول عليه: في واتساب افتحوا المجموعة ← معلومات المجموعة ← «دعوة إلى المجموعة عبر رابط» ← نسخ الرابط. واتساب لا يملأ الرسالة داخل المجموعة تلقائيا، لذلك يُنسخ النص ثم تفتح المجموعة فتلصقونه فيها.</p>
+    </div>
     <label class="sub pmlab" for="pmText">الرسالة</label>
     <textarea id="pmText" class="modal-input" rows="7" style="resize:vertical;line-height:1.7" oninput="pmDirty=true"></textarea>
     <p class="sub" id="pmNote" style="margin:0 0 12px;color:var(--absent);min-height:1.2em"></p>
@@ -1754,17 +1761,49 @@ function parentMsgText(cn,name,topic){
   if(topic==='discipline') return head+`نلاحظ عدم انضباط ${who} داخل القسم الدراسي. نرجو التحدث معه في الموضوع، شاكرين لكم تعاونكم.`+sign;
   return head+`بخصوص ${who}:\n\n`+sign;
 }
+// the same for a whole WhatsApp group of parents (one group per level)
+function parentGroupText(gname,topic){
+  if(LANG==='fr'){
+    const g=T(gname), head=`Bonjour, `, sign=`\nL'administration — ${instDisplay()}`;
+    if(topic==='homework') return head+`nous rappelons aux parents des élèves de ${g} l'importance de suivre régulièrement la réalisation des devoirs à la maison de leurs enfants. Merci de votre collaboration.`+sign;
+    if(topic==='discipline') return head+`nous rappelons aux parents des élèves de ${g} l'importance d'encourager leurs enfants à respecter la discipline et les règles de la classe. Merci de votre collaboration.`+sign;
+    return head+`aux parents des élèves de ${g} :\n\n`+sign;
+  }
+  const head='السلام عليكم ورحمة الله، ', sign=`\nإدارة ${state.instName}`, who=`أولياء أمور تلاميذ ${gname}`;
+  if(topic==='homework') return head+`نذكّر السادة ${who} بضرورة متابعة أبنائهم/بناتهم في إنجاز واجباتهم المنزلية بانتظام، شاكرين لكم تعاونكم.`+sign;
+  if(topic==='discipline') return head+`نذكّر السادة ${who} بضرورة حثّ أبنائهم/بناتهم على الانضباط واحترام قواعد القسم داخل الفصل الدراسي، شاكرين لكم تعاونكم.`+sign;
+  return head+`إلى السادة ${who}:\n\n`+sign;
+}
+// the parents' WhatsApp groups kept in the shared sheet: [{name,link}], one per level (the three levels are offered at first)
+const PM_DEFAULT_GROUPS=['الأولى إعدادي','الثانية إعدادي','الثالثة إعدادي'];
+function pmGroups(){
+  const g=state.parentGroups;
+  return Array.isArray(g)&&g.length?g.filter(x=>x&&typeof x.name==='string'):PM_DEFAULT_GROUPS.map(name=>({name,link:''}));
+}
+function pmGroupIdx(){ const v=document.getElementById('pmClass').value; return /^g:\d+$/.test(v)?+v.slice(2):-1; }
+const PM_LINK_RE=/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9_-]{8,}/;
 function parentMsgOpen(){
   if(!canWrite) return;
   const sel=document.getElementById('pmClass');
-  sel.innerHTML=state.classNames.map(c=>`<option value="${svEsc(c)}">${svEsc(c)}</option>`).join('');
+  sel.innerHTML=state.classNames.map(c=>`<option value="${svEsc(c)}">${svEsc(c)}</option>`).join('')
+    +pmGroups().map((g,i)=>`<option value="g:${i}">👥 مجموعة ${svEsc(g.name)}</option>`).join('');
   sel.value=currentClass;
   document.getElementById('pmTopic').value='homework';
   parentMsgFillStudents();
   document.getElementById('parentMsgOverlay').style.display='flex';
 }
 function parentMsgClose(){ document.getElementById('parentMsgOverlay').style.display='none'; }
+function pmMsg(msg,ok){ const n=document.getElementById('pmNote'); n.textContent=msg||''; n.style.color=ok?'var(--teal)':'var(--absent)'; }
 function parentMsgFillStudents(){
+  const gi=pmGroupIdx(), grp=gi>=0;
+  ['pmStudentLab','pmStudent','pmPhoneBox'].forEach(id=>{ document.getElementById(id).style.display=grp?'none':''; });
+  document.getElementById('pmLinkBox').style.display=grp?'block':'none';
+  document.getElementById('pmSend').textContent=grp?'📋 نسخ الرسالة وفتح المجموعة':'📲 إرسال عبر واتساب';
+  pmDirty=false;
+  if(grp){
+    const g=pmGroups()[gi]; document.getElementById('pmLink').value=(g&&g.link)||'';
+    pmMsg(''); parentMsgRefill(false); return;
+  }
   const cn=document.getElementById('pmClass').value, cls=state.data[cn]||{names:[]};
   const st=document.getElementById('pmStudent');
   st.innerHTML=cls.names.length?cls.names.map((n,i)=>`<option value="${i}">${i+1} — ${svEsc(n)}</option>`).join(''):'<option value="">لا يوجد تلاميذ في هذا القسم</option>';
@@ -1776,34 +1815,59 @@ function parentMsgStudentChanged(){
   document.getElementById('pmPhone').value=si===''?'':(cls.phones&&cls.phones[+si])||'';
   parentMsgRefill(false); parentMsgPhoneInput();
 }
-// rewrites the text for the chosen student and topic; once the user has typed in it, only choosing another topic replaces it
+// rewrites the text for the chosen student (or group) and topic; once the user has typed in it, only choosing another topic replaces it
 function parentMsgRefill(topicChanged){
   if(pmDirty&&!topicChanged) return;
+  const ta=document.getElementById('pmText'), topic=document.getElementById('pmTopic').value, gi=pmGroupIdx();
+  if(gi>=0){ const g=pmGroups()[gi]; ta.value=g?parentGroupText(g.name,topic):''; pmDirty=false; return; }
   const cn=document.getElementById('pmClass').value, cls=state.data[cn]||{names:[]};
-  const si=document.getElementById('pmStudent').value, ta=document.getElementById('pmText');
+  const si=document.getElementById('pmStudent').value;
   if(si===''){ ta.value=''; pmDirty=false; return; }
-  ta.value=parentMsgText(cn,cls.names[+si],document.getElementById('pmTopic').value); pmDirty=false;
+  ta.value=parentMsgText(cn,cls.names[+si],topic); pmDirty=false;
 }
 function parentMsgPhoneInput(){
+  if(pmGroupIdx()>=0) return;
   const cn=document.getElementById('pmClass').value, cls=state.data[cn]||{phones:[]};
   const si=document.getElementById('pmStudent').value, v=document.getElementById('pmPhone').value.trim();
   const stored=si===''?'':((cls.phones&&cls.phones[+si])||'').trim();
   document.getElementById('pmSaveRow').style.display=(si!==''&&normalizePhone(v).length>=9&&normalizePhone(v)!==normalizePhone(stored))?'block':'none';
-  document.getElementById('pmNote').textContent=(si!==''&&!v)?'لا رقم هاتف مسجّل لهذا التلميذ(ة): اكتبوه في خانة «هاتف ولي الأمر».':'';
+  pmMsg((si!==''&&!v)?'لا رقم هاتف مسجّل لهذا التلميذ(ة): اكتبوه في خانة «هاتف ولي الأمر».':'');
 }
 function parentMsgSend(){
   if(!canWrite) return;
+  const gi=pmGroupIdx(), text=document.getElementById('pmText').value.trim();
+  if(!text){ pmMsg('اكتبوا نص الرسالة أولا.'); document.getElementById('pmText').focus(); return; }
+  if(gi>=0) return parentGroupSend(gi,text);
   const cn=document.getElementById('pmClass').value, si=document.getElementById('pmStudent').value;
-  const phone=normalizePhone(document.getElementById('pmPhone').value), text=document.getElementById('pmText').value.trim();
-  const note=document.getElementById('pmNote');
-  if(si===''){ note.textContent='اختاروا تلميذا(ة) أولا.'; return; }
-  if(phone.length<9){ note.textContent='اكتبوا رقم هاتف ولي الأمر (06XXXXXXXX) قبل الإرسال.'; document.getElementById('pmPhone').focus(); return; }
-  if(!text){ note.textContent='اكتبوا نص الرسالة أولا.'; document.getElementById('pmText').focus(); return; }
+  const phone=normalizePhone(document.getElementById('pmPhone').value);
+  if(si===''){ pmMsg('اختاروا تلميذا(ة) أولا.'); return; }
+  if(phone.length<9){ pmMsg('اكتبوا رقم هاتف ولي الأمر (06XXXXXXXX) قبل الإرسال.'); document.getElementById('pmPhone').focus(); return; }
   if(document.getElementById('pmSaveRow').style.display!=='none'&&document.getElementById('pmSave').checked){
     const cls=state.data[cn]; if(cls&&cls.names[+si]!=null){ cls.phones=cls.phones||[]; cls.phones[+si]=document.getElementById('pmPhone').value.trim(); save(); if(cn===currentClass) renderTable(); }
   }
   window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(text),'_blank','noopener');
   parentMsgClose();
+}
+// WhatsApp cannot pre-fill a text inside a group: the text is copied, then the group is opened to paste it
+function pmCopy(text){
+  let ok=false;
+  try{
+    const ta=document.getElementById('pmText'); const keep=ta.value; ta.value=text; ta.focus(); ta.select(); ta.setSelectionRange(0,text.length+1);
+    ok=document.execCommand('copy'); ta.value=keep; ta.blur();
+  }catch(e){}
+  if(!ok&&navigator.clipboard&&navigator.clipboard.writeText){ try{ navigator.clipboard.writeText(text); ok=true; }catch(e){} }
+  return ok;
+}
+function parentGroupSend(gi,text){
+  const link=document.getElementById('pmLink').value.trim();
+  if(link&&!PM_LINK_RE.test(link)){ pmMsg('رابط المجموعة غير صالح: يجب أن يبدأ بـ https://chat.whatsapp.com/'); document.getElementById('pmLink').focus(); return; }
+  const gs=pmGroups().map(g=>({name:g.name,link:g.link||''})), cur=gs[gi];
+  if(cur&&cur.link!==link){ cur.link=link; state.parentGroups=gs; save(); }
+  const copied=pmCopy(text);
+  if(link) window.open(link,'_blank','noopener');
+  pmMsg(copied
+    ? (link?'✅ نُسخت الرسالة وفُتحت المجموعة: الصقوها في المجموعة ثم أرسلوها.':'✅ نُسخت الرسالة. افتحوا المجموعة في واتساب والصقوها، أو الصقوا رابط دعوة المجموعة أعلاه لتُفتح من هنا في المرة القادمة.')
+    : 'تعذّر نسخ الرسالة تلقائيا: انسخوا النص من الخانة أعلاه يدويا ثم الصقوه في المجموعة.',copied);
 }
 function renameStudent(si,name){
   if(!canWrite) return;
