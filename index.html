@@ -204,6 +204,7 @@ select{font-family:inherit;border:1px solid var(--line);background:var(--panel);
 #modalOverlay{z-index:60}  /* questions and messages always above the other dialogs (e.g. the import window) */
 .modal-box{background:var(--panel);color:var(--ink);border-radius:12px;padding:20px;max-width:360px;width:100%;box-shadow:0 10px 30px rgba(0,0,0,.25)}
 .modal-box p{margin:0 0 16px;font-size:14px;line-height:1.6;white-space:pre-line}
+.pmlab{display:block;margin:0 0 4px;font-weight:700}
 .modal-input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:14px;margin-bottom:14px;background:var(--bg);color:var(--ink)}
 .modal-actions{display:flex;gap:8px;flex-wrap:wrap}
 .modal-actions .btn{flex:1;min-width:100px}
@@ -307,7 +308,7 @@ table.cu th:nth-child(1){width:24%}table.cu th:nth-child(2){width:13%}table.cu t
 .btn.ghost{--bc:var(--teal);color:var(--bc);border-color:color-mix(in srgb,var(--bc) 55%,transparent);background:color-mix(in srgb,var(--bc) 8%,transparent);transition:background .15s}
 .btn.ghost:hover:not(:disabled){background:color-mix(in srgb,var(--bc) 17%,transparent)}
 #logoBtn{--bc:var(--c-violet)} #periodsBtn{--bc:var(--c-blue)} #seasonBtn{--bc:var(--c-slate)} #timesBtn{--bc:var(--c-amber)} #prevWeekBtn{--bc:var(--c-slate)} #newWeekBtn{--bc:var(--c-green)}
-#statsBtn{--bc:var(--c-indigo)} #catchBtn,#cuXlsBtn{--bc:var(--c-amber)} #cuXlsBtn{--bc:var(--c-green)} #usersBtn{--bc:var(--c-rose)} #printBtn{--bc:var(--c-slate)} #importBtn{--bc:var(--c-green)} #callBtn2{--bc:var(--c-green)} #svXlsBtn{--bc:var(--c-green)} #svPngBtn{--bc:var(--c-violet)}
+#statsBtn{--bc:var(--c-indigo)} #catchBtn,#cuXlsBtn{--bc:var(--c-amber)} #cuXlsBtn{--bc:var(--c-green)} #usersBtn{--bc:var(--c-rose)} #printBtn{--bc:var(--c-slate)} #importBtn{--bc:var(--c-green)} #callBtn2{--bc:var(--c-green)} #parentMsgBtn{--bc:var(--c-rose)} #svXlsBtn{--bc:var(--c-green)} #svPngBtn{--bc:var(--c-violet)}
 .langBtn{--bc:var(--c-slate)}
 /* a week ribbon under the header: Monday to Friday */
 header{position:relative;padding-bottom:14px}
@@ -522,6 +523,33 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
     <p id="modalMsg"></p>
     <input type="text" id="modalInput" class="modal-input" style="display:none">
     <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="parentMsgOverlay" style="display:none">
+  <div class="modal-box" style="max-width:460px;max-height:92vh;overflow:auto">
+    <h3 style="margin:0 0 10px;color:var(--teal);font-size:15px">رسالة إلى ولي أمر</h3>
+    <p class="sub" style="margin:0 0 10px;line-height:1.6">اختاروا التلميذ(ة) والموضوع، عدّلوا النص كما تشاؤون، ثم أرسلوه عبر واتساب (تُفتح المحادثة والرسالة جاهزة وتضغطون «إرسال» فيها).</p>
+    <label class="sub pmlab" for="pmClass">القسم</label>
+    <select id="pmClass" class="modal-input" onchange="parentMsgFillStudents()"></select>
+    <label class="sub pmlab" for="pmStudent">التلميذ(ة)</label>
+    <select id="pmStudent" class="modal-input" onchange="parentMsgStudentChanged()"></select>
+    <label class="sub pmlab" for="pmTopic">الموضوع</label>
+    <select id="pmTopic" class="modal-input" onchange="parentMsgRefill(true)">
+      <option value="homework">إهمال الواجبات المنزلية</option>
+      <option value="discipline">عدم الانضباط داخل القسم</option>
+      <option value="other">موضوع آخر</option>
+    </select>
+    <label class="sub pmlab" for="pmPhone">هاتف ولي الأمر</label>
+    <input type="tel" id="pmPhone" class="modal-input" dir="ltr" placeholder="06XXXXXXXX" oninput="parentMsgPhoneInput()" style="text-align:right">
+    <label id="pmSaveRow" class="sub" style="display:none;margin:-8px 0 12px"><input type="checkbox" id="pmSave"> حفظ هذا الرقم في لائحة القسم</label>
+    <label class="sub pmlab" for="pmText">الرسالة</label>
+    <textarea id="pmText" class="modal-input" rows="7" style="resize:vertical;line-height:1.7" oninput="pmDirty=true"></textarea>
+    <p class="sub" id="pmNote" style="margin:0 0 12px;color:var(--absent);min-height:1.2em"></p>
+    <div class="modal-actions">
+      <button class="btn wa" type="button" id="pmSend" onclick="parentMsgSend()">📲 إرسال عبر واتساب</button>
+      <button class="btn ghost" type="button" onclick="parentMsgClose()">إغلاق</button>
+    </div>
   </div>
 </div>
 
@@ -1372,7 +1400,8 @@ function addBarHtml(){
       ${canWrite?`<button class="btn ghost" id="importBtn" onclick="document.getElementById('xlsFile').click()">📥 استيراد لائحة من إكسيل</button>`:''}
       ${canMark?`<button class="btn" id="noneBtn" type="button" onmousedown="event.preventDefault()" onclick="teacherCalledNow()" title="تمّ النداء ولا غائب في حصتكم الحالية">✅ لا أحد</button>`:''}
       ${canWrite?`<button class="btn ghost" id="callBtn2" type="button" onclick="openCallFollow()" title="هل قام الأساتذة بالنداء؟">✅ متابعة النداء</button>
-      <button class="btn ghost" id="seasonBtn" style="margin-inline-start:auto" onclick="seasonDialog()" title="حفظ غياب الموسم الدراسي كاملا في الأرشيف وبدء موسم جديد">🗄️ أرشفة الموسم</button>`:''}
+      <button class="btn ghost" id="parentMsgBtn" type="button" style="margin-inline-start:auto" onclick="parentMsgOpen()" title="كتابة رسالة واتساب إلى ولي أمر تلميذ(ة) في موضوع غير الغياب">💬 رسالة إلى ولي أمر</button>
+      <button class="btn ghost" id="seasonBtn" onclick="seasonDialog()" title="حفظ غياب الموسم الدراسي كاملا في الأرشيف وبدء موسم جديد">🗄️ أرشفة الموسم</button>`:''}
     </div>`;
 }
 // On a phone the days are stacked one under the other (scroll down to go from day to day) instead of
@@ -1710,6 +1739,71 @@ function studentDialog(si){
   ov.style.display='flex';
   setTimeout(()=>{ inp.focus(); inp.select(); },50);
   inp.onkeydown=e=>{ if(e.key==='Enter') save.click(); };
+}
+// ---- «رسالة إلى ولي أمر»: a free WhatsApp message to a parent about something other than absences ----
+let pmDirty=false;
+function parentMsgText(cn,name,topic){
+  if(LANG==='fr'){
+    const head=`Bonjour, `, sign=`\nL'administration — ${instDisplay()}`, who=`votre enfant « ${name} » (${frClass(cn)})`;
+    if(topic==='homework') return head+`nous souhaitons vous informer que ${who} néglige ses devoirs à la maison depuis quelque temps. Nous vous remercions de bien vouloir le/la suivre et l'encourager à les faire régulièrement.`+sign;
+    if(topic==='discipline') return head+`nous constatons un manque de discipline de ${who} en classe. Nous vous remercions de bien vouloir en discuter avec lui/elle.`+sign;
+    return head+`au sujet de ${who} :\n\n`+sign;
+  }
+  const head='السلام عليكم، ', sign=`\nإدارة ${state.instName}`, who=`ابنكم/ابنتكم "${name}" (القسم ${cn})`;
+  if(topic==='homework') return head+`نود إخباركم بأن ${who} يُهمل في الآونة الأخيرة إنجاز واجباته المنزلية. نرجو متابعته وتشجيعه على الانتظام في ذلك، شاكرين لكم تعاونكم.`+sign;
+  if(topic==='discipline') return head+`نلاحظ عدم انضباط ${who} داخل القسم الدراسي. نرجو التحدث معه في الموضوع، شاكرين لكم تعاونكم.`+sign;
+  return head+`بخصوص ${who}:\n\n`+sign;
+}
+function parentMsgOpen(){
+  if(!canWrite) return;
+  const sel=document.getElementById('pmClass');
+  sel.innerHTML=state.classNames.map(c=>`<option value="${svEsc(c)}">${svEsc(c)}</option>`).join('');
+  sel.value=currentClass;
+  document.getElementById('pmTopic').value='homework';
+  parentMsgFillStudents();
+  document.getElementById('parentMsgOverlay').style.display='flex';
+}
+function parentMsgClose(){ document.getElementById('parentMsgOverlay').style.display='none'; }
+function parentMsgFillStudents(){
+  const cn=document.getElementById('pmClass').value, cls=state.data[cn]||{names:[]};
+  const st=document.getElementById('pmStudent');
+  st.innerHTML=cls.names.length?cls.names.map((n,i)=>`<option value="${i}">${i+1} — ${svEsc(n)}</option>`).join(''):'<option value="">لا يوجد تلاميذ في هذا القسم</option>';
+  parentMsgStudentChanged();
+}
+function parentMsgStudentChanged(){
+  const cn=document.getElementById('pmClass').value, cls=state.data[cn]||{names:[],phones:[]};
+  const si=document.getElementById('pmStudent').value;
+  document.getElementById('pmPhone').value=si===''?'':(cls.phones&&cls.phones[+si])||'';
+  parentMsgRefill(false); parentMsgPhoneInput();
+}
+// rewrites the text for the chosen student and topic; once the user has typed in it, only choosing another topic replaces it
+function parentMsgRefill(topicChanged){
+  if(pmDirty&&!topicChanged) return;
+  const cn=document.getElementById('pmClass').value, cls=state.data[cn]||{names:[]};
+  const si=document.getElementById('pmStudent').value, ta=document.getElementById('pmText');
+  if(si===''){ ta.value=''; pmDirty=false; return; }
+  ta.value=parentMsgText(cn,cls.names[+si],document.getElementById('pmTopic').value); pmDirty=false;
+}
+function parentMsgPhoneInput(){
+  const cn=document.getElementById('pmClass').value, cls=state.data[cn]||{phones:[]};
+  const si=document.getElementById('pmStudent').value, v=document.getElementById('pmPhone').value.trim();
+  const stored=si===''?'':((cls.phones&&cls.phones[+si])||'').trim();
+  document.getElementById('pmSaveRow').style.display=(si!==''&&normalizePhone(v).length>=9&&normalizePhone(v)!==normalizePhone(stored))?'block':'none';
+  document.getElementById('pmNote').textContent=(si!==''&&!v)?'لا رقم هاتف مسجّل لهذا التلميذ(ة): اكتبوه في خانة «هاتف ولي الأمر».':'';
+}
+function parentMsgSend(){
+  if(!canWrite) return;
+  const cn=document.getElementById('pmClass').value, si=document.getElementById('pmStudent').value;
+  const phone=normalizePhone(document.getElementById('pmPhone').value), text=document.getElementById('pmText').value.trim();
+  const note=document.getElementById('pmNote');
+  if(si===''){ note.textContent='اختاروا تلميذا(ة) أولا.'; return; }
+  if(phone.length<9){ note.textContent='اكتبوا رقم هاتف ولي الأمر (06XXXXXXXX) قبل الإرسال.'; document.getElementById('pmPhone').focus(); return; }
+  if(!text){ note.textContent='اكتبوا نص الرسالة أولا.'; document.getElementById('pmText').focus(); return; }
+  if(document.getElementById('pmSaveRow').style.display!=='none'&&document.getElementById('pmSave').checked){
+    const cls=state.data[cn]; if(cls&&cls.names[+si]!=null){ cls.phones=cls.phones||[]; cls.phones[+si]=document.getElementById('pmPhone').value.trim(); save(); if(cn===currentClass) renderTable(); }
+  }
+  window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(text),'_blank','noopener');
+  parentMsgClose();
 }
 function renameStudent(si,name){
   if(!canWrite) return;

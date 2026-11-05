@@ -451,6 +451,17 @@
         "La traduction française est alignée (clés exactes et expressions régulières) et le badge du rôle devient « Administrateur(trice) » en français."
       ],
       "tech": "Remplacement textuel du mot dans index.html, api/auth.js, api/mark.js, api/users.js et api/backups.js, ainsi que dans les clés et règles de fr.js (parenthèses échappées dans les expressions régulières)."
+    },
+    {
+      "date": "2026-11-05",
+      "title": "Bouton « Message à un parent » pour écrire aux parents hors sujet d’absence",
+      "goal": "L’administrateur(trice) a demandé de pouvoir écrire par WhatsApp au parent d’un élève sur un sujet autre que l’absence, par exemple pour signaler des devoirs négligés ou un manque de discipline en classe.",
+      "done": [
+        "Un bouton « 💬 Message à un parent » est ajouté à la barre de boutons sous la liste, avant « Archiver l’année » ; il est réservé au compte administrateur.",
+        "La fenêtre permet de choisir la classe, l’élève et le sujet (devoirs négligés, manque de discipline en classe, autre sujet) ; un texte prêt à modifier est proposé, puis « Envoyer par WhatsApp » ouvre la conversation avec le numéro du parent et le message prêts. Le numéro vient de la liste ; on peut le saisir ou le corriger, avec l’option de l’enregistrer dans la liste de la classe.",
+        "Texte et interface en arabe et en français ; rien n’est enregistré sur le serveur."
+      ],
+      "tech": "Dans index.html : élément parentMsgOverlay et fonctions parentMsgOpen, parentMsgFillStudents, parentMsgRefill, parentMsgSend et parentMsgText, lien wa.me via normalizePhone ; dans fr.js : clés de la fenêtre. Testé dans un navigateur dans les deux langues (ordre du bouton, lien, enregistrement du numéro)."
     }
   ],
   "method": [
