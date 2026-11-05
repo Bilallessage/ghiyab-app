@@ -473,6 +473,17 @@
         "The group links do not reach teacher and read-only accounts: the server removes them from the sheet it returns to anyone but the administrator."
       ],
       "tech": "In index.html: state.parentGroups field ([{name,link}]) and functions pmGroups, parentGroupText, parentGroupSend and pmCopy (copy by execCommand then clipboard), link checked against chat.whatsapp.com; in api/state.js: parentGroups removed from the reply for non-administrators; in fr.js: the interface keys. Tested in a browser (list, hidden fields, link, copy, saving, French)."
+    },
+    {
+      "date": "2026-11-05",
+      "title": "WhatsApp group names specific to each institution",
+      "goal": "The primary school’s parent groups differ from the middle school’s, so the group names were to be removed from the primary version (to be supplied later) and kept on the training site.",
+      "done": [
+        "Group names are now read from the PARENT_GROUPS variable of each institution’s project: not set = the three default groups (middle school and training site), “-” = no groups, comma-separated names = that institution’s list.",
+        "The value “-” is set in the primary project (marjaiya-ghiyab): no group shows there until the names are supplied, after which they only need to go into the variable followed by a redeploy; the three groups remain on the training site and the middle school.",
+        "Saved invitation links are tied to the group name, so changing the list does not mix the links up."
+      ],
+      "tech": "In api/config.js: envGroups returns groups in the GET reply; in index.html: pmGroups takes the names from PM_NAMES (filled by applyBranding) or else the default list, and gathers the links from state.parentGroups by name."
     }
   ],
   "method": [

@@ -1,5 +1,5 @@
 // /api/config
-//   GET  (any logged-in or anonymous caller) -> {logo, custom}
+//   GET  (any logged-in or anonymous caller) -> {logo, custom, groups?}  (groups = PARENT_GROUPS, see envGroups)
 //        logo = the institution's own uploaded logo (a small data: URL kept in
 //        Redis), else the LOGO_FILE from /logos, else '' (the built-in default).
 //   POST (admin only) {logo:"data:image/..."}  -> saves a new logo
@@ -11,6 +11,15 @@ const L = require('./_lib');
 const LOGO_KEY = L.PREFIX + ':logo';
 const MAX_LEN = 300000; // characters of the data: URL (about 220 KB of image)
 const DATA_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
+
+// Names of the parents' WhatsApp groups offered in "رسالة إلى ولي أمر". PARENT_GROUPS = names separated by commas
+// (or new lines); "-" = this institution has none. Not set = the page's own default list.
+function envGroups() {
+  const raw = process.env.PARENT_GROUPS;
+  if (raw == null || !String(raw).trim()) return null;
+  if (/^\s*(-|none)\s*$/i.test(String(raw))) return [];
+  return String(raw).split(/[,،\n]/).map((x) => x.trim().slice(0, 60)).filter(Boolean).slice(0, 20);
+}
 
 function envLogo() {
   const file = String(process.env.LOGO_FILE || '').replace(/[^A-Za-z0-9._-]/g, '');
@@ -26,7 +35,8 @@ module.exports = async function handler(req, res) {
         if (typeof v === 'string' && v.length <= MAX_LEN && DATA_RE.test(v)) { logo = v; custom = true; }
       } catch (e) { /* keep the file / default logo */ }
     }
-    return L.send(res, 200, { logo, custom });
+    const groups = envGroups();
+    return L.send(res, 200, groups === null ? { logo, custom } : { logo, custom, groups });
   }
 
   if (req.method === 'POST') {

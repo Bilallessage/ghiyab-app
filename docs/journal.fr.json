@@ -473,6 +473,17 @@
         "Les liens des groupes n’arrivent pas aux comptes enseignants et lecteurs : le serveur les retire de la réponse pour tout compte autre que l’administrateur."
       ],
       "tech": "Dans index.html : champ state.parentGroups ([{name,link}]) et fonctions pmGroups, parentGroupText, parentGroupSend et pmCopy (copie par execCommand puis clipboard), lien validé par l’expression chat.whatsapp.com ; dans api/state.js : parentGroups retiré de la réponse pour les non-administrateurs ; dans fr.js : clés de l’interface. Testé dans un navigateur (liste, champs masqués, lien, copie, enregistrement, français)."
+    },
+    {
+      "date": "2026-11-05",
+      "title": "Noms des groupes WhatsApp propres à chaque établissement",
+      "goal": "Les groupes de parents du primaire diffèrent de ceux du collège : il a été demandé de retirer les noms de groupes de la version primaire (qui seront fournis plus tard) et de les garder sur le site de formation.",
+      "done": [
+        "Les noms des groupes sont lus dans la variable PARENT_GROUPS du projet de chaque établissement : non définie = les trois groupes par défaut (collège et site de formation), « - » = aucun groupe, noms séparés par des virgules = liste de l’établissement.",
+        "La valeur « - » est définie dans le projet du primaire (marjaiya-ghiyab) : aucun groupe n’y apparaît jusqu’à la fourniture des noms, qu’il suffira ensuite de mettre dans la variable puis de redéployer ; les trois groupes restent sur le site de formation et au collège.",
+        "Les liens d’invitation enregistrés sont liés au nom du groupe : changer la liste ne mélange pas les liens."
+      ],
+      "tech": "Dans api/config.js : la fonction envGroups renvoie groups dans la réponse GET ; dans index.html : pmGroups prend les noms dans PM_NAMES (rempli par applyBranding) sinon la liste par défaut, et rassemble les liens depuis state.parentGroups par nom."
     }
   ],
   "method": [

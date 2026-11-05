@@ -1775,10 +1775,12 @@ function parentGroupText(gname,topic){
   return head+`إلى السادة ${who}:\n\n`+sign;
 }
 // the parents' WhatsApp groups kept in the shared sheet: [{name,link}], one per level (the three levels are offered at first)
+// names: PARENT_GROUPS of the institution (from /api/config; "-" = none), else these three; links come from the sheet
 const PM_DEFAULT_GROUPS=['الأولى إعدادي','الثانية إعدادي','الثالثة إعدادي'];
+let PM_NAMES=null;
 function pmGroups(){
-  const g=state.parentGroups;
-  return Array.isArray(g)&&g.length?g.filter(x=>x&&typeof x.name==='string'):PM_DEFAULT_GROUPS.map(name=>({name,link:''}));
+  const saved=Array.isArray(state.parentGroups)?state.parentGroups:[];
+  return (PM_NAMES||PM_DEFAULT_GROUPS).map(name=>{ const o=saved.find(x=>x&&x.name===name); return {name,link:(o&&typeof o.link==='string')?o.link:''}; });
 }
 function pmGroupIdx(){ const v=document.getElementById('pmClass').value; return /^g:\d+$/.test(v)?+v.slice(2):-1; }
 const PM_LINK_RE=/^https:\/\/chat\.whatsapp\.com\/[A-Za-z0-9_-]{8,}/;
@@ -4012,6 +4014,7 @@ async function applyBranding(){
     const r=await fetch('/api/config');
     if(!r.ok) return;
     const c=await r.json();
+    if(c&&Array.isArray(c.groups)) PM_NAMES=c.groups.filter(x=>typeof x==='string');
     await setLogo(c && c.logo ? c.logo : '');
   }catch(e){ /* keep the current logo */ }
 }
