@@ -144,6 +144,13 @@ function archiveView(state, fr) {
   return Object.assign({}, state, { weekFrom: fr.o.weekFrom, weekTo: fr.o.weekTo, pc: fr.o.pc, data });
 }
 
+// a one-day holiday («يوم عطلة») holds nothing, for the administrator as well as for teachers
+function holidayBlock(state, fr, W, ci) {
+  const monday = S.mondayOf(fr.weekFrom);
+  return !!(monday && W && S.holidayOn(state, S.addDays(monday, Math.floor(ci / W))));
+}
+const HOLIDAY_MSG = 'هذا اليوم عطلة، ولا تُسجَّل فيه حصص ولا غياب.';
+
 function fail(res, code, error, message) { return L.send(res, code, { ok: false, error, message }); }
 
 // The rules a teacher is bound by for column ci (same for an absence and for «لا أحد»). Returns a failure
@@ -191,6 +198,7 @@ async function calledAction(res, session, b, isAdmin) {
       const pc = S.periodCounts(state), W = pc[0] + pc[1];
       if (ci >= 5 * W) return fail(res, 400, 'bad_column', 'حصة غير موجودة');
       const fr = frameFor(state, b.cls, pc, tap.d, isAdmin);
+      if (holidayBlock(state, fr, W, ci)) return fail(res, 403, 'holiday', HOLIDAY_MSG);
       if (!isAdmin) {
         const bad = teacherRules(state, cls, pc, W, ci, session, tap.d, b.value === true, fr);
         if (bad) return fail(res, bad[1], bad[2], bad[3]);
@@ -286,6 +294,7 @@ module.exports = async function handler(req, res) {
       if (ci >= 5 * W) return fail(res, 400, 'bad_column', 'حصة غير موجودة');
 
       const fr = frameFor(state, b.cls, pc, tap.d, isAdmin);
+      if (holidayBlock(state, fr, W, ci)) return fail(res, 403, 'holiday', HOLIDAY_MSG);
       if (!isAdmin) {
         const bad = teacherRules(state, cls, pc, W, ci, session, tap.d, value === true, fr);
         if (bad) return fail(res, bad[1], bad[2], bad[3]);

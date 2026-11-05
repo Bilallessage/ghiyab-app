@@ -494,6 +494,20 @@
         "Le site de formation n’est pas touché (sa liste de vacances est volontairement vide) ; les congés d’un seul jour (fêtes nationales et religieuses) ne sont pas ajoutés car ils ne verrouillent pas une semaine entière."
       ],
       "tech": "Mise à jour de DEFAULT_BREAKS dans index.html et api/_stats.js (utilisé aussi par api/mark.js), et traduction de « عطلة منتصف السنة الدراسية » dans fr.js. Testé sur 14 débuts de semaine : les cinq sont verrouillées, celles d’avant et d’après sont ouvertes."
+    },
+    {
+      "date": "2026-11-05",
+      "title": "Fonction « Jour férié » : congés d’un seul jour",
+      "goal": "L’administrateur(trice) a demandé d’ajouter le « jour férié » pour juger de son utilité à l’usage ; les fêtes nationales et religieuses tombent sur un seul jour sans verrouiller une semaine entière, et l’application laissait leurs cases ouvertes à la saisie.",
+      "done": [
+        "Nouveau bouton « 🏖️ Jours fériés » (administrateur(trice) uniquement) ouvrant une fenêtre avec la liste des jours : ajout (date, intitulé, nombre de jours consécutifs jusqu’à 14), suppression et retour à la liste par défaut.",
+        "La liste par défaut reprend les fêtes nationales 2026/2027 de la liste officielle ; les fêtes religieuses (Aïd al-Fitr, Aïd al-Adha…) dépendent de l’observation de la lune et s’ajoutent à la main.",
+        "Le jour férié s’affiche sur ordinateur en un seul bloc portant l’intitulé et couvrant toutes ses séances, sur téléphone en bandeau à la place du tableau du jour, et à l’impression en bloc également.",
+        "Aucune absence ne peut y être saisie : le serveur refuse l’appui de l’administrateur(trice) comme de l’enseignant (erreur holiday) avec un message clair, l’enseignant voit la raison du verrouillage en touchant la case ; les statistiques et totaux ignorent ce jour.",
+        "L’ajout d’un jour férié contenant des absences saisies dans la semaine affichée demande confirmation, puis efface ces absences.",
+        "Le site de formation a une liste vide à dessein ; l’interface est traduite en français, noms des fêtes par défaut compris."
+      ],
+      "tech": "Champ state.holidays dans l’état partagé, avec DEFAULT_HOLIDAYS et holidayOn dans index.html et api/_stats.js, holidayBlock dans api/mark.js, affichage du tableau en colspan/rowspan, holidays ajouté à api/state.js et api/_demo.js, traductions dans fr.js. Testé dans un navigateur local : 17 vérifications (refus du serveur pour l’administrateur(trice), l’enseignant et « Aucun », jour normal accepté, statistiques ignorées, fenêtre, suppression et jours consécutifs, français, bandeaux mobiles), toutes réussies ; pas encore essayé sur le site publié."
     }
   ],
   "method": [

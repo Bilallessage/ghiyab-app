@@ -154,7 +154,7 @@ function stateFor(monday, { timetable, absences, seed }) {
     };
   });
   // breaks: [] = no holiday week on the training site, whatever the calendar says
-  return { weekFrom: monday, weekTo: addDays(monday, 4), instName: (process.env.INSTITUTION_NAME || '').trim() || INST_NAME, classNames: CLASS_NAMES.slice(), breaks: [], data };
+  return { weekFrom: monday, weekTo: addDays(monday, 4), instName: (process.env.INSTITUTION_NAME || '').trim() || INST_NAME, classNames: CLASS_NAMES.slice(), breaks: [], holidays: [], data };
 }
 
 // today's date in Casablanca (YYYY-MM-DD)

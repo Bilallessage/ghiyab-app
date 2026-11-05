@@ -61,7 +61,7 @@ h1{font-size:20px;font-weight:900;margin:0;color:var(--teal)}
 .tab.add-tab{background:transparent;border-style:dashed;color:var(--teal);font-weight:700}
 .cell.readonly{cursor:default}
 /* teacher account: only the season, the week dates, the class tabs, the sheet with the student list, add-student, language and logout */
-body.tch #statsBtn,body.tch #catchBtn,body.tch #printBtn,body.tch #usersBtn,body.tch #logoBtn,body.tch #newWeekBtn,body.tch #prevWeekBtn,body.tch #periodsBtn,body.tch #orgBtn,body.tch #timesBtn,body.tch #bulkDelBtn,body.tch #backupBtn,body.tch .toolbar,body.tch .btncol,body.tch .stats,body.tch #autoPanel,body.tch #notifyPanel,body.tch #viewBanner,body.tch #weekBanner,body.tch #userChip{display:none!important}
+body.tch #statsBtn,body.tch #catchBtn,body.tch #printBtn,body.tch #usersBtn,body.tch #logoBtn,body.tch #newWeekBtn,body.tch #prevWeekBtn,body.tch #periodsBtn,body.tch #holBtn,body.tch #orgBtn,body.tch #timesBtn,body.tch #bulkDelBtn,body.tch #backupBtn,body.tch .toolbar,body.tch .btncol,body.tch .stats,body.tch #autoPanel,body.tch #notifyPanel,body.tch #viewBanner,body.tch #weekBanner,body.tch #userChip{display:none!important}
 @media(max-width:700px){body.tch header .week{display:flex;flex-wrap:wrap;align-items:center;gap:8px}body.tch header .week br{display:none}body.tch header .week .wkbox{flex:1 1 100%}body.tch header .week .btn{margin:0}}
 #viewBanner{background:var(--gold-soft);color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;font-weight:500}
 .userchip{font-size:12px;color:var(--ink-soft);margin-inline-start:8px;direction:ltr;unicode-bidi:isolate}
@@ -91,6 +91,7 @@ td.name{box-shadow:inset 1px 0 var(--line)}
 .cell.just small.jm{font-size:10.5px;font-weight:700;margin-inline-start:1px;vertical-align:super}
 .breakcell{background:repeating-linear-gradient(45deg,var(--gold-soft),var(--gold-soft) 10px,color-mix(in srgb,var(--gold-soft) 55%,var(--panel)) 10px,color-mix(in srgb,var(--gold-soft) 55%,var(--panel)) 20px);color:var(--gold);font-weight:900;font-size:28px;letter-spacing:1px;text-align:center;vertical-align:middle;cursor:default}
 .breakcell span{display:inline-block;padding:10px 4px;line-height:1.3}
+.breakcell.hol{font-size:17px;letter-spacing:0}
 .jsplit{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
 .jchip{font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:12px;border:1px solid}
 .jchip.n{background:var(--absent-soft);color:var(--absent);border-color:color-mix(in srgb,var(--absent) 40%,transparent)}
@@ -307,7 +308,7 @@ table.cu th:nth-child(1){width:24%}table.cu th:nth-child(2){width:13%}table.cu t
 /* buttons: outlined and tinted in the colour of what they do */
 .btn.ghost{--bc:var(--teal);color:var(--bc);border-color:color-mix(in srgb,var(--bc) 55%,transparent);background:color-mix(in srgb,var(--bc) 8%,transparent);transition:background .15s}
 .btn.ghost:hover:not(:disabled){background:color-mix(in srgb,var(--bc) 17%,transparent)}
-#logoBtn{--bc:var(--c-violet)} #periodsBtn{--bc:var(--c-blue)} #seasonBtn{--bc:var(--c-slate)} #timesBtn{--bc:var(--c-amber)} #prevWeekBtn{--bc:var(--c-slate)} #newWeekBtn{--bc:var(--c-green)}
+#logoBtn{--bc:var(--c-violet)} #periodsBtn{--bc:var(--c-blue)} #holBtn{--bc:var(--c-rose)} #seasonBtn{--bc:var(--c-slate)} #timesBtn{--bc:var(--c-amber)} #prevWeekBtn{--bc:var(--c-slate)} #newWeekBtn{--bc:var(--c-green)}
 #statsBtn{--bc:var(--c-indigo)} #catchBtn,#cuXlsBtn{--bc:var(--c-amber)} #cuXlsBtn{--bc:var(--c-green)} #usersBtn{--bc:var(--c-rose)} #printBtn{--bc:var(--c-slate)} #importBtn{--bc:var(--c-green)} #callBtn2{--bc:var(--c-green)} #parentMsgBtn{--bc:var(--c-rose)} #svXlsBtn{--bc:var(--c-green)} #svPngBtn{--bc:var(--c-violet)}
 .langBtn{--bc:var(--c-slate)}
 /* a week ribbon under the header: Monday to Friday */
@@ -431,6 +432,7 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
   <button class="btn ghost" id="periodsBtn" style="display:none" onclick="periodsDialog()" title="إضافة حصة أو حذفها صباحا أو مساء لتلائم النظام الدراسي للمؤسسة">🧮 عدد الحصص</button>
   <button class="btn ghost" id="orgBtn" style="display:none" onclick="document.getElementById('orgFile').click()" title="ملء اسم المادة واسم الأستاذ لكل قسم من ملف إكسيل «التنظيم التربوي»">📅 استيراد التنظيم التربوي</button>
   <button class="btn ghost" id="timesBtn" style="display:none" onclick="editPeriodTimes()" title="بداية كل حصة في القسم المعروض، لمنع تسجيل غياب حصة لم يحن وقتها">⏰ توقيت الحصص</button>
+  <button class="btn ghost" id="holBtn" style="display:none" onclick="holidaysDialog()" title="أيام العطل ذات اليوم الواحد (الأعياد الوطنية والدينية): يُقفل عمود اليوم ولا يُسجَّل فيه غياب">🏖️ أيام العطل</button>
   <button class="btn ghost" id="backupBtn" style="display:none" onclick="backupsDialog()" title="نسخ احتياطية تلقائية للورقة، لاسترجاع الغياب والهواتف إن ضاعت بخطأ">🕘 النسخ الاحتياطية</button>
 </div>
 <div class="tabs" id="tabs"></div>
@@ -556,6 +558,26 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
     <div class="modal-actions">
       <button class="btn wa" type="button" id="pmSend" onclick="parentMsgSend()">📲 إرسال عبر واتساب</button>
       <button class="btn ghost" type="button" onclick="parentMsgClose()">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="holOverlay" style="display:none">
+  <div class="modal-box" style="max-width:480px;max-height:92vh;overflow:auto">
+    <h3 style="margin:0 0 10px;color:var(--teal);font-size:15px">أيام العطل</h3>
+    <p class="sub" style="margin:0 0 10px;line-height:1.6">يوم العطلة يُقفل عموده في الورقة: لا يُسجَّل فيه غياب، ولا يُنتظر فيه نداء، ولا يدخل في الإحصائيات. أسابيع العطل البينية الكاملة معدّة سلفا ولا تُضاف هنا.</p>
+    <div id="holList" style="max-height:34vh;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-bottom:12px"></div>
+    <label class="sub pmlab" for="holDate">التاريخ</label>
+    <input type="date" id="holDate" class="modal-input" style="margin-bottom:8px">
+    <label class="sub pmlab" for="holLabel">المناسبة</label>
+    <input type="text" id="holLabel" class="modal-input" maxlength="60" placeholder="مثال: عيد الفطر" style="margin-bottom:8px">
+    <label class="sub pmlab" for="holDays">عدد الأيام المتتالية</label>
+    <input type="number" id="holDays" class="modal-input" min="1" max="14" value="1" style="margin-bottom:8px">
+    <p class="sub" id="holMsg" style="margin:0 0 12px;color:var(--absent);min-height:1.2em"></p>
+    <div class="modal-actions">
+      <button class="btn" type="button" onclick="holidaysAdd()">إضافة</button>
+      <button class="btn ghost" type="button" onclick="holidaysReset()">استرجاع اللائحة الرسمية</button>
+      <button class="btn ghost" type="button" onclick="holidaysClose()">إغلاق</button>
     </div>
   </div>
 </div>
@@ -702,6 +724,23 @@ function breakNow(){
   const f=state&&state.weekFrom; if(!isoOk(f)) return null;
   return (Array.isArray(state.breaks)?state.breaks:DEFAULT_BREAKS).find(b=>b&&isoOk(b.from)&&isoOk(b.to)&&f>=b.from&&f<=b.to)||null;
 }
+// One-day holidays («يوم عطلة»): state.holidays = [{date:'YYYY-MM-DD', label}]. The day's columns are locked in the sheet:
+// nothing can be recorded, no roll call is awaited, and the day stays out of the statistics. The list is edited in
+// «أيام العطل»; while the saved state has none, this is the official 2026/2027 list (religious feasts are added by the
+// administrator once their dates are announced).
+const DEFAULT_HOLIDAYS=[
+  {date:'2026-10-31',label:'عيد الوحدة'},
+  {date:'2026-11-06',label:'ذكرى المسيرة الخضراء'},
+  {date:'2026-11-18',label:'عيد الاستقلال'},
+  {date:'2027-01-01',label:'فاتح السنة الميلادية'},
+  {date:'2027-01-11',label:'ذكرى تقديم وثيقة الاستقلال'},
+  {date:'2027-01-14',label:'فاتح السنة الأمازيغية'},
+  {date:'2027-05-01',label:'عيد الشغل'}
+];
+function holidayList(){ return Array.isArray(state.holidays)?state.holidays:DEFAULT_HOLIDAYS; }
+function holidayOn(iso){ return holidayList().find(h=>h&&isoOk(h.date)&&h.date===iso)||null; }
+function dayHoliday(d){ const wf=ntMonday(state.weekFrom); return wf?holidayOn(addDaysIso(wf,d)):null; }
+function colHoliday(i){ return dayHoliday(colInfo(i).d); }
 function loadState(){
   let s=null;
   try{ s=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
@@ -761,6 +800,8 @@ function applyPermissionUI(){
   if(orBtn) orBtn.style.display=canWrite?'inline-block':'none';
   const pdBtn=document.getElementById('periodsBtn');
   if(pdBtn) pdBtn.style.display=canWrite?'inline-block':'none';
+  const hoBtn=document.getElementById('holBtn');
+  if(hoBtn) hoBtn.style.display=canWrite?'inline-block':'none';
   const bkBtn=document.getElementById('backupBtn');
   if(bkBtn) bkBtn.style.display=canWrite?'inline-block':'none';
   const usBtn=document.getElementById('usersBtn');
@@ -1469,6 +1510,8 @@ function renderTableVertical(host){
     html+='<div class="vnav">'+DAY_NAMES.map((n,d)=>`<button type="button" class="d${d}${d===todayD?' now':''}" onclick="vJump(${d})">${n}</button>`).join('')+'</div>';
     for(let d=0;d<5;d++){
       html+=`<section class="vday d${d}" id="vday${d}"><h3 class="vdh">${DAY_NAMES[d]}${d===todayD?' <span class="vtoday">اليوم الحالي</span>':''}</h3>`;
+      const hol=dayHoliday(d);
+      if(hol){ html+=`<div class="vbreak">${svEsc(hol.label||'يوم عطلة')}</div></section>`; continue; }
       html+='<details class="vmeta"><summary>المواد والأساتذة</summary>';
       for(let sh=0;sh<2;sh++) for(let q=0;q<pc[sh];q++){
         const i=d*W+(sh?pc[0]+q:q), col=cls.columns[i]||{subject:'',teacher:''};
@@ -1520,7 +1563,7 @@ function renderTable(){
   const T=canMark;   // teacher: only the number and the name, no parent phone column
   const stk=T?1:2;
   let html=`<div class="sheetwrap"><table><thead><tr><th class="hl numh" rowspan="2">م</th><th class="hl nmh" rowspan="2">الاسم الكامل</th>${T?'':'<th class="hl phh" rowspan="2">هاتف ولي الأمر</th>'}`;
-  const pc=pcount(), NC=totalCols(pc);
+  const pc=pcount(), NC=totalCols(pc), W=pc[0]+pc[1];
   DAYS.forEach((d,j)=>{ if(pc[j&1]) html+=`<th class="day${dayCl(j)}${j&1?' ev':''}${sepDay(j,pc)}" colspan="${pc[j&1]}">${d}</th>`; });
   html+='</tr><tr>';
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) html+=`<th class="per${dayCl(j)}${sepPer(j,p,pc)}">ح${p+1}</th>`; });
@@ -1538,7 +1581,11 @@ function renderTable(){
       if(si===0) for(let j=0;j<10;j++) if(pc[j&1]) html+=`<td class="breakcell" colspan="${pc[j&1]}" rowspan="${names.length}"><span>${svEsc(br.label||'عطلة بينية')}</span></td>`;
       html+='</tr>'; return;
     }
-    for(let i=0;i<NC;i++) html+=cellHtml(cls,si,i,pc,pendSet);
+    for(let i=0;i<NC;i++){
+      const h=colHoliday(i);
+      if(h){ if(si===0&&i%W===0) html+=`<td class="breakcell hol" colspan="${W}" rowspan="${names.length}"><span>${svEsc(h.label||'يوم عطلة')}</span></td>`; continue; }
+      html+=cellHtml(cls,si,i,pc,pendSet);
+    }
     html+='</tr>';
   });
   if(br&&!names.length){   // empty list: still show the label
@@ -1549,6 +1596,7 @@ function renderTable(){
   html+=`<tr class="foot"><td class="lead"></td><td colspan="${stk}" class="stk">عدد الغياب في الحصة</td>`;
   if(br) html+=`<td colspan="${NC}"></td>`;
   else for(let i=0;i<NC;i++){
+    if(colHoliday(i)){ if(i%W===0) html+=`<td class="${sepCol(i,pc).trim()}" colspan="${W}"></td>`; continue; }
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
     html+=`<td class="${sepCol(i,pc).trim()}">${sum}${callMark(currentClass,i,sum,pendSet)}</td>`;
   }
@@ -1632,12 +1680,17 @@ function triggerPrint(){
       if(si===0) for(let j=0;j<10;j++) if(pc[j&1]) rows+=`<td class="pbreak" colspan="${pc[j&1]}" rowspan="${cls.names.length}">${svEsc(br.label||'عطلة بينية')}</td>`;
       rows+=`<td class="ptotal"></td></tr>`; return;
     }
-    for(let i=0;i<NC;i++) rows+=`<td class="pcell${sepCol(i,pc)}">${cls.absences[si][i]?'غ':''}${cls.absences[si][i]==='j'?'<sup>'+(fr?'J':'م')+'</sup>':''}</td>`;
+    for(let i=0;i<NC;i++){
+      const h=colHoliday(i);
+      if(h){ if(si===0&&i%(pc[0]+pc[1])===0) rows+=`<td class="pbreak" colspan="${pc[0]+pc[1]}" rowspan="${cls.names.length}">${svEsc(h.label||'يوم عطلة')}</td>`; continue; }
+      rows+=`<td class="pcell${sepCol(i,pc)}">${cls.absences[si][i]?'غ':''}${cls.absences[si][i]==='j'?'<sup>'+(fr?'J':'م')+'</sup>':''}</td>`;
+    }
     rows+=`<td class="ptotal">${total}</td></tr>`;
   });
   let footRow='<tr class="pfoot"><td colspan="2">مجموع غياب القسم في كل حصة</td>';
   if(br) footRow+=`<td colspan="${NC}"></td>`;
   else for(let i=0;i<NC;i++){
+    if(colHoliday(i)){ if(i%(pc[0]+pc[1])===0) footRow+=`<td colspan="${pc[0]+pc[1]}"></td>`; continue; }
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
     footRow+=`<td class="${sepCol(i,pc).trim()}">${sum}</td>`;
   }
@@ -1753,6 +1806,67 @@ function studentDialog(si){
   ov.style.display='flex';
   setTimeout(()=>{ inp.focus(); inp.select(); },50);
   inp.onkeydown=e=>{ if(e.key==='Enter') save.click(); };
+}
+// ---- «أيام العطل»: one-day holidays kept in state.holidays (see DEFAULT_HOLIDAYS) ----
+function holMsg(m,ok){ const n=document.getElementById('holMsg'); n.textContent=m||''; n.style.color=ok?'var(--teal)':'var(--absent)'; }
+function holidaysDialog(){
+  if(!canWrite) return;
+  holMsg(''); document.getElementById('holLabel').value=''; document.getElementById('holDays').value='1'; document.getElementById('holDate').value='';
+  holidaysRender(); document.getElementById('holOverlay').style.display='flex';
+}
+function holidaysClose(){ document.getElementById('holOverlay').style.display='none'; }
+function holidaysRender(){
+  const list=holidayList().filter(h=>h&&isoOk(h.date)).slice().sort((a,b)=>a.date<b.date?-1:1), today=todayIso();
+  const box=document.getElementById('holList');
+  box.innerHTML=list.length?'<table style="width:100%;border-collapse:collapse;font-size:13px">'+list.map(h=>{
+    const dow=new Date(h.date+'T00:00:00Z').getUTCDay(), wk=dow===0||dow===6, past=h.date<today;
+    return `<tr style="border-bottom:1px solid var(--line);${past?'opacity:.55':''}"><td style="padding:6px 8px;white-space:nowrap">${CU_DAYS_AR[dow]} ${h.date.slice(8)}/${h.date.slice(5,7)}/${h.date.slice(0,4)}</td><td style="padding:6px 8px">${svEsc(h.label||'يوم عطلة')}${wk?' <span class="sub">(نهاية الأسبوع)</span>':''}</td><td style="padding:4px;width:30px"><button type="button" class="del" title="حذف" onclick="holidaysDel('${h.date}')">×</button></td></tr>`;
+  }).join('')+'</table>':'<p class="sub" style="margin:10px">لا توجد أيام عطلة مسجّلة.</p>';
+}
+function holidaysCommit(list){ state.holidays=list; save(); renderAll(); holidaysRender(); }
+function holidaysDel(date){
+  if(!canWrite) return;
+  holidaysCommit(holidayList().filter(h=>h&&h.date!==date).map(h=>({date:h.date,label:h.label})));
+}
+function holidaysReset(){
+  if(!canWrite) return;
+  showConfirm('استرجاع اللائحة الرسمية لعطل الموسم 2026/2027؟ تُمحى التعديلات التي أجريتموها على هذه القائمة.',()=>{ holidaysCommit(DEFAULT_HOLIDAYS.map(h=>({date:h.date,label:h.label}))); holidaysDialog(); });
+}
+// the number of absences already recorded on these dates in the sheet on screen (they would be hidden by the lock)
+function holidayAbsencesIn(dates){
+  const wf=ntMonday(state.weekFrom), pc=pcount(), W=pc[0]+pc[1]; let n=0;
+  if(!wf||!W) return 0;
+  dates.forEach(dt=>{ const d=[0,1,2,3,4].find(k=>addDaysIso(wf,k)===dt); if(d===undefined) return;
+    state.classNames.forEach(c=>{ const cl=state.data[c]; (cl.absences||[]).forEach(r=>{ for(let i=d*W;i<(d+1)*W;i++) if(r&&r[i]) n++; }); }); });
+  return n;
+}
+function holidayClear(dates){
+  const wf=ntMonday(state.weekFrom), pc=pcount(), W=pc[0]+pc[1];
+  if(!wf||!W) return;
+  dates.forEach(dt=>{ const d=[0,1,2,3,4].find(k=>addDaysIso(wf,k)===dt); if(d===undefined) return;
+    state.classNames.forEach(c=>{ const cl=state.data[c]; (cl.absences||[]).forEach(r=>{ for(let i=d*W;i<(d+1)*W;i++) if(r&&r[i]) r[i]=false; }); (cl.columns||[]).forEach((col,i)=>{ if(col&&i>=d*W&&i<(d+1)*W) delete col.called; }); }); });
+}
+function holidaysAdd(){
+  if(!canWrite) return;
+  const date=document.getElementById('holDate').value, label=document.getElementById('holLabel').value.replace(/\s+/g,' ').trim();
+  const n=Math.max(1,Math.min(14,parseInt(document.getElementById('holDays').value,10)||1));
+  if(!isoOk(date)){ holMsg('اختاروا تاريخ أول يوم من العطلة.'); return; }
+  if(!label){ holMsg('اكتبوا اسم المناسبة (مثال: عيد الفطر).'); document.getElementById('holLabel').focus(); return; }
+  const dates=[]; for(let k=0;k<n;k++) dates.push(addDaysIso(date,k));
+  const apply=()=>{
+    holidayClear(dates);
+    const cur=holidayList().filter(h=>h&&isoOk(h.date)&&!dates.includes(h.date)).map(h=>({date:h.date,label:h.label}));
+    dates.forEach(dt=>cur.push({date:dt,label}));
+    holidaysCommit(cur); holMsg('أُضيف: '+label+(n>1?' ('+n+' أيام)':'')+'.',true);
+    document.getElementById('holLabel').value=''; document.getElementById('holDays').value='1'; document.getElementById('holDate').value='';
+  };
+  const hit=holidayAbsencesIn(dates);
+  if(hit){
+    showModal('يوجد '+hit+' غياب مسجّل في هذا اليوم (هذه الأيام) في الورقة المعروضة. إضافة العطلة تقفل العمود وتمحو هذا الغياب. المتابعة؟',[
+      {label:'إضافة العطلة ومحو الغياب',className:'btn danger',onClick:apply},{label:'إلغاء',className:'btn ghost',onClick:null}]);
+    return;
+  }
+  apply();
 }
 // ---- «رسالة إلى ولي أمر»: a free WhatsApp message to a parent about something other than absences ----
 let pmDirty=false;
@@ -2111,6 +2225,7 @@ function teacherWhy(ci,cur){
   if(dow>4) return 'اليوم عطلة نهاية الأسبوع ('+(dow===5?'السبت':'الأحد')+')، ولا توجد حصص لتسجيل غيابها.';
   if(ntMonday(today)!==wf) return 'الورقة تعرض الأسبوع من '+state.weekFrom+' إلى '+state.weekTo+' وهو ليس أسبوع اليوم ('+today+'). على المسؤول(ة) أن يبدأ الأسبوع الجديد (زر «التالي») ليتمكن الأساتذة من تسجيل الغياب.';
   const o=colInfo(ci);
+  if(dayHoliday(o.d)) return 'هذا اليوم عطلة، ولا تُسجَّل فيه حصص ولا غياب.';
   if(o.d!==dow) return 'يمكن تسجيل غياب حصص اليوم فقط: اليوم '+DAY_NAMES[dow]+' وهذه الخانة من يوم '+DAY_NAMES[o.d]+'.';
   if(colIsFuture(ci)){ const st=colStart(ci); return 'هذه الحصة لم يحن وقتها بعد (تبدأ على الساعة '+String(st.getHours()).padStart(2,'0')+':'+String(st.getMinutes()).padStart(2,'0')+').'; }
   if(teacherName){
@@ -2127,6 +2242,7 @@ function teacherCan(ci,cur){ return !teacherWhy(ci,cur); }
 const CALL_GRACE_MIN=20;   // a period is flagged «not called» only 20 minutes after it started
 function callState(cname,i,sum){
   const cls=state.data[cname], col=cls&&cls.columns&&cls.columns[i];
+  if(colHoliday(i)) return {k:'',col};   // a holiday: no roll call is awaited
   if(!col||(!String(col.subject||'').trim()&&!String(col.teacher||'').trim())) return {k:'',col};   // no lesson in this slot
   if(sum>0) return {k:'abs',col};
   if(col.called) return {k:'none',col};
@@ -2434,7 +2550,7 @@ function delPeriod(s){
 // Recording or removing an absence always asks for confirmation first, so a stray click can't change the sheet.
 // An absence is either unjustified (true, shown «غ» in red) or justified (the string 'j', shown «غ» + «م» in green).
 function toggleCell(si,ci){
-  if(!canWrite||breakNow()) return;
+  if(!canWrite||breakNow()||colHoliday(ci)) return;
   const cls=state.data[currentClass];
   const cls0=currentClass, name=cls.names[si], cur=cls.absences[si][ci], make=!cur;
   if(make&&colIsFuture(ci)){
@@ -2476,6 +2592,7 @@ function setMeta(ci,field,val){
 }
 
 function allColumnSum(colIdx){
+  if(colHoliday(colIdx)) return 0;
   let sum=0;
   for(const c of state.classNames) state.data[c].absences.forEach(r=>{if(r[colIdx])sum++;});
   return sum;
@@ -2487,6 +2604,7 @@ function dayTotal(dayIdx){
 function weekTotal(){ let s=0; for(let i=0;i<totalCols();i++) s+=allColumnSum(i); return s; }
 // justified absences (the cell holds 'j') are counted inside the totals above; these give the detail
 function allColumnJ(colIdx){
+  if(colHoliday(colIdx)) return 0;
   let sum=0;
   for(const c of state.classNames) state.data[c].absences.forEach(r=>{if(r[colIdx]==='j')sum++;});
   return sum;

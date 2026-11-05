@@ -494,6 +494,20 @@
         "The training site is unaffected (its holiday list is empty on purpose); one-day holidays (national and religious feasts) are not added because they do not lock a whole week."
       ],
       "tech": "DEFAULT_BREAKS updated in index.html and api/_stats.js (also used by api/mark.js), and the French translation of “عطلة منتصف السنة الدراسية” added in fr.js. Tested on 14 week starts: the five are locked, the weeks before and after are open."
+    },
+    {
+      "date": "2026-11-05",
+      "title": "“Holiday” day feature: single-day holidays",
+      "goal": "The administrator asked for a “holiday” day to see how useful it is in practice; national and religious feasts fall on a single day without locking a whole week, and the application left their cells open for entry.",
+      "done": [
+        "New “🏖️ Holidays” button (administrator only) opens a dialog listing the days: add (date, label, number of consecutive days up to 14), delete, and restore the default list.",
+        "The default list holds the 2026/2027 national holidays from the official list; religious feasts (Eid al-Fitr, Eid al-Adha…) depend on the moon sighting and are added by hand.",
+        "A holiday shows on desktop as one block with its label covering all its periods, on phone as a banner instead of the day table, and in print as a block too.",
+        "No absence can be recorded on it: the server refuses the tap from the administrator and the teacher alike (error holiday) with a clear message, the teacher sees the reason when tapping the cell; statistics and totals ignore that day.",
+        "Adding a holiday that has recorded absences in the displayed week asks for confirmation, then clears those absences.",
+        "The training site has an empty list on purpose; the interface is translated into French, default feast names included."
+      ],
+      "tech": "state.holidays field in the shared state, with DEFAULT_HOLIDAYS and holidayOn in index.html and api/_stats.js, holidayBlock in api/mark.js, table display with colspan/rowspan, holidays added to api/state.js and api/_demo.js, translations in fr.js. Tested in a local browser: 17 checks (server refusal for the administrator, the teacher and “Nobody”, normal day accepted, statistics ignore it, dialog, delete and consecutive days, French, phone banners), all passed; not yet tried on the published site."
     }
   ],
   "method": [

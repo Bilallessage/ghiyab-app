@@ -43,6 +43,8 @@ module.exports = async function handler(req, res) {
       res.setHeader('Content-Type', 'application/json; charset=utf-8');
       // Fresh deployment: hand out the default class lists (kept server side).
       let out = stored || buildSeedState();
+      // the training site has no one-day holidays unless its administrator adds some
+      if (process.env.SEED_DEMO && out && !Array.isArray(out.holidays)) out = Object.assign({}, out, { holidays: [] });
       // the invitation links of the parents' WhatsApp groups are for the administrator only
       if (session.role !== 'admin' && out && out.parentGroups) { out = Object.assign({}, out); delete out.parentGroups; }
       if (session.role === 'teacher' && out && out.data) {

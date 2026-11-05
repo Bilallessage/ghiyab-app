@@ -20,6 +20,20 @@ const DEFAULT_BREAKS = [
   { from: '2027-03-22', to: '2027-03-26', label: 'عطلة بينية' },
   { from: '2027-05-10', to: '2027-05-14', label: 'عطلة بينية' },
 ];
+// one-day holidays (same default as DEFAULT_HOLIDAYS in index.html; the training site, SEED_DEMO, has none)
+const DEFAULT_HOLIDAYS = [
+  { date: '2026-10-31', label: 'عيد الوحدة' },
+  { date: '2026-11-06', label: 'ذكرى المسيرة الخضراء' },
+  { date: '2026-11-18', label: 'عيد الاستقلال' },
+  { date: '2027-01-01', label: 'فاتح السنة الميلادية' },
+  { date: '2027-01-11', label: 'ذكرى تقديم وثيقة الاستقلال' },
+  { date: '2027-01-14', label: 'فاتح السنة الأمازيغية' },
+  { date: '2027-05-01', label: 'عيد الشغل' },
+];
+function holidayOn(state, iso) {
+  const list = Array.isArray(state && state.holidays) ? state.holidays : (process.env.SEED_DEMO ? [] : DEFAULT_HOLIDAYS);
+  return list.find((h) => h && validIso(h.date) && h.date === iso) || null;
+}
 const DEFAULT_PC = [3, 3];
 const MAX_PC = 8;
 
@@ -77,6 +91,7 @@ function summarizeState(state) {
     const cols = Array(COLS).fill(0);
     const colsJ = Array(COLS).fill(0); // of which justified (مبرر)
     const dayStudents = Array(DAYS).fill(0);
+    const holDay = Array.from({ length: DAYS }, (_, d) => !!holidayOn(state, addDays(weekStart, d))); // a one-day holiday counts nothing
     let weekStudents = 0;
     const absList = []; // [name, "0102…" one digit per column: 0 present, 1 absent, 2 justified absence] for every student with at least one absence
     for (let si = 0; si < names.length; si++) {
@@ -84,13 +99,13 @@ function summarizeState(state) {
       const dayHit = Array(DAYS).fill(false);
       let any = false;
       for (let i = 0; i < COLS; i++) {
-        if (row[i]) { cols[i]++; if (row[i] === 'j') colsJ[i]++; dayHit[Math.floor(i / PER_DAY)] = true; any = true; }
+        if (row[i] && !holDay[Math.floor(i / PER_DAY)]) { cols[i]++; if (row[i] === 'j') colsJ[i]++; dayHit[Math.floor(i / PER_DAY)] = true; any = true; }
       }
       for (let d = 0; d < DAYS; d++) if (dayHit[d]) dayStudents[d]++;
       if (any) {
         weekStudents++;
         let bits = '';
-        for (let i = 0; i < COLS; i++) bits += row[i] === 'j' ? '2' : row[i] ? '1' : '0'; // 1 = absent, 2 = absent and justified
+        for (let i = 0; i < COLS; i++) bits += holDay[Math.floor(i / PER_DAY)] ? '0' : row[i] === 'j' ? '2' : row[i] ? '1' : '0'; // 1 = absent, 2 = absent and justified
         absList.push([String(names[si] == null ? '' : names[si]).trim().slice(0, 80), bits]);
       }
     }
@@ -140,4 +155,4 @@ async function archiveWeek(redis, prefix, state) {
   return true;
 }
 
-module.exports = { validIso, addDays, mondayOf, deriveLevel, summarizeState, archiveWeek, historyKey, periodCounts, DEFAULT_BREAKS };
+module.exports = { DEFAULT_HOLIDAYS, holidayOn, validIso, addDays, mondayOf, deriveLevel, summarizeState, archiveWeek, historyKey, periodCounts, DEFAULT_BREAKS };
