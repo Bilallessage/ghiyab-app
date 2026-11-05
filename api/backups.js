@@ -16,7 +16,7 @@ module.exports = async function handler(req, res) {
   if (problem) return L.send(res, 503, { error: 'not_configured', message: problem });
   const session = L.getSession(req);
   if (!session) return L.send(res, 401, { error: 'unauthorized' });
-  if (session.role !== 'admin') return L.send(res, 403, { error: 'forbidden', message: 'هذه الصفحة مخصّصة للمسؤول' });
+  if (session.role !== 'admin') return L.send(res, 403, { error: 'forbidden', message: 'هذه الصفحة مخصّصة للمسؤول(ة)' });
   const redis = L.getRedis();
   try {
     if (req.method === 'GET') {

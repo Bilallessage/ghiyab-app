@@ -64,7 +64,7 @@ module.exports = async function handler(req, res) {
       }
       if (!(await L.verifyPassword(password, user.hash))) return fail();
       if (user.status === 'pending') {
-        return L.send(res, 403, { error: 'pending', message: 'حسابكم في انتظار موافقة المسؤول. سيتمكّن من الدخول بعد قبول طلبكم.' });
+        return L.send(res, 403, { error: 'pending', message: 'حسابكم في انتظار موافقة المسؤول(ة). سيتمكّن من الدخول بعد قبول طلبكم.' });
       }
       const role = user.role === 'teacher' ? 'teacher' : 'viewer';
       return L.send(res, 200, { token: L.signToken(email, role), email, role, teacher: role === 'teacher' ? String(user.teacher || '') : '' });
@@ -79,7 +79,7 @@ module.exports = async function handler(req, res) {
         return L.send(res, 400, { error: 'bad_email', message: 'البريد الإلكتروني غير صالح' });
       }
       if (email === L.ADMIN_EMAIL) {
-        return L.send(res, 403, { error: 'reserved', message: 'هذا البريد مخصّص للمسؤول، استعملوه من تبويب «دخول»' });
+        return L.send(res, 403, { error: 'reserved', message: 'هذا البريد مخصّص للمسؤول(ة)، استعملوه من تبويب «دخول»' });
       }
       if (password.length < 8 || password.length > 128) {
         return L.send(res, 400, { error: 'bad_password', message: 'كلمة المرور يجب أن تكون بين 8 و128 حرفًا' });
@@ -87,18 +87,18 @@ module.exports = async function handler(req, res) {
       const redis = L.getRedis();
       const pending = (await redis.hgetall(L.PENDING_KEY)) || {};
       if (Object.keys(pending).length >= MAX_PENDING) {
-        return L.send(res, 429, { error: 'too_many', message: 'عدد طلبات الحسابات المعلّقة كبير، أخبروا المسؤول ليعالجها ثم أعيدوا المحاولة' });
+        return L.send(res, 429, { error: 'too_many', message: 'عدد طلبات الحسابات المعلّقة كبير، أخبروا المسؤول(ة) ليعالجها ثم أعيدوا المحاولة' });
       }
       const hash = await L.hashPassword(password);
       const now = Date.now();
       // nx: only create when the email is not taken yet (atomic, no race)
       const created = await redis.set(userKey(email), { email, hash, createdAt: now, status: 'pending' }, { nx: true });
       if (!created) {
-        return L.send(res, 409, { error: 'exists', message: 'يوجد حساب أو طلب بهذا البريد بالفعل. إن كان طلبكم معلّقا فانتظروا موافقة المسؤول، وإلا استعملوا تبويب «دخول»' });
+        return L.send(res, 409, { error: 'exists', message: 'يوجد حساب أو طلب بهذا البريد بالفعل. إن كان طلبكم معلّقا فانتظروا موافقة المسؤول(ة)، وإلا استعملوا تبويب «دخول»' });
       }
       await redis.hset(L.PENDING_KEY, { [email]: now });
       // No token on purpose: the admin has to approve the account first.
-      return L.send(res, 202, { pending: true, message: 'تم إرسال طلبكم إلى المسؤول. يمكنكم الدخول بعد موافقته عليه.' });
+      return L.send(res, 202, { pending: true, message: 'تم إرسال طلبكم إلى المسؤول(ة). يمكنكم الدخول بعد موافقته عليه.' });
     }
 
     // ------------------------------------------------- accept an invitation

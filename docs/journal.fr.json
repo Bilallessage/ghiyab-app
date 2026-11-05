@@ -441,6 +441,16 @@
         "Elle reste masquée uniquement quand l’emploi du temps n’a aucune séance (aucune colonne où aller) et sur téléphone (qui a sa propre barre dans la feuille)."
       ],
       "tech": "Dans index.html : la condition breakNow() est retirée de renderDayNav ; le tableau des vacances dessine les mêmes en-têtes de jours, donc hJump trouve la cellule th.day.d voulue."
+    },
+    {
+      "date": "2026-11-05",
+      "title": "« مسؤول(ة) » à la place de « مسؤول » dans l’interface",
+      "goal": "L’utilisateur a demandé que le mot « مسؤول » soit écrit sous une forme couvrant le masculin et le féminin.",
+      "done": [
+        "Toutes les occurrences du mot dans l’interface deviennent « مسؤول(ة) » (badge du compte, textes de la page de connexion, messages aux enseignants comme « أخبروا المسؤول(ة) », messages du serveur) ; les rôles et droits ne changent pas.",
+        "La traduction française est alignée (clés exactes et expressions régulières) et le badge du rôle devient « Administrateur(trice) » en français."
+      ],
+      "tech": "Remplacement textuel du mot dans index.html, api/auth.js, api/mark.js, api/users.js et api/backups.js, ainsi que dans les clés et règles de fr.js (parenthèses échappées dans les expressions régulières)."
     }
   ],
   "method": [

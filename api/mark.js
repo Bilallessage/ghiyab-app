@@ -87,7 +87,7 @@ function tapTime(at) {
   const now = Date.now();
   if (typeof at !== 'number' || !isFinite(at)) return { ok: true, d: new Date(now), late: false };
   if (at > now + 120000) return { ok: false, message: 'ساعة الجهاز غير صحيحة، صحّحوا التاريخ والوقت ثم أعيدوا المحاولة' };
-  if (now - at > MAX_AGE) return { ok: false, message: 'مضى وقت طويل على هذا التسجيل (أكثر من 18 ساعة) فلم يُقبل. أخبروا المسؤول ليسجّله.' };
+  if (now - at > MAX_AGE) return { ok: false, message: 'مضى وقت طويل على هذا التسجيل (أكثر من 18 ساعة) فلم يُقبل. أخبروا المسؤول(ة) ليسجّله.' };
   return { ok: true, d: new Date(Math.min(at, now)), late: now - at > 60000 };
 }
 
@@ -170,7 +170,7 @@ function teacherRules(state, cls, pc, W, ci, session, d, needStarted, fr) {
     }
   }
   if (now >= endMinutes(state, cls, pc, ci)) {
-    return ['x', 403, 'period_over', 'انتهت هذه الحصة، فلا يمكن تسجيل غيابها ولا تعديله بعد نهايتها. أخبروا المسؤول ليصحّحه.'];
+    return ['x', 403, 'period_over', 'انتهت هذه الحصة، فلا يمكن تسجيل غيابها ولا تعديله بعد نهايتها. أخبروا المسؤول(ة) ليصحّحه.'];
   }
   return null;
 }
@@ -270,7 +270,7 @@ module.exports = async function handler(req, res) {
   }
   let value = b.value;
   if (value !== false && value !== true && value !== 'j') return fail(res, 400, 'bad_request', 'قيمة غير صالحة');
-  if (value === 'j' && !isAdmin) return fail(res, 403, 'forbidden', 'تبرير الغياب من اختصاص المسؤول');
+  if (value === 'j' && !isAdmin) return fail(res, 403, 'forbidden', 'تبرير الغياب من اختصاص المسؤول(ة)');
 
   const tap = isAdmin ? { ok: true, d: new Date() } : tapTime(b.at);
   if (!tap.ok) return fail(res, 403, 'too_old', tap.message);
@@ -301,7 +301,7 @@ module.exports = async function handler(req, res) {
         row = cls.absences[si];
         while (row.length < 5 * W) row.push(false);
       }
-      if (!isAdmin && row[cj] === 'j') return fail(res, 403, 'justified', 'هذا الغياب مبرَّر من المسؤول ولا يمكن تغييره');
+      if (!isAdmin && row[cj] === 'j') return fail(res, 403, 'justified', 'هذا الغياب مبرَّر من المسؤول(ة) ولا يمكن تغييره');
       row[cj] = value;
       if (value && tc.columns && tc.columns[cj] && tc.columns[cj].called) delete tc.columns[cj].called;   // an absence is recorded: «لا أحد» no longer holds
       await redis.set(STATE_KEY, state);

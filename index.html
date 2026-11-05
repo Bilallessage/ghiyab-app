@@ -340,7 +340,7 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
     <input type="password" id="authPass2" class="modal-input" placeholder="أعيدوا كتابة كلمة المرور" autocomplete="new-password" dir="ltr" style="display:none">
     <div id="authError" role="alert" style="color:var(--absent);font-size:12.5px;min-height:16px;margin-bottom:10px;line-height:1.5"></div>
     <button class="btn" id="authSubmit" type="submit" style="width:100%">دخول</button>
-    <p class="sub" id="authHint" style="margin:12px 0 0;text-align:center;line-height:1.6">حسابات الاطلاع الجديدة تحتاج إلى موافقة المسؤول قبل الدخول. التعديل مخصّص للمسؤول.</p>
+    <p class="sub" id="authHint" style="margin:12px 0 0;text-align:center;line-height:1.6">حسابات الاطلاع الجديدة تحتاج إلى موافقة المسؤول(ة) قبل الدخول. التعديل مخصّص للمسؤول(ة).</p>
     <div style="text-align:center;margin-top:12px"><button type="button" class="tab langBtn" onclick="setLang(LANG==='fr'?'ar':'fr')">Français</button></div>
   </form>
 </div>
@@ -736,7 +736,7 @@ function applyPermissionUI(){
   if(chip && currentUser){
     chip.style.display='inline';
     chip.innerHTML='';
-    const b=document.createElement('b'); b.textContent=currentUser.role==='admin'?'مسؤول':currentUser.role==='teacher'?'أستاذ':'اطلاع';
+    const b=document.createElement('b'); b.textContent=currentUser.role==='admin'?'مسؤول(ة)':currentUser.role==='teacher'?'أستاذ':'اطلاع';
     chip.appendChild(b); chip.appendChild(document.createTextNode(currentUser.email));
   }
   const lo=document.getElementById('logoutBtn');
@@ -780,8 +780,8 @@ function setAuthMode(m,keepMsg){
   document.getElementById('authHint').textContent=inv
     ? 'اختاروا كلمة مرور من 8 أحرف على الأقل، وستدخلون بها إلى التطبيق في كل مرة. بمجرد التفعيل يصبح حسابكم جاهزا لتسجيل الغياب عند النداء دون أي موافقة أخرى.'
     : (reg
-      ? 'سيُرسَل طلب حساب للاطلاع فقط (كلمة المرور 8 أحرف على الأقل). لا يعمل الحساب إلا بعد موافقة المسؤول.'
-      : 'حسابات الاطلاع الجديدة تحتاج إلى موافقة المسؤول قبل الدخول. التعديل مخصّص للمسؤول.');
+      ? 'سيُرسَل طلب حساب للاطلاع فقط (كلمة المرور 8 أحرف على الأقل). لا يعمل الحساب إلا بعد موافقة المسؤول(ة).'
+      : 'حسابات الاطلاع الجديدة تحتاج إلى موافقة المسؤول(ة) قبل الدخول. التعديل مخصّص للمسؤول(ة).');
   if(!keepMsg) document.getElementById('authError').textContent='';
 }
 function showGate(msg){
@@ -831,7 +831,7 @@ async function submitAuth(ev){
       authMode='login'; setAuthMode('login');
       document.getElementById('authPass').value=''; document.getElementById('authPass2').value='';
       err.style.color='var(--teal)';
-      err.textContent=data.message||'تم إرسال طلبكم إلى المسؤول.';
+      err.textContent=data.message||'تم إرسال طلبكم إلى المسؤول(ة).';
       btn.disabled=false; return false;
     }
     if(!res.ok || !data.token){
@@ -1939,10 +1939,10 @@ function teacherWhy(ci,cur){
   if(!canMark) return 'ليس لحسابكم صلاحية تسجيل الغياب.';
   const br=breakNow();
   if(br) return 'هذا الأسبوع عطلة، لا يُسجَّل فيه غياب.';
-  const wf=ntMonday(state.weekFrom); if(!wf) return 'الأسبوع غير محدد في الورقة، أخبروا المسؤول.';
+  const wf=ntMonday(state.weekFrom); if(!wf) return 'الأسبوع غير محدد في الورقة، أخبروا المسؤول(ة).';
   const today=todayIso(), dow=(new Date(today+'T00:00:00Z').getUTCDay()+6)%7;   // 0 = Monday
   if(dow>4) return 'اليوم عطلة نهاية الأسبوع ('+(dow===5?'السبت':'الأحد')+')، ولا توجد حصص لتسجيل غيابها.';
-  if(ntMonday(today)!==wf) return 'الورقة تعرض الأسبوع من '+state.weekFrom+' إلى '+state.weekTo+' وهو ليس أسبوع اليوم ('+today+'). على المسؤول أن يبدأ الأسبوع الجديد (زر «التالي») ليتمكن الأساتذة من تسجيل الغياب.';
+  if(ntMonday(today)!==wf) return 'الورقة تعرض الأسبوع من '+state.weekFrom+' إلى '+state.weekTo+' وهو ليس أسبوع اليوم ('+today+'). على المسؤول(ة) أن يبدأ الأسبوع الجديد (زر «التالي») ليتمكن الأساتذة من تسجيل الغياب.';
   const o=colInfo(ci);
   if(o.d!==dow) return 'يمكن تسجيل غياب حصص اليوم فقط: اليوم '+DAY_NAMES[dow]+' وهذه الخانة من يوم '+DAY_NAMES[o.d]+'.';
   if(colIsFuture(ci)){ const st=colStart(ci); return 'هذه الحصة لم يحن وقتها بعد (تبدأ على الساعة '+String(st.getHours()).padStart(2,'0')+':'+String(st.getMinutes()).padStart(2,'0')+').'; }
@@ -1950,8 +1950,8 @@ function teacherWhy(ci,cur){
     const cls=state.data[currentClass], have=cls&&cls.columns&&cls.columns[ci]&&cls.columns[ci].teacher;
     if(!tchSame(teacherName,have)) return 'هذه الحصة ليست من حصصكم: اسم الأستاذ(ة) المكتوب فيها «'+((have||'').trim()||'—')+'» واسم حسابكم «'+teacherName+'».';
   }
-  if(colIsOver(ci)){ const en=colEnd(ci); return 'انتهت هذه الحصة (على الساعة '+String(en.getHours()).padStart(2,'0')+':'+String(en.getMinutes()).padStart(2,'0')+')، فلا يمكن تسجيل غيابها ولا تعديله بعد نهايتها. أخبروا المسؤول ليصحّحه.'; }
-  if(cur==='j') return 'هذا الغياب مبرَّر من المسؤول ولا يمكن تغييره.';
+  if(colIsOver(ci)){ const en=colEnd(ci); return 'انتهت هذه الحصة (على الساعة '+String(en.getHours()).padStart(2,'0')+':'+String(en.getMinutes()).padStart(2,'0')+')، فلا يمكن تسجيل غيابها ولا تعديله بعد نهايتها. أخبروا المسؤول(ة) ليصحّحه.'; }
+  if(cur==='j') return 'هذا الغياب مبرَّر من المسؤول(ة) ولا يمكن تغييره.';
   return '';
 }
 function teacherCan(ci,cur){ return !teacherWhy(ci,cur); }

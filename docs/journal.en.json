@@ -441,6 +441,16 @@
         "It stays hidden only when the timetable has no periods (no column to jump to) and on a phone (which has its own bar inside the sheet)."
       ],
       "tech": "In index.html: the breakNow() condition is removed from renderDayNav; the holiday table draws the same day headers, so hJump finds the th.day.d cell it needs."
+    },
+    {
+      "date": "2026-11-05",
+      "title": "“مسؤول(ة)” instead of “مسؤول” in the interface",
+      "goal": "The user asked for the word “مسؤول” to be written in a form covering both masculine and feminine.",
+      "done": [
+        "Every occurrence of the word in the interface becomes “مسؤول(ة)” (account badge, login page texts, messages to teachers such as “أخبروا المسؤول(ة)”, server messages); roles and permissions are unchanged.",
+        "The French translation is aligned (exact keys and regular expressions) and the role badge reads “Administrateur(trice)” in French."
+      ],
+      "tech": "Text replacement of the word in index.html, api/auth.js, api/mark.js, api/users.js and api/backups.js, and in the keys and rules of fr.js (parentheses escaped in the regular expressions)."
     }
   ],
   "method": [
