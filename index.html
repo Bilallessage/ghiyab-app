@@ -1704,7 +1704,7 @@ function triggerPrint(){
   cls.names.forEach((name,si)=>{
     const total=cls.absences[si].filter(Boolean).length;
     grandTotal+=total;
-    rows+=`<tr><td class="pnum">${si+1}</td><td class="pname">${name}</td>`;
+    rows+=`<tr${si%2===0?' class="pz"':''}><td class="pnum">${si+1}</td><td class="pname">${name}</td>`;
     if(br){
       if(si===0) for(let j=0;j<10;j++) if(pc[j&1]) rows+=`<td class="pbreak" colspan="${pc[j&1]}" rowspan="${cls.names.length}">${svEsc(br.label||'عطلة بينية')}</td>`;
       rows+=`<td class="ptotal"></td></tr>`; return;
@@ -1762,6 +1762,8 @@ th.pmeta{font-size:8px}
 .pteacher{color:#5B6664}
 .pname{text-align:${palign};white-space:nowrap}
 .ptotal{font-weight:700;background:#eef4f3}
+/* alternate shading: the 1st, 3rd, 5th... student rows are light grey */
+tr.pz td:not(.pbreak):not(.ptotal){background:#E9E9E9}
 .sep{border-inline-start:2.5px solid #0F4C46!important}
 th,td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 th.day.d0{background:#CFE0F4}th.day.d1{background:#CDEBDD}th.day.d2{background:#F7E2B5}th.day.d3{background:#E0D4F1}th.day.d4{background:#F6D3DB}
