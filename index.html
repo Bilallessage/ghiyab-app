@@ -1704,7 +1704,7 @@ function triggerPrint(){
   cls.names.forEach((name,si)=>{
     const total=cls.absences[si].filter(Boolean).length;
     grandTotal+=total;
-    rows+=`<tr${si%2===0?' class="pz"':''}><td class="pnum">${si+1}</td><td class="pname">${name}</td>`;
+    rows+=`<tr class="prow${si%2===0?' pz':''}"><td class="pnum">${si+1}</td><td class="pname">${name}</td>`;
     if(br){
       if(si===0) for(let j=0;j<10;j++) if(pc[j&1]) rows+=`<td class="pbreak" colspan="${pc[j&1]}" rowspan="${cls.names.length}">${svEsc(br.label||'عطلة بينية')}</td>`;
       rows+=`<td class="ptotal"></td></tr>`; return;
@@ -1725,7 +1725,7 @@ function triggerPrint(){
   }
   footRow+=`<td>${grandTotal}</td></tr>`;
   let metaRow='';
-  for(let i=0;i<NC;i++) metaRow+=`<th class="pmeta${sepCol(i,pc)}">${(cls.columns[i].subject||'').trim()||'—'}<br><span class="pteacher">${(cls.columns[i].teacher||'').trim()||'—'}</span></th>`;
+  for(let i=0;i<NC;i++) metaRow+=`<th class="pmeta${sepCol(i,pc)}"><div class="vt"><span>${(cls.columns[i].subject||'').trim()||'—'}</span><span class="pteacher">${(cls.columns[i].teacher||'').trim()||'—'}</span></div></th>`;
   let dayHeader='',perHeader='';
   DAYS.forEach((d,j)=>{ if(pc[j&1]) dayHeader+=`<th class="${(dayCl(j)+(j&1?' ev':'')+sepDay(j,pc)).trim()}" colspan="${pc[j&1]}">${d}</th>`; });
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) perHeader+=`<th class="${(dayCl(j)+sepPer(j,p,pc)).trim()}">ح${p+1}</th>`; });
@@ -1733,14 +1733,14 @@ function triggerPrint(){
   // after the roll call and the recording of the absences; and the administration's stamp box under the table
   let sigRow='';
   if(!br){
-    sigRow='<tr class="psigrow"><td colspan="2" class="psiglab">توقيع الأستاذ(ة) بعد النداء وتسجيل الغياب</td>';
+    // a label line over the signature cells, then the cells; the stamp box is the left-hand cell of that row (bottom of the sheet)
+    sigRow=`<tr class="psiglabrow"><td colspan="2"></td><td colspan="${NC}" class="psiglab">توقيع الأستاذ(ة) بعد النداء وتسجيل الغياب</td><td></td></tr><tr class="psigrow"><td colspan="2" class="pstampcell">ختم الإدارة</td>`;
     for(let i=0;i<NC;i++){
       if(colHoliday(i)){ if(i%(pc[0]+pc[1])===0) sigRow+=`<td colspan="${pc[0]+pc[1]}"></td>`; continue; }
       sigRow+=`<td class="${sepCol(i,pc).trim()}"></td>`;
     }
     sigRow+='<td></td></tr>';
   }
-  const sigHtml='<div class="psig"><div class="pstamp"><div class="psigh">ختم الإدارة</div></div></div>';
   const weekInfo=(state.weekFrom&&state.weekTo)?`الأسبوع من ${state.weekFrom} إلى ${state.weekTo}`:'';
   const pdir=fr?'ltr':'rtl', palign=fr?'left':'right';
   const html=Th(`<!DOCTYPE html><html lang="${fr?'fr':'ar'}" dir="${pdir}"><head><meta charset="UTF-8">
@@ -1756,11 +1756,21 @@ body{font-family:Arial,Tahoma,sans-serif;color:#1E2A28}
 .phead img{width:46px;height:46px;border-radius:50%}${logoWide?'.phead img{width:auto;height:46px;max-width:170px;border-radius:6px;object-fit:contain}':''}
 h1{font-size:16px;margin:0}
 .psub{font-size:11px;color:#5B6664}
-table{border-collapse:collapse;width:100%;font-size:9.5px}
-th,td{border:1px solid #999;padding:2px 3px;text-align:center}
-th.pmeta{font-size:8px}
-.pteacher{color:#5B6664}
-.pname{text-align:${palign};white-space:nowrap}
+/* the sheet fills the page: fixed column widths, big marks, rows as tall as the free height allows (fitOnePage sets --rh, --cf, --nf) */
+:root{--rh:16px;--cf:12px;--nf:11px}
+#pgsheet .phead{margin-bottom:6px}#pgsheet h1{font-size:19px}#pgsheet .psub{font-size:12px;margin-top:1px}
+table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:11px}
+th,td{border:1px solid #888;padding:0 2px;text-align:center;line-height:1.15}
+thead th{padding:2px}
+th.pmeta{padding:3px 0;vertical-align:bottom}
+/* subject and teacher written upwards in the narrow column */
+.vt{writing-mode:vertical-rl;transform:rotate(180deg);margin:0 auto;max-height:112px;overflow:hidden;font-size:10px;font-weight:700;line-height:1.25;text-align:start}
+.vt span{display:block}
+.vt .pteacher{font-weight:400}
+.pteacher{color:#4a5654}
+tr.prow td{height:var(--rh);font-size:var(--cf);font-weight:700}
+.pnum{font-size:var(--nf)!important;font-weight:400!important;color:#444}
+.pname{text-align:${palign};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 5px!important;font-size:var(--nf)!important;font-weight:600!important}
 .ptotal{font-weight:700;background:#eef4f3}
 /* alternate shading: the 1st, 3rd, 5th... student rows are light grey */
 tr.pz td:not(.pbreak):not(.ptotal){background:#E9E9E9}
@@ -1769,36 +1779,50 @@ th,td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 th.day.d0{background:#CFE0F4}th.day.d1{background:#CDEBDD}th.day.d2{background:#F7E2B5}th.day.d3{background:#E0D4F1}th.day.d4{background:#F6D3DB}
 th.d0:not(.day){background:#EAF2FB}th.d1:not(.day){background:#E8F6EF}th.d2:not(.day){background:#FBF2DB}th.d3:not(.day){background:#F1EAF9}th.d4:not(.day){background:#FBE8EC}
 .dend{border-inline-end:2.5px solid #0F4C46!important}
-.pfoot{background:#eef4f3;font-weight:700}
-.pbreak{font-size:15px;font-weight:900;color:#8a5a14;background:#f7ecd5}
-.psigrow td{height:76px;padding:0}
-.psigrow .psiglab{font-size:8.5px;font-weight:700;color:#0F4C46;background:#eef4f3;-webkit-print-color-adjust:exact;print-color-adjust:exact;padding:2px 6px}
-.psig{display:flex;justify-content:flex-end;margin-top:10px;break-inside:avoid;page-break-inside:avoid}
-.psigh{font-size:10px;font-weight:700;color:#0F4C46}
-.pstamp{border:1px solid #999;width:170px;height:84px;padding:3px 6px;box-sizing:border-box}
+.pfoot{background:#eef4f3;font-weight:700;font-size:11px}
+.pfoot td{height:20px}
+.pbreak{font-size:20px!important;font-weight:900;color:#8a5a14;background:#f7ecd5}
+.psiglabrow td{height:16px;padding:0 4px;border-bottom:none}
+.psiglabrow .psiglab{font-size:10px;font-weight:700;color:#0F4C46;background:#eef4f3;border-bottom:1px solid #888;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.psiglabrow td:first-child,.psiglabrow td:last-child{border:none;background:none}
+.psigrow td{height:66px;padding:0}
+.psigrow .pstampcell{vertical-align:top;text-align:start;padding:3px 6px;font-size:10px;font-weight:700;color:#0F4C46}
 </style></head>
 <body onload="fitOnePage();window.print()">
 <div id="pgbox"><div id="pgsheet">
 <div class="phead"><img src="${logoSrc}"><div><h1>تتبع غياب التلاميذ — القسم: ${currentClass}</h1><div class="psub">${fr?instDisplay():state.instName}${weekInfo?' — '+weekInfo:''}</div></div></div>
-<table><thead>
+<table><colgroup><col style="width:26px"><col style="width:204px">${'<col>'.repeat(NC)}<col style="width:46px"></colgroup><thead>
 <tr><th rowspan="3">م</th><th rowspan="3">الاسم الكامل</th>${dayHeader}<th rowspan="3">${fr?'Total<br>absences<br>semaine':'مجموع<br>غياب<br>الأسبوع'}</th></tr>
 <tr>${perHeader}</tr>
 <tr>${metaRow}</tr>
 </thead><tbody>${rows}${footRow}${sigRow}</tbody></table>
-${sigHtml}
 </div></div>
 </body></html>`).replace('</body>',`<script>
-// Scale the sheet down (never up) so that it fills at most ONE A4 landscape page: 297 x 210 mm minus the 7 mm margins.
+// One A4 landscape page (297 x 210 mm minus the 7 mm margins), filled: the student rows (and their marks and names) are made
+// as tall as the free height allows; only when even the smallest rows do not fit (very large classes) is the whole sheet scaled down.
 function fitOnePage(){
   var mm=96/25.4, W=(297-14)*mm, H=(210-14)*mm-6;
-  var box=document.getElementById('pgbox'), sh=document.getElementById('pgsheet'), s=1;
-  box.style.height=H+'px'; box.style.width=W+'px';
-  for(var i=0;i<6;i++){
+  var box=document.getElementById('pgbox'), sh=document.getElementById('pgsheet'), root=document.documentElement;
+  var n=document.querySelectorAll('tr.prow').length||1, MIN=13, MAX=34;
+  box.style.height=H+'px'; box.style.width=W+'px'; sh.style.width=W+'px'; sh.style.transform='none';
+  function rows(r){
+    root.style.setProperty('--rh',r+'px');
+    root.style.setProperty('--cf',Math.max(10,Math.min(18,r*0.62))+'px');
+    root.style.setProperty('--nf',Math.max(10,Math.min(13,r*0.5))+'px');
+  }
+  var r=16; rows(r);
+  for(var i=0;i<5;i++){
+    var d=(H-2-sh.scrollHeight)/n;
+    if(Math.abs(d)<0.25) break;
+    r=Math.max(MIN,Math.min(MAX,r+d)); rows(r);
+    if(r===MIN&&d<0||r===MAX&&d>0) break;
+  }
+  var s=1;
+  for(var k=0;k<4;k++){
     sh.style.width=(W/s)+'px'; sh.style.transform=s<1?'scale('+s+')':'none';
-    var h=sh.scrollHeight, w=sh.scrollWidth;           // w > W/s when the columns are wider than the page
-    var n=Math.min(1,(H-2)/h,W/w);
-    if(Math.abs(n-s)<0.002) break;
-    s=n;
+    var ns=Math.min(1,s*(H-2)/(sh.scrollHeight*s));
+    if(Math.abs(ns-s)<0.002) break;
+    s=ns;
   }
   sh.style.width=(W/s)+'px'; sh.style.transform=s<1?'scale('+s+')':'none';
 }
