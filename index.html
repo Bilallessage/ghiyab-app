@@ -61,7 +61,7 @@ h1{font-size:20px;font-weight:900;margin:0;color:var(--teal)}
 .tab.add-tab{background:transparent;border-style:dashed;color:var(--teal);font-weight:700}
 .cell.readonly{cursor:default}
 /* teacher account: only the season, the week dates, the class tabs, the sheet with the student list, add-student, language and logout */
-body.tch #statsBtn,body.tch #catchBtn,body.tch #printBtn,body.tch #usersBtn,body.tch #logoBtn,body.tch #newWeekBtn,body.tch #prevWeekBtn,body.tch #periodsBtn,body.tch #holBtn,body.tch #orgBtn,body.tch #timesBtn,body.tch #bulkDelBtn,body.tch #backupBtn,body.tch .toolbar,body.tch .btncol,body.tch .stats,body.tch #autoPanel,body.tch #notifyPanel,body.tch #viewBanner,body.tch #weekBanner,body.tch #userChip{display:none!important}
+body.tch #statsBtn,body.tch #catchBtn,body.tch #printBtn,body.tch #stuSheetBtn,body.tch #usersBtn,body.tch #logoBtn,body.tch #newWeekBtn,body.tch #prevWeekBtn,body.tch #periodsBtn,body.tch #holBtn,body.tch #orgBtn,body.tch #timesBtn,body.tch #bulkDelBtn,body.tch #backupBtn,body.tch .toolbar,body.tch .btncol,body.tch .stats,body.tch #autoPanel,body.tch #notifyPanel,body.tch #viewBanner,body.tch #weekBanner,body.tch #userChip{display:none!important}
 @media(max-width:700px){body.tch header .week{display:flex;flex-wrap:wrap;align-items:center;gap:8px}body.tch header .week br{display:none}body.tch header .week .wkbox{flex:1 1 100%}body.tch header .week .btn{margin:0}}
 #viewBanner{background:var(--gold-soft);color:var(--gold);border:1px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;font-weight:500}
 .userchip{font-size:12px;color:var(--ink-soft);margin-inline-start:8px;direction:ltr;unicode-bidi:isolate}
@@ -309,7 +309,7 @@ table.cu th:nth-child(1){width:24%}table.cu th:nth-child(2){width:13%}table.cu t
 .btn.ghost{--bc:var(--teal);color:var(--bc);border-color:color-mix(in srgb,var(--bc) 55%,transparent);background:color-mix(in srgb,var(--bc) 8%,transparent);transition:background .15s}
 .btn.ghost:hover:not(:disabled){background:color-mix(in srgb,var(--bc) 17%,transparent)}
 #logoBtn{--bc:var(--c-violet)} #periodsBtn{--bc:var(--c-blue)} #holBtn{--bc:var(--c-rose)} #seasonBtn{--bc:var(--c-slate)} #timesBtn{--bc:var(--c-amber)} #prevWeekBtn{--bc:var(--c-slate)} #newWeekBtn{--bc:var(--c-green)}
-#statsBtn{--bc:var(--c-indigo)} #catchBtn,#cuXlsBtn{--bc:var(--c-amber)} #cuXlsBtn{--bc:var(--c-green)} #usersBtn{--bc:var(--c-rose)} #printBtn{--bc:var(--c-slate)} #importBtn{--bc:var(--c-green)} #callBtn2{--bc:var(--c-green)} #parentMsgBtn{--bc:var(--c-rose)} #svXlsBtn{--bc:var(--c-green)} #svPngBtn{--bc:var(--c-violet)}
+#statsBtn{--bc:var(--c-indigo)} #catchBtn,#cuXlsBtn{--bc:var(--c-amber)} #cuXlsBtn{--bc:var(--c-green)} #usersBtn{--bc:var(--c-rose)} #printBtn,#stuSheetBtn{--bc:var(--c-slate)} #importBtn{--bc:var(--c-green)} #callBtn2{--bc:var(--c-green)} #parentMsgBtn{--bc:var(--c-rose)} #svXlsBtn{--bc:var(--c-green)} #svPngBtn{--bc:var(--c-violet)}
 .langBtn{--bc:var(--c-slate)}
 /* a week ribbon under the header: Monday to Friday */
 header{position:relative;padding-bottom:14px}
@@ -360,13 +360,14 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
   <div class="week">
     <div class="wkbox">
       <div class="wkdates"><button class="btn ghost" id="logoBtn" style="display:none" onclick="logoDialog()" title="تغيير شعار المؤسسة الظاهر في أعلى الصفحة وفي الطباعة">🖼️ شعار المؤسسة</button><button class="btn ghost" id="curWeekBtn" style="display:none" onclick="goCurrentWeek()" title="العودة إلى الأسبوع الجاري بعد عرض الأسبوع السابق">📍 الأسبوع الجاري</button><label>من</label><input type="date" id="wFrom"><label>إلى</label><input type="date" id="wTo"></div>
-      <div class="wkbtns"><button class="btn ghost" id="prevWeekBtn" style="display:none" onclick="goPrevWeek()" title="عرض الأسبوع السابق لتصحيح غياب سُجّل بالخطأ">⏪ السابق</button><button class="btn ghost" id="newWeekBtn" style="display:none" onclick="startNewWeek()" title="بدء الأسبوع التالي: يُحفظ غياب الأسبوع الجاري ثم يُمسح الجدول">⏩ التالي</button></div>
+      <div class="wkbtns"><button class="btn ghost" id="prevWeekBtn" style="display:none" onclick="goPrevWeek()" title="عرض الأسبوع السابق (يمكنكم التراجع أسبوعا بعد أسبوع) لتصحيح غياب سُجّل بالخطأ">⏪ السابق</button><button class="btn ghost" id="newWeekBtn" style="display:none" onclick="goNextWeek()" title="بدء الأسبوع التالي: يُحفظ غياب الأسبوع الجاري ثم يُمسح الجدول">⏩ التالي</button></div>
     </div>
     <span class="userchip" id="userChip" style="display:none"></span>
     <button class="btn ghost" id="logoutBtn" style="display:none" onclick="logout()">خروج</button>
     <br>
     <div class="btncol"><button class="btn ghost" id="statsBtn" onclick="openStats()">📊 الإحصائيات</button><button class="btn ghost" id="catchBtn" onclick="openCatch()" title="التلاميذ المتغيبون والمواد التي فاتتهم، لبرمجة حصص التعويض والدعم">📚 قائمة التعويض</button><button class="btn ghost" id="callBtn" onclick="openCallFollow()" title="هل قام الأساتذة بالنداء؟ الحصص التي سُجّل فيها غياب أو «لا أحد» والحصص بلا نداء">✅ متابعة النداء</button><button class="btn ghost" id="usersBtn" style="display:none" onclick="usersDialog()" title="دعوة الأساتذة بالبريد والموافقة على طلبات الحسابات">👥 الموافقة على حساب جديد <span id="usersBadge" style="display:none;background:var(--absent);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-inline-start:4px">0</span></button></div>
     <button class="btn ghost" id="printBtn" onclick="triggerPrint()">طباعة</button>
+    <button class="btn ghost" id="stuSheetBtn" onclick="stuSheetOpen()" title="طباعة ورقة الغياب الشهرية الخاصة بتلميذ(ة) واحد(ة)">🖨️ ورقة تلميذ(ة)</button>
     <button class="btn ghost langBtn" type="button" onclick="setLang(LANG==='fr'?'ar':'fr')">Français</button>
   </div>
 </header>
@@ -558,6 +559,24 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
     <div class="modal-actions">
       <button class="btn wa" type="button" id="pmSend" onclick="parentMsgSend()">📲 إرسال عبر واتساب</button>
       <button class="btn ghost" type="button" onclick="parentMsgClose()">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="stuSheetOverlay" style="display:none">
+  <div class="modal-box" style="max-width:440px;max-height:92vh;overflow:auto">
+    <h3 style="margin:0 0 10px;color:var(--teal);font-size:15px">ورقة الغياب الشهرية لتلميذ(ة)</h3>
+    <p class="sub" style="margin:0 0 10px;line-height:1.6">اختاروا القسم والتلميذ(ة) والشهر، ثم اطبعوا ورقة تبيّن أيام الغياب وحصصه ومواده ومجاميعه (المبرر وغير المبرر)، لتسليمها لولي الأمر أو لإرفاقها بملف التلميذ(ة).</p>
+    <label class="sub pmlab" for="ssClass">القسم</label>
+    <select id="ssClass" class="modal-input" onchange="stuSheetFillStudents()"></select>
+    <label class="sub pmlab" for="ssStudent">التلميذ(ة)</label>
+    <select id="ssStudent" class="modal-input" onchange="stuSheetInfo()"></select>
+    <label class="sub pmlab" for="ssMonth">الشهر</label>
+    <select id="ssMonth" class="modal-input" onchange="stuSheetInfo()"></select>
+    <p class="sub" id="ssInfo" style="margin:0 0 12px;min-height:2.4em;line-height:1.6"></p>
+    <div class="modal-actions">
+      <button class="btn" type="button" id="ssPrint" onclick="stuSheetPrint()">🖨️ طباعة الورقة</button>
+      <button class="btn ghost" type="button" onclick="stuSheetClose()">إغلاق</button>
     </div>
   </div>
 </div>
@@ -1208,6 +1227,7 @@ async function ntLoad(){
     if(svSeasonView){ svCurWeeks=wk; return; }     // an archived season is open in the statistics: keep it, remember the current weeks
     svWeeks=wk;
     ntRender();
+    try{ renderWeekNav(); }catch(e){}
   }catch(e){ /* offline: the sheet on screen is still counted */ }
 }
 function ntCompute(){
@@ -3783,12 +3803,19 @@ function renderWeekNav(){
   if(!btn||!bar) return;
   const info=weekNavInfo();
   btn.style.display=canWrite?'inline-block':'none';
-  btn.disabled=info.kind==='cur';                         // already showing the previous week
+  const T0=ntMonday(state.weekFrom), fl=weekFloor();
+  btn.disabled=!!(T0&&fl&&T0<=fl);                        // nothing before the first week of the season
+  const nb=document.getElementById('newWeekBtn');
+  if(nb){
+    nb.style.display=canWrite?'inline-block':'none';
+    nb.title=info.kind==='cur'?'الانتقال إلى الأسبوع الموالي (حتى العودة إلى الأسبوع الجاري)':'بدء الأسبوع التالي: يُحفظ غياب الأسبوع الجاري ثم يُمسح الجدول';
+  }
   const cb=document.getElementById('curWeekBtn');
   if(cb){ cb.style.display=canWrite?'inline-block':'none'; cb.disabled=info.kind!=='cur'; } // nothing to go back to while the current week is shown
   if(info.kind==='cur'){
     bar.style.display='block';
-    bar.textContent='⏪ تعرضون الآن الأسبوع الماضي (من '+state.weekFrom+(state.weekTo?' إلى '+state.weekTo:'')+'). أي تصحيح هنا يُحدِّث سجل الإحصائيات؛ ثم اضغطوا «الأسبوع الجاري».';
+    const n=Math.round((Date.parse(ntMonday(info.o.weekFrom))-Date.parse(ntMonday(state.weekFrom)))/604800000);
+    bar.textContent='⏪ تعرضون الآن أسبوعا سابقا (من '+state.weekFrom+(state.weekTo?' إلى '+state.weekTo:'')+(n>0?'، قبل الأسبوع الجاري '+(n===1?'بأسبوع واحد':n===2?'بأسبوعين':'بـ '+n+(n<=10?' أسابيع':' أسبوعا')):'')+'). استعملوا «السابق» و«التالي» للتنقل، وأي تصحيح هنا يُحدِّث سجل الإحصائيات؛ ثم اضغطوا «الأسبوع الجاري».';
   }else bar.style.display='none';
 }
 // the previous week rebuilt from the statistics archive (absent students only)
@@ -3833,12 +3860,16 @@ async function jumpToWeek(newFrom){
   try{
     const ok=await saveNow();
     if(!ok){ showAlert('تعذر حفظ الأسبوع المعروض قبل التبديل، تحقّقوا من الاتصال وأعيدوا المحاولة. لم يتغيّر شيء.'); revert(); return; }
+    // While a past week is on the sheet, state.other holds the CURRENT week. Going on to another past week must not
+    // replace it (the way back and the teachers' live view depend on it); only the return to the current week does.
+    const keepOther=weekNavInfo().kind==='cur'&&ntMonday(state.other.weekFrom)!==T;
     const go=target=>{
       const here=snapshotWeek();
       applyWeek(target);
       state.weekFrom=newFrom; state.weekTo=isoOk(target.weekTo)?target.weekTo:addDaysIso(T,4);
       el.value=state.weekFrom; document.getElementById('wTo').value=state.weekTo;
-      state.other=here; selected.clear();
+      if(!keepOther) state.other=here;
+      selected.clear();
       save(); renderAll(); refreshFutureCells();
     };
     const o=state.other;
@@ -3859,7 +3890,33 @@ async function jumpToWeek(newFrom){
     ]);
   }finally{ weekJumpBusy=false; }
 }
-function goPrevWeek(){ if(weekNavInfo().kind==='cur') return; toggleOtherWeek(); }
+// «السابق» / «التالي» walk the weeks one by one (any week since the start of the season, October included);
+// «الأسبوع الجاري» comes straight back. While the current week is on the sheet «التالي» still starts the new week.
+// a week counts when it holds an absence: an empty week archived only because it was displayed must not push the limit back
+function weekHasAbs(w){ return !!w&&Object.values(w.classes||{}).some(c=>c&&Array.isArray(c.abs)&&c.abs.length); }
+function weekFloor(){
+  const y=parseInt(String(seasonLabel()).slice(0,4),10);
+  let f=Number.isFinite(y)?ntMonday(y+'-10-01'):null;
+  ((svSeasonView&&svCurWeeks)?svCurWeeks:svWeeks).forEach(w=>{ if(isoOk(w.weekStart)&&weekHasAbs(w)&&(!f||w.weekStart<f)) f=w.weekStart; });
+  return f;
+}
+function weekStep(delta){
+  if(!canWrite) return;
+  const T=ntMonday(state.weekFrom);
+  if(!T){ showAlert('حدّدوا أولا تواريخ الأسبوع الحالي (من / إلى).'); return; }
+  jumpToWeek(addDaysIso(T,7*delta));
+}
+async function goPrevWeek(){
+  if(!canWrite) return;
+  if(!svWeeks.length) await ntLoad();                      // the floor needs the archive
+  const T=ntMonday(state.weekFrom), f=weekFloor();
+  if(T&&f&&T<=f){ showAlert('هذا أول أسبوع في الموسم ('+T+'): لا يوجد أسبوع قبله. لعرض تاريخ أقدم اكتبوه في خانة «من».'); return; }
+  weekStep(-1);
+}
+function goNextWeek(){
+  if(!canWrite) return;
+  if(weekNavInfo().kind==='cur') weekStep(1); else startNewWeek();
+}
 function goCurrentWeek(){ if(weekNavInfo().kind!=='cur') return; toggleOtherWeek(); }
 async function toggleOtherWeek(){
   if(!canWrite) return;
@@ -3879,6 +3936,155 @@ async function toggleOtherWeek(){
   if(!a) return showAlert('لا يوجد أسبوع سابق في سجل الإحصائيات.');
   if(a.old) return showAlert('الأسبوع السابق مؤرشف قبل إضافة التفاصيل، فلا يمكن إعادة عرضه للتعديل. ابتداءً من الأسبوع القادم سيتوفر الرجوع كاملا.');
   swap(a,'سيُعرض الأسبوع الماضي ('+a.weekFrom+') من سجل الإحصائيات: يظهر فيه التلاميذ الذين سُجّل غيابهم (أسماء المواد والأساتذة تبقى كما هي في الجدول). صحّحوا ما يلزم ثم عودوا إلى الأسبوع الحالي.\n\nالمتابعة؟');
+}
+
+// ================= ورقة الغياب الشهرية لتلميذ(ة) واحد(ة) =================
+// One printable page per student and month: every absent hour with its day, period, subject and teacher, the
+// totals (justified / not justified) and room for remarks and signatures. The hours come from the weekly archive
+// (GET /api/history); the sheet on screen and the week kept aside in state.other replace the archived copy of
+// their own week because they hold the latest taps. Holidays and holiday weeks are never counted.
+function ssWeeksList(){ return (svSeasonView&&svCurWeeks)?svCurWeeks:svWeeks; }
+function ssBit(v){ return v==='j'||v==='2'?'2':(v&&v!=='0')?'1':'0'; }
+function ssSources(){
+  const m=new Map();
+  ssWeeksList().forEach(w=>{
+    if(!w||!isoOk(w.weekStart)) return;
+    const classes={};
+    Object.keys(w.classes||{}).forEach(c=>{
+      const cs=w.classes[c]; if(!cs||!Array.isArray(cs.abs)) return;
+      const abs={}; cs.abs.forEach(a=>{ abs[String(a[0]==null?'':a[0]).trim()]=String(a[1]||''); });
+      classes[c]={pc:validPc(cs.pc),abs,subj:Array.isArray(cs.subj)?cs.subj:null,tch:Array.isArray(cs.tch)?cs.tch:null};
+    });
+    m.set(ntMonday(w.weekStart)||w.weekStart,{classes});
+  });
+  const over=(wf,pcv,cl)=>{
+    const mon=ntMonday(wf); if(!mon||!cl) return;
+    const e=m.get(mon)||{classes:{}}; m.set(mon,e);
+    Object.keys(cl).forEach(c=>{
+      const k=cl[c]; if(!k||!Array.isArray(k.names)||!Array.isArray(k.absences)) return;
+      const old=e.classes[c]||{}, same=old.subj&&old.pc&&old.pc[0]===pcv[0]&&old.pc[1]===pcv[1];
+      const abs={}; k.names.forEach((n,i)=>{ abs[String(n==null?'':n).trim()]=(k.absences[i]||[]).map(ssBit).join(''); });
+      const cols=Array.isArray(k.columns)?k.columns:[];
+      e.classes[c]={pc:pcv,abs,subj:same?old.subj:cols.map(x=>x&&x.subject),tch:same?old.tch:cols.map(x=>x&&x.teacher)};
+    });
+  };
+  if(state.other&&isoOk(state.other.weekFrom)) over(state.other.weekFrom,validPc(state.other.pc),state.other.classes);
+  if(isoOk(state.weekFrom)) over(state.weekFrom,pcount(),state.data);
+  return m;
+}
+function ssLocked(date){
+  if(holidayOn(date)) return true;
+  return (Array.isArray(state.breaks)?state.breaks:DEFAULT_BREAKS).some(b=>b&&isoOk(b.from)&&isoOk(b.to)&&date>=b.from&&date<=b.to);
+}
+// every absent hour of student `name` of class `cn` in month ym ('YYYY-MM'): {date,d,s,p,just,subject,teacher}
+function ssCollect(cn,name,ym){
+  const out=[], nm=String(name==null?'':name).trim();
+  ssSources().forEach((w,mon)=>{
+    const c=w.classes[cn]; if(!c) return;
+    const bits=c.abs[nm]; if(!bits) return;
+    for(let i=0;i<bits.length;i++){
+      const v=bits[i]; if(!v||v==='0') continue;
+      const o=colInfo(i,c.pc), date=addDaysIso(mon,o.d);
+      if(date.slice(0,7)!==ym||ssLocked(date)) continue;
+      out.push({date,d:o.d,s:o.s,p:o.p,just:v==='2',subject:String((c.subj&&c.subj[i])||'').trim(),teacher:String((c.tch&&c.tch[i])||'').trim()});
+    }
+  });
+  out.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.s-b.s)||(a.p-b.p));
+  return out;
+}
+function ssMonthLabel(ym){ return MONTHS[+ym.slice(5,7)-1]+' '+ym.slice(0,4); }
+function ssHoursTxt(n){ return LANG==='fr'?ntHoursFr(n):ntHoursText(n); }
+function stuSheetOpen(){
+  if(canMark&&!canWrite) return;
+  const sel=document.getElementById('ssClass');
+  sel.innerHTML=state.classNames.map(c=>`<option value="${svEsc(c)}">${svEsc(c)}</option>`).join('');
+  sel.value=state.classNames.includes(currentClass)?currentClass:state.classNames[0];
+  // months: from the first month of the season (or of the oldest archived week) to the latest month known
+  const y=parseInt(String(seasonLabel()).slice(0,4),10), tod=todayIso();
+  let lo=Number.isFinite(y)?y+'-10':tod.slice(0,7), hi=tod.slice(0,7);
+  ssWeeksList().forEach(w=>{ if(w&&isoOk(w.weekStart)&&weekHasAbs(w)){ const a=w.weekStart.slice(0,7), b=addDaysIso(w.weekStart,4).slice(0,7); if(a<lo) lo=a; if(b>hi) hi=b; } });
+  if(isoOk(state.weekFrom)&&state.weekFrom.slice(0,7)>hi) hi=state.weekFrom.slice(0,7);
+  const ms=[]; for(let cur=lo; cur<=hi && ms.length<24;){ ms.push(cur); let yy=+cur.slice(0,4), mm=+cur.slice(5,7)+1; if(mm>12){ mm=1; yy++; } cur=yy+'-'+String(mm).padStart(2,'0'); }
+  const ms0=document.getElementById('ssMonth');
+  ms0.innerHTML=ms.map(v=>`<option value="${v}">${svEsc(ssMonthLabel(v))}</option>`).join('');
+  ms0.value=ms.includes(tod.slice(0,7))?tod.slice(0,7):ms[ms.length-1];
+  stuSheetFillStudents();
+  document.getElementById('stuSheetOverlay').style.display='flex';
+  ntLoad().then(()=>{ if(document.getElementById('stuSheetOverlay').style.display==='flex') stuSheetInfo(); });   // the latest archived weeks
+}
+function stuSheetClose(){ document.getElementById('stuSheetOverlay').style.display='none'; }
+function stuSheetFillStudents(){
+  const cls=state.data[document.getElementById('ssClass').value]||{names:[]};
+  document.getElementById('ssStudent').innerHTML=cls.names.length?cls.names.map((n,i)=>`<option value="${i}">${i+1} — ${svEsc(n)}</option>`).join(''):'<option value="">لا يوجد تلاميذ في هذا القسم</option>';
+  stuSheetInfo();
+}
+function stuSheetInfo(){
+  const cn=document.getElementById('ssClass').value, si=document.getElementById('ssStudent').value, ym=document.getElementById('ssMonth').value;
+  const el=document.getElementById('ssInfo'), btn=document.getElementById('ssPrint');
+  const cls=state.data[cn]; btn.disabled=!(cls&&si!==''&&cls.names[+si]!=null&&ym);
+  if(btn.disabled){ el.textContent=''; return; }
+  const r=ssCollect(cn,cls.names[+si],ym), u=r.filter(x=>!x.just).length, j=r.length-u, days=new Set(r.map(x=>x.date)).size;
+  el.textContent=r.length?ssMonthLabel(ym)+': '+ntHoursText(r.length)+' من الغياب في '+(days===1?'يوم واحد':days===2?'يومين':days<=10?days+' أيام':days+' يوما')+' ('+u+' غير مبرر، '+j+' مبرر).'
+    :ssMonthLabel(ym)+': لا غياب مسجّل لهذا التلميذ(ة) في هذا الشهر.';
+}
+function stuSheetPrint(){
+  const cn=document.getElementById('ssClass').value, si=document.getElementById('ssStudent').value, ym=document.getElementById('ssMonth').value;
+  const cls=state.data[cn]; if(!cls||si===''||cls.names[+si]==null||!ym) return;
+  const name=cls.names[+si], fr=LANG==='fr', recs=ssCollect(cn,name,ym);
+  const u=recs.filter(x=>!x.just).length, j=recs.length-u;
+  const byDay=new Map(); recs.forEach(x=>{ if(!byDay.has(x.date)) byDay.set(x.date,[]); byDay.get(x.date).push(x); });
+  const per=x=>(fr?(x.s?'A':'M'):(x.s?'م':'ص'))+(x.p+1);
+  let rows='';
+  byDay.forEach((l,date)=>{
+    rows+=`<tr><td>${date.slice(8,10)+'/'+date.slice(5,7)+'/'+date.slice(0,4)}</td><td>${DAY_NAMES[l[0].d]}</td><td class="hrs">`
+      +l.map(x=>`<div><b>${per(x)}</b> ${svEsc(x.subject)||'—'}${x.teacher?` <span class="tc">${svEsc(x.teacher)}</span>`:''} <span class="${x.just?'jj':'uu'}">${x.just?'مبرر':'غير مبرر'}</span></div>`).join('')
+      +`</td><td class="n">${l.length}</td></tr>`;
+  });
+  if(!rows) rows='<tr><td colspan="4" class="none">لا غياب مسجّل في هذا الشهر.</td></tr>';
+  const logoEl=document.querySelector('.logo'), logoSrc=logoEl.src, logoWide=logoEl.classList.contains('wide');
+  const pdir=fr?'ltr':'rtl', palign=fr?'left':'right';
+  const html=Th(`<!DOCTYPE html><html lang="${fr?'fr':'ar'}" dir="${pdir}"><head><meta charset="UTF-8">
+<title>ورقة الغياب الشهرية - ${svEsc(name)}</title>
+<style>
+@page{size:A4 portrait;margin:12mm}
+body{font-family:Arial,Tahoma,sans-serif;margin:0;padding:12px;color:#1E2A28;font-size:12px}
+.phead{display:flex;align-items:center;gap:12px;margin-bottom:12px;border-bottom:2px solid #0F4C46;padding-bottom:10px}
+.phead img{width:50px;height:50px;border-radius:50%}${logoWide?'.phead img{width:auto;height:50px;max-width:180px;border-radius:6px;object-fit:contain}':''}
+h1{font-size:18px;margin:0;color:#0F4C46}
+.psub{font-size:11px;color:#5B6664;margin-top:3px}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #999;padding:5px 7px;text-align:center;vertical-align:top}
+th{background:#eef4f3;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.info td{text-align:${palign};border:1px solid #bbb;font-size:13px}
+.info b{color:#0F4C46}
+.sum{margin:12px 0}
+.sum td{font-size:13px;text-align:center}
+.sum .big{font-size:20px;font-weight:700;display:block}
+.hrs{text-align:${palign}}
+.hrs div{padding:1px 0}
+.tc{color:#5B6664;font-size:11px}
+.uu{color:#B3261E;font-weight:700;font-size:11px}.jj{color:#1E7B3A;font-weight:700;font-size:11px}
+td.n{font-weight:700;width:48px}
+.none{padding:16px;color:#5B6664}
+.note{font-size:10.5px;color:#5B6664;margin:8px 0 14px;line-height:1.7}
+.rem{border:1px solid #999;height:70px;padding:6px;font-size:11px;color:#5B6664}
+.sig{display:flex;justify-content:space-between;margin-top:26px;font-size:12px}
+.sig div{width:42%;text-align:center}.sig i{display:block;border-top:1px solid #444;margin-top:44px}
+</style></head>
+<body onload="window.print()">
+<div class="phead"><img src="${logoSrc}"><div><h1>ورقة الغياب الشهرية</h1><div class="psub">${svEsc(fr?instDisplay():state.instName)} — ${svEsc(seasonText(seasonLabel()))}</div></div></div>
+<table class="info"><tr><td><b>التلميذ(ة):</b> ${svEsc(name)}</td><td><b>القسم:</b> ${svEsc(cn)}</td><td><b>الشهر:</b> ${svEsc(ssMonthLabel(ym))}</td></tr></table>
+<table class="sum"><tr><td>مجموع ساعات الغياب<span class="big">${recs.length}</span></td><td>غير المبررة<span class="big uu">${u}</span></td><td>المبررة<span class="big jj">${j}</span></td><td>عدد أيام الغياب<span class="big">${byDay.size}</span></td></tr></table>
+<table><thead><tr><th>التاريخ</th><th>اليوم</th><th>الحصص الغائبة</th><th>ساعات</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="note">${fr?"M = matin, A = après-midi, le chiffre = numéro de la séance. Chaque séance manquée = 1 heure d'absence. Les jours qui ne figurent pas ici n'ont pas d'absence enregistrée.":'ص = صباحا، م = مساء، والرقم هو رقم الحصة. كل حصة فائتة = ساعة غياب. الأيام غير المذكورة لم يُسجَّل فيها غياب.'}</div>
+<div class="rem">ملاحظات:</div>
+<div class="sig"><div>توقيع المسؤول(ة)<i></i></div><div>توقيع ولي الأمر<i></i></div></div>
+</body></html>`);
+  const url=URL.createObjectURL(new Blob([html],{type:'text/html'}));
+  const a=document.createElement('a');
+  a.href=url; a.target='_blank'; a.rel='noopener noreferrer';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 
 // ---- automatic snapshots of the sheet (admin): see api/backups.js ---------------------------

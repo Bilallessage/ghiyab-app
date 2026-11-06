@@ -508,6 +508,20 @@
         "Le site de formation a une liste vide à dessein ; l’interface est traduite en français, noms des fêtes par défaut compris."
       ],
       "tech": "Champ state.holidays dans l’état partagé, avec DEFAULT_HOLIDAYS et holidayOn dans index.html et api/_stats.js, holidayBlock dans api/mark.js, affichage du tableau en colspan/rowspan, holidays ajouté à api/state.js et api/_demo.js, traductions dans fr.js. Testé dans un navigateur local : 17 vérifications (refus du serveur pour l’administrateur(trice), l’enseignant et « Aucun », jour normal accepté, statistiques ignorées, fenêtre, suppression et jours consécutifs, français, bandeaux mobiles), toutes réussies ; pas encore essayé sur le site publié."
+    },
+    {
+      "date": "2026-11-06",
+      "title": "Navigation semaine par semaine et fiche d’absences mensuelle d’un(e) élève",
+      "goal": "L’administrateur(trice) a demandé de revoir les boutons « Précédente », « Suivante » et « Semaine en cours » pour revenir de façon fluide et logique à n’importe quelle semaine depuis début octobre, et d’ajouter l’impression de la fiche d’absences mensuelle d’un(e) seul(e) élève. « Précédente » n’affichait qu’une semaine avant la semaine en cours puis se désactivait ; une semaine plus ancienne exigeait de saisir la date.",
+      "done": [
+        "« Précédente » remonte semaine après semaine jusqu’au début de la saison (la semaine qui contient le 1er octobre ou la plus ancienne semaine avec une absence) et se désactive à cette limite.",
+        "« Suivante », pendant l’affichage d’une semaine passée, avance d’une semaine jusqu’au retour à la semaine en cours ; sur la semaine en cours elle garde son rôle : commencer une nouvelle semaine.",
+        "« Semaine en cours » revient directement depuis n’importe quelle semaine, et le bandeau jaune indique l’éloignement de la semaine affichée (par exemple : 2 semaines avant la semaine en cours).",
+        "Correction de fond : la semaine en cours reste conservée dans state.other pendant toute la navigation et n’est plus remplacée quand on passe d’une semaine passée à une autre ; le retour ne se perd pas et la vue en direct des enseignants continue.",
+        "Nouveau bouton « 🖨️ Fiche d’un(e) élève » : fenêtre de choix de la classe, de l’élève et du mois avec une ligne de résumé (heures, jours, justifiées et non justifiées), puis impression d’une fiche A4 en arabe ou en français : totaux, tableau des jours avec séance, matière, professeur(e) et statut de justification, cadre de remarques et signatures de l’administrateur(trice) et du parent.",
+        "Les jours fériés et les semaines de vacances ne sont pas comptés dans la fiche ; l’interface et la fiche sont traduites en français."
+      ],
+      "tech": "goPrevWeek, goNextWeek, weekStep et weekFloor dans index.html au-dessus de jumpToWeek avec keepOther, renderWeekNav modifié, puis ssSources, ssCollect, stuSheetOpen et stuSheetPrint (archive plus feuille affichée et state.other), et traductions dans fr.js. Testé dans un navigateur local : retour du 2 novembre au 28 septembre puis avance et retour, conservation de la semaine en cours et correction de l’archive, limite de la saison, chiffres de la fiche en arabe et en français (33 vérifications réussies) ; pas encore essayé sur le site publié."
     }
   ],
   "method": [

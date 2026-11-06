@@ -508,6 +508,20 @@
         "The training site has an empty list on purpose; the interface is translated into French, default feast names included."
       ],
       "tech": "state.holidays field in the shared state, with DEFAULT_HOLIDAYS and holidayOn in index.html and api/_stats.js, holidayBlock in api/mark.js, table display with colspan/rowspan, holidays added to api/state.js and api/_demo.js, translations in fr.js. Tested in a local browser: 17 checks (server refusal for the administrator, the teacher and “Nobody”, normal day accepted, statistics ignore it, dialog, delete and consecutive days, French, phone banners), all passed; not yet tried on the published site."
+    },
+    {
+      "date": "2026-11-06",
+      "title": "Week-by-week navigation and a monthly absence sheet for one student",
+      "goal": "The administrator asked for the “Previous”, “Next” and “Current week” buttons to be reviewed so that going back to any week since the start of October is smooth and logical, and for printing a monthly absence sheet for a single student. “Previous” showed only one week before the current one and then stopped; an older week needed the date to be typed.",
+      "done": [
+        "“Previous” goes back week after week to the start of the season (the week containing 1 October, or the oldest week with an absence) and is disabled at that limit.",
+        "“Next”, while a past week is shown, moves forward one week until the current week is reached; on the current week it keeps its role: start a new week.",
+        "“Current week” returns straight from any week, and the yellow banner shows how far the displayed week is from the current one (for example: 2 weeks before the current week).",
+        "Core fix: the current week stays kept in state.other throughout the navigation and is no longer replaced when moving from one past week to another, so the way back is never lost and the teachers' live view carries on.",
+        "New “🖨️ Student sheet” button: a dialog to choose the class, student and month with a summary line (hours, days, justified and unjustified), then a printed A4 sheet in Arabic or French: totals, a table of days with period, subject, teacher and justification status, a remarks box and signatures of the administrator and the parent.",
+        "Holidays and holiday weeks are not counted on the sheet; the interface and the sheet are translated into French."
+      ],
+      "tech": "goPrevWeek, goNextWeek, weekStep and weekFloor in index.html above jumpToWeek with keepOther, a modified renderWeekNav, then ssSources, ssCollect, stuSheetOpen and stuSheetPrint (archive plus the sheet on screen and state.other), and translations in fr.js. Tested in a local browser: back from 2 November to 28 September then forward and return, the current week kept and the archive corrected, the season limit, the sheet figures in Arabic and French (33 checks passed); not yet tried on the published site."
     }
   ],
   "method": [

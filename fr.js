@@ -212,6 +212,29 @@
     'المواد الفائتة': 'Matières manquées',
     'موعد التعويض': 'Date du rattrapage',
     'ملاحظات': 'Remarques',
+    // fiche d'absences mensuelle d'un(e) élève
+    '🖨️ ورقة تلميذ(ة)': "🖨️ Fiche d'un(e) élève",
+    'طباعة ورقة الغياب الشهرية الخاصة بتلميذ(ة) واحد(ة)': "Imprimer la fiche d'absences mensuelle d'un(e) seul(e) élève",
+    'ورقة الغياب الشهرية لتلميذ(ة)': "Fiche d'absences mensuelle d'un(e) élève",
+    'اختاروا القسم والتلميذ(ة) والشهر، ثم اطبعوا ورقة تبيّن أيام الغياب وحصصه ومواده ومجاميعه (المبرر وغير المبرر)، لتسليمها لولي الأمر أو لإرفاقها بملف التلميذ(ة).': "Choisissez la classe, l'élève et le mois, puis imprimez une fiche indiquant les jours d'absence, les séances, les matières et les totaux (justifiées et non justifiées), à remettre au parent ou à joindre au dossier de l'élève.",
+    '🖨️ طباعة الورقة': '🖨️ Imprimer la fiche',
+    'الشهر': 'Mois',
+    'ورقة الغياب الشهرية': "Fiche d'absences mensuelle",
+    'التلميذ(ة):': 'Élève :',
+    'القسم:': 'Classe :',
+    'الشهر:': 'Mois :',
+    'مجموع ساعات الغياب': "Total d'heures d'absence",
+    'غير المبررة': 'Non justifiées',
+    'المبررة': 'Justifiées',
+    'عدد أيام الغياب': "Nombre de jours d'absence",
+    'الحصص الغائبة': 'Séances manquées',
+    'ساعات': 'Heures',
+    'مبرر': 'justifiée',
+    'غير مبرر': 'non justifiée',
+    'ملاحظات:': 'Remarques :',
+    'لا غياب مسجّل في هذا الشهر.': "Aucune absence enregistrée ce mois-ci.",
+    'توقيع المسؤول(ة)': "Signature de l'administrateur(trice)",
+    'توقيع ولي الأمر': 'Signature du parent',
     'لا يوجد غياب مسجّل في الفترة المختارة.': 'Aucune absence enregistrée pour la période choisie.',
     'تعذر تحميل قائمة التعويض، تحقّقوا من الاتصال ثم أعيدوا فتح الصفحة.': 'Impossible de charger la liste de rattrapage : vérifiez la connexion puis rouvrez la page.',
 
@@ -227,6 +250,8 @@
     '📍 الأسبوع الجاري': '📍 Semaine en cours',
     'العودة إلى الأسبوع الجاري بعد عرض الأسبوع السابق': 'Revenir à la semaine en cours après avoir affiché la semaine précédente',
     'بدء الأسبوع التالي: يُحفظ غياب الأسبوع الجاري ثم يُمسح الجدول': "Commencer la semaine suivante : les absences de la semaine en cours sont enregistrées puis le tableau est vidé",
+    'عرض الأسبوع السابق (يمكنكم التراجع أسبوعا بعد أسبوع) لتصحيح غياب سُجّل بالخطأ': 'Afficher la semaine précédente (vous pouvez remonter semaine après semaine) pour corriger une absence enregistrée par erreur',
+    'الانتقال إلى الأسبوع الموالي (حتى العودة إلى الأسبوع الجاري)': "Passer à la semaine suivante (jusqu'au retour à la semaine en cours)",
     'عرض الأسبوع السابق لتصحيح غياب سُجّل بالخطأ': 'Afficher la semaine précédente pour corriger une absence enregistrée par erreur',
     'عرض الأسبوع الماضي لتصحيح غياب سُجّل بالخطأ': 'Afficher la semaine précédente pour corriger une absence enregistrée par erreur',
 
@@ -607,6 +632,11 @@
     [new RegExp('^(' + DAYRE + ') (\\d{4}-\\d{2}-\\d{2})$'), '%1 $2'],
     [new RegExp('^(' + MON + ') (\\d{4})$'), function (m) { return MONTHS_FR[m[1]] + ' ' + m[2]; }],
     [new RegExp('^(' + MON + ')$'), function (m) { return MONTHS_FR[m[1]]; }],
+    [new RegExp('^(' + MON + ') (\\d{4}): (' + HRS + ') من الغياب في (يوم واحد|يومين|\\d+ أيام|\\d+ يوما) \\((\\d+) غير مبرر، (\\d+) مبرر\\)\\.$'), function (m) {
+      var d = m[4] === 'يوم واحد' ? 1 : m[4] === 'يومين' ? 2 : parseInt(m[4], 10);
+      return MONTHS_FR[m[1]] + ' ' + m[2] + ' : ' + tr(m[3]) + " d'absence sur " + pl(d, 'jour', 'jours') + ' (' + m[5] + ' non justifiée(s), ' + m[6] + ' justifiée(s)).';
+    }],
+    [new RegExp('^(' + MON + ') (\\d{4}): لا غياب مسجّل لهذا التلميذ\\(ة\\) في هذا الشهر\\.$'), function (m) { return MONTHS_FR[m[1]] + ' ' + m[2] + " : aucune absence enregistrée pour cet(te) élève ce mois-ci."; }],
     [/^ساعة واحدة$/, '1 heure'],
     [/^ساعتان$/, '2 heures'],
     [/^(\d+) ساعات$/, '$1 heures'],
@@ -698,6 +728,11 @@
     [/^⏪ تعرضون الآن الأسبوع الماضي \(من (\S+?)(?: إلى (\S+))?\)\. أي تصحيح هنا يُحدِّث سجل الإحصائيات؛ ثم اضغطوا «الأسبوع الجاري»\.$/, function (m) {
       return '⏪ Vous affichez la semaine précédente (' + (m[2] ? 'du ' + m[1] + ' au ' + m[2] : 'à partir du ' + m[1]) + "). Toute correction faite ici met à jour l'historique des statistiques ; cliquez ensuite sur « Semaine en cours ».";
     }],
+    [/^⏪ تعرضون الآن أسبوعا سابقا \(من (\S+?)(?: إلى (\S+?))?(?:، قبل الأسبوع الجاري (بأسبوع واحد|بأسبوعين|بـ (\d+) (?:أسابيع|أسبوعا)))?\)\. استعملوا «السابق» و«التالي» للتنقل، وأي تصحيح هنا يُحدِّث سجل الإحصائيات؛ ثم اضغطوا «الأسبوع الجاري»\.$/, function (m) {
+      var n = m[3] === 'بأسبوع واحد' ? 1 : m[3] === 'بأسبوعين' ? 2 : +m[4];
+      return '⏪ Vous affichez une semaine passée (' + (m[2] ? 'du ' + m[1] + ' au ' + m[2] : 'à partir du ' + m[1]) + (m[3] ? ', ' + (n === 1 ? '1 semaine' : n + ' semaines') + ' avant la semaine en cours' : '') + "). Utilisez « Précédente » et « Suivante » pour naviguer ; toute correction faite ici met à jour l'historique des statistiques ; cliquez ensuite sur « Semaine en cours ».";
+    }],
+    [/^هذا أول أسبوع في الموسم \((\S+)\): لا يوجد أسبوع قبله\. لعرض تاريخ أقدم اكتبوه في خانة «من»\.$/, "C'est la première semaine de la saison ($1) : il n'y en a pas avant. Pour afficher une date plus ancienne, saisissez-la dans le champ « Du »."],
     [/^سيُحفظ ما عدّلتموه في الأسبوع الماضي، ثم يُعرض الأسبوع الحالي \((.*)\) كما تركتموه\.$/, "Vos modifications de la semaine précédente seront enregistrées, puis la semaine en cours ($1) s'affichera telle que vous l'avez laissée."],
     [/^سيُعرض الأسبوع الماضي \((.*)\) لتصحيح أي ساعة غياب سُجّلت بالخطأ\. الأسبوع الحالي يُحفظ كما هو ويمكنكم الرجوع إليه بنقرة\.$/, "La semaine précédente ($1) sera affichée pour corriger toute heure d'absence enregistrée par erreur. La semaine en cours est conservée telle quelle et vous pourrez y revenir d'un clic."],
     [/^سيُعرض الأسبوع الماضي \((.*)\) من سجل الإحصائيات: يظهر فيه التلاميذ الذين سُجّل غيابهم \(أسماء المواد والأساتذة تبقى كما هي في الجدول\)\. صحّحوا ما يلزم ثم عودوا إلى الأسبوع الحالي\.$/, "La semaine précédente ($1) sera affichée à partir de l'historique des statistiques : on y voit les élèves dont l'absence a été enregistrée (les matières et les professeurs restent ceux du tableau). Corrigez ce qui est nécessaire, puis revenez à la semaine en cours."],
