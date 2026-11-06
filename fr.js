@@ -233,7 +233,7 @@
     'غير مبرر': 'non justifiée',
     'ملاحظات:': 'Remarques :',
     'لا غياب مسجّل في هذا الشهر.': "Aucune absence enregistrée ce mois-ci.",
-    'توقيع الأساتذة': 'Signatures des enseignants',
+    'توقيع الأستاذ(ة) بعد النداء وتسجيل الغياب': "Signature de l'enseignant(e) après l'appel et la saisie des absences",
     'ختم الإدارة': "Cachet de l'administration",
     'توقيع المسؤول(ة)': "Signature de l'administrateur(trice)",
     'توقيع ولي الأمر': 'Signature du parent',
