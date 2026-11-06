@@ -1729,6 +1729,14 @@ function triggerPrint(){
   let dayHeader='',perHeader='';
   DAYS.forEach((d,j)=>{ if(pc[j&1]) dayHeader+=`<th class="${(dayCl(j)+(j&1?' ev':'')+sepDay(j,pc)).trim()}" colspan="${pc[j&1]}">${d}</th>`; });
   DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) perHeader+=`<th class="${(dayCl(j)+sepPer(j,p,pc)).trim()}">ح${p+1}</th>`; });
+  // signature boxes under the table: one per teacher of the sheet (name and subjects) and the administration's stamp
+  const tchs=[];
+  cls.columns.forEach(c=>{
+    const t=String(c.teacher||'').trim(); if(!t) return;
+    let e=tchs.find(x=>x.t===t); if(!e){ e={t,subs:[]}; tchs.push(e); }
+    const sj=String(c.subject||'').trim(); if(sj&&!e.subs.includes(sj)) e.subs.push(sj);
+  });
+  const sigHtml=`<div class="psig"><div class="psigt"><div class="psigh">توقيع الأساتذة</div><div class="psigr">${tchs.length?tchs.map(e=>`<div class="psb"><b>${svEsc(e.t)}</b><span>${e.subs.map(svEsc).join(' / ')}</span></div>`).join(''):'<div class="psb" style="width:260px"></div>'}</div></div><div class="pstamp"><div class="psigh">ختم الإدارة</div></div></div>`;
   const weekInfo=(state.weekFrom&&state.weekTo)?`الأسبوع من ${state.weekFrom} إلى ${state.weekTo}`:'';
   const pdir=fr?'ltr':'rtl', palign=fr?'left':'right';
   const html=Th(`<!DOCTYPE html><html lang="${fr?'fr':'ar'}" dir="${pdir}"><head><meta charset="UTF-8">
@@ -1757,6 +1765,13 @@ th.d0:not(.day){background:#EAF2FB}th.d1:not(.day){background:#E8F6EF}th.d2:not(
 .dend{border-inline-end:2.5px solid #0F4C46!important}
 .pfoot{background:#eef4f3;font-weight:700}
 .pbreak{font-size:15px;font-weight:900;color:#8a5a14;background:#f7ecd5}
+.psig{display:flex;gap:12px;margin-top:12px;align-items:stretch;break-inside:avoid;page-break-inside:avoid}
+.psigt{flex:1}
+.psigh{font-size:10px;font-weight:700;color:#0F4C46;margin-bottom:4px}
+.psigr{display:flex;flex-wrap:wrap;gap:6px}
+.psb{border:1px solid #999;width:128px;height:66px;padding:3px 5px;box-sizing:border-box;font-size:9px;display:flex;flex-direction:column;gap:1px}
+.psb span{color:#5B6664;font-size:8px}
+.pstamp{border:1px solid #999;width:160px;min-height:84px;padding:3px 6px;box-sizing:border-box}
 </style></head>
 <body onload="fitOnePage();window.print()">
 <div id="pgbox"><div id="pgsheet">
@@ -1766,6 +1781,7 @@ th.d0:not(.day){background:#EAF2FB}th.d1:not(.day){background:#E8F6EF}th.d2:not(
 <tr>${perHeader}</tr>
 <tr>${metaRow}</tr>
 </thead><tbody>${rows}${footRow}</tbody></table>
+${sigHtml}
 </div></div>
 </body></html>`).replace('</body>',`<script>
 // Scale the sheet down (never up) so that it fills at most ONE A4 landscape page: 297 x 210 mm minus the 7 mm margins.
