@@ -1696,7 +1696,10 @@ window.addEventListener('resize',()=>syncHeaderOffset());
 })();
 
 function triggerPrint(){
-  const cls=state.data[currentClass], pc=pcount(), NC=totalCols(pc);
+  const cls=state.data[currentClass], pc=pcount(), W=pc[0]+pc[1];
+  // Friday afternoon is not printed: its columns are the last pc[1] ones of the week
+  const NC=totalCols(pc)-pc[1], lastFri=pc[0]&&pc[1]?' dend':'';
+  const sc=i=>sepCol(i,pc)+(i===NC-1?lastFri:'');   // the printed Friday morning closes the table like a day end
   const fr=LANG==='fr', br=breakNow();
   const logoEl=document.querySelector('.logo'); const logoSrc=logoEl.src; const logoWide=logoEl.classList.contains('wide');
   let rows='';
@@ -1706,29 +1709,29 @@ function triggerPrint(){
     grandTotal+=total;
     rows+=`<tr class="prow${si%2===0?' pz':''}"><td class="pnum">${si+1}</td><td class="pname">${name}</td>`;
     if(br){
-      if(si===0) for(let j=0;j<10;j++) if(pc[j&1]) rows+=`<td class="pbreak" colspan="${pc[j&1]}" rowspan="${cls.names.length}">${svEsc(br.label||'عطلة بينية')}</td>`;
+      if(si===0) for(let j=0;j<9;j++) if(pc[j&1]) rows+=`<td class="pbreak" colspan="${pc[j&1]}" rowspan="${cls.names.length}">${svEsc(br.label||'عطلة بينية')}</td>`;
       rows+=`<td class="ptotal"></td></tr>`; return;
     }
     for(let i=0;i<NC;i++){
       const h=colHoliday(i);
-      if(h){ if(si===0&&i%(pc[0]+pc[1])===0) rows+=`<td class="pbreak" colspan="${pc[0]+pc[1]}" rowspan="${cls.names.length}">${svEsc(h.label||'يوم عطلة')}</td>`; continue; }
-      rows+=`<td class="pcell${sepCol(i,pc)}">${cls.absences[si][i]?'غ':''}${cls.absences[si][i]==='j'?'<sup>'+(fr?'J':'م')+'</sup>':''}</td>`;
+      if(h){ if(si===0&&i%W===0) rows+=`<td class="pbreak" colspan="${Math.min(W,NC-i)}" rowspan="${cls.names.length}">${svEsc(h.label||'يوم عطلة')}</td>`; continue; }
+      rows+=`<td class="pcell${sc(i)}">${cls.absences[si][i]?'غ':''}${cls.absences[si][i]==='j'?'<sup>'+(fr?'J':'م')+'</sup>':''}</td>`;
     }
     rows+=`<td class="ptotal">${total}</td></tr>`;
   });
   let footRow='<tr class="pfoot"><td colspan="2">مجموع غياب القسم في كل حصة</td>';
   if(br) footRow+=`<td colspan="${NC}"></td>`;
   else for(let i=0;i<NC;i++){
-    if(colHoliday(i)){ if(i%(pc[0]+pc[1])===0) footRow+=`<td colspan="${pc[0]+pc[1]}"></td>`; continue; }
+    if(colHoliday(i)){ if(i%W===0) footRow+=`<td colspan="${Math.min(W,NC-i)}"></td>`; continue; }
     let sum=0; cls.absences.forEach(r=>{if(r[i])sum++;});
-    footRow+=`<td class="${sepCol(i,pc).trim()}">${sum}</td>`;
+    footRow+=`<td class="${sc(i).trim()}">${sum}</td>`;
   }
   footRow+=`<td>${grandTotal}</td></tr>`;
   let metaRow='';
-  for(let i=0;i<NC;i++) metaRow+=`<th class="pmeta${sepCol(i,pc)}"><div class="vt"><span>${(cls.columns[i].subject||'').trim()||'—'}</span><span class="pteacher">${(cls.columns[i].teacher||'').trim()||'—'}</span></div></th>`;
+  for(let i=0;i<NC;i++) metaRow+=`<th class="pmeta${sc(i)}"><div class="vt"><span>${(cls.columns[i].subject||'').trim()||'—'}</span><span class="pteacher">${(cls.columns[i].teacher||'').trim()||'—'}</span></div></th>`;
   let dayHeader='',perHeader='';
-  DAYS.forEach((d,j)=>{ if(pc[j&1]) dayHeader+=`<th class="${(dayCl(j)+(j&1?' ev':'')+sepDay(j,pc)).trim()}" colspan="${pc[j&1]}">${d}</th>`; });
-  DAYS.forEach((d,j)=>{ for(let p=0;p<pc[j&1];p++) perHeader+=`<th class="${(dayCl(j)+sepPer(j,p,pc)).trim()}">ح${p+1}</th>`; });
+  DAYS.forEach((d,j)=>{ if(j<9&&pc[j&1]) dayHeader+=`<th class="${(dayCl(j)+(j&1?' ev':'')+sepDay(j,pc)+(j===8?lastFri:'')).trim()}" colspan="${pc[j&1]}">${d}</th>`; });
+  DAYS.forEach((d,j)=>{ if(j>8) return; for(let p=0;p<pc[j&1];p++) perHeader+=`<th class="${(dayCl(j)+sepPer(j,p,pc)+(j===8&&p===pc[0]-1?lastFri:'')).trim()}">ح${p+1}</th>`; });
   // signature row under the totals: one empty cell under each period's column, where the teacher of that period signs
   // after the roll call and the recording of the absences; and the administration's stamp box under the table
   let sigRow='';
@@ -1736,8 +1739,8 @@ function triggerPrint(){
     // a label line over the signature cells, then the cells; the stamp box is the left-hand cell of that row (bottom of the sheet)
     sigRow=`<tr class="psiglabrow"><td colspan="2"></td><td colspan="${NC}" class="psiglab">توقيع الأستاذ(ة) بعد النداء وتسجيل الغياب</td><td></td></tr><tr class="psigrow"><td colspan="2" class="pstampcell">ختم الإدارة</td>`;
     for(let i=0;i<NC;i++){
-      if(colHoliday(i)){ if(i%(pc[0]+pc[1])===0) sigRow+=`<td colspan="${pc[0]+pc[1]}"></td>`; continue; }
-      sigRow+=`<td class="${sepCol(i,pc).trim()}"></td>`;
+      if(colHoliday(i)){ if(i%W===0) sigRow+=`<td colspan="${Math.min(W,NC-i)}"></td>`; continue; }
+      sigRow+=`<td class="${sc(i).trim()}"></td>`;
     }
     sigRow+='<td></td></tr>';
   }
@@ -1791,7 +1794,7 @@ th.d0:not(.day){background:#EAF2FB}th.d1:not(.day){background:#E8F6EF}th.d2:not(
 <body onload="fitOnePage();window.print()">
 <div id="pgbox"><div id="pgsheet">
 <div class="phead"><img src="${logoSrc}"><div><h1>تتبع غياب التلاميذ — القسم: ${currentClass}</h1><div class="psub">${fr?instDisplay():state.instName}${weekInfo?' — '+weekInfo:''}</div></div></div>
-<table><colgroup><col style="width:26px"><col style="width:204px">${'<col>'.repeat(NC)}<col style="width:46px"></colgroup><thead>
+<table><colgroup><col style="width:26px"><col style="width:150px">${'<col>'.repeat(NC)}<col style="width:46px"></colgroup><thead>
 <tr><th rowspan="3">م</th><th rowspan="3">الاسم الكامل</th>${dayHeader}<th rowspan="3">${fr?'Total<br>absences<br>semaine':'مجموع<br>غياب<br>الأسبوع'}</th></tr>
 <tr>${perHeader}</tr>
 <tr>${metaRow}</tr>
