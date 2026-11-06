@@ -1217,6 +1217,15 @@ function ntMonday(iso){
   if(dow===0) return addDaysIso(iso,1);
   return addDaysIso(iso,-(dow-1));
 }
+// An absence week always runs Monday -> Friday: «من» is the Monday and «إلى» the Friday of the same week, whatever date
+// was typed or saved. Returns true when it had to change them.
+function snapWeekDates(st){
+  const m=ntMonday(st.weekFrom); if(!m) return false;
+  const f=addDaysIso(m,4);
+  if(st.weekFrom===m&&st.weekTo===f) return false;
+  st.weekFrom=m; st.weekTo=f; return true;
+}
+function showWeekDates(){ const a=document.getElementById('wFrom'), b=document.getElementById('wTo'); if(a) a.value=state.weekFrom||''; if(b) b.value=state.weekTo||''; }
 function ntHoursText(n){ return n===1?'ساعة واحدة':n===2?'ساعتان':n<=10?n+' ساعات':n+' ساعة'; }
 async function ntLoad(){
   try{
@@ -2683,7 +2692,8 @@ function renderAll(){ renderTabs(); renderTable(); renderStats(); renderWeekNav(
 document.getElementById('wFrom').value=state.weekFrom;
 document.getElementById('wTo').value=state.weekTo;
 document.getElementById('wFrom').onchange=e=>{ if(!canWrite) return; jumpToWeek(e.target.value); };
-document.getElementById('wTo').onchange=e=>{ if(!canWrite) return; state.weekTo=e.target.value; save(); };
+document.getElementById('wTo').title='نهاية أسبوع الغياب هي دائما يوم الجمعة من الأسبوع نفسه';
+document.getElementById('wTo').onchange=e=>{ if(!canWrite) return; if(!snapWeekDates(state)) state.weekTo=e.target.value; showWeekDates(); save(); };   // the end of the week is always its Friday
 
 document.getElementById('tableHost').addEventListener('focusin', ()=>{ tableFocused=true; });
 document.getElementById('tableHost').addEventListener('focusout', ()=>{
@@ -3745,10 +3755,8 @@ function startNewWeek(){
     if(!ok){ showAlert('تعذر حفظ الأسبوع الحالي في السجل، تحقّقوا من الاتصال وأعيدوا المحاولة. لم يتغيّر شيء.'); return; }
     if(!brk) state.other=snapshotWeek();   // the finished week stays available through «الأسبوع الماضي»
     state.classNames.forEach(c=>{ const cls=state.data[c]; cls.absences=cls.names.map(()=>blankRow()); (cls.columns||[]).forEach(k=>{ if(k) delete k.called; }); });
-    state.weekFrom=addDaysIso(state.weekFrom,7);
-    if(isoOk(state.weekTo)) state.weekTo=addDaysIso(state.weekTo,7);
-    document.getElementById('wFrom').value=state.weekFrom;
-    document.getElementById('wTo').value=state.weekTo;
+    state.weekFrom=addDaysIso(ntMonday(state.weekFrom),7); state.weekTo=addDaysIso(state.weekFrom,4);
+    showWeekDates();
     save(); renderAll();
   }},{label:'إلغاء',className:'btn ghost',onClick:null}]);
 }
@@ -3767,7 +3775,7 @@ function snapshotWeekOf(st){
 function snapshotWeek(){ return snapshotWeekOf(state); }
 // put week w on the sheet of state object st (the sheet keeps its list of students and its number of periods)
 function applyWeekTo(st,w){
-  st.weekFrom=w.weekFrom||''; st.weekTo=w.weekTo||'';
+  st.weekFrom=w.weekFrom||''; st.weekTo=w.weekTo||''; snapWeekDates(st);
   const to=validPc(st.pc);
   st.classNames.forEach(c=>{
     const k=st.data[c], src=(w.classes||{})[c];
@@ -3801,6 +3809,7 @@ function weekNavInfo(){
 function renderWeekNav(){
   const btn=document.getElementById('prevWeekBtn'), bar=document.getElementById('weekBanner');
   if(!btn||!bar) return;
+  if(canWrite&&snapWeekDates(state)){ showWeekDates(); save(); }   // a week saved with other dates is put back on Monday -> Friday
   const info=weekNavInfo();
   btn.style.display=canWrite?'inline-block':'none';
   const T0=ntMonday(state.weekFrom), fl=weekFloor();
@@ -3854,7 +3863,7 @@ async function jumpToWeek(newFrom){
   if(weekJumpBusy) return;
   if(!isoOk(newFrom)){ el.value=prev; return; }
   const T=ntMonday(newFrom), C=ntMonday(prev);
-  if(!C||T===C){ state.weekFrom=newFrom; save(); refreshFutureCells(); renderAll(); return; }   // same week (or no week yet): only the date
+  if(!C||T===C){ state.weekFrom=newFrom; snapWeekDates(state); showWeekDates(); save(); refreshFutureCells(); renderAll(); return; }   // same week (or no week yet): only the dates (Monday -> Friday)
   weekJumpBusy=true;
   const revert=()=>{ el.value=prev; };
   try{
@@ -3866,8 +3875,8 @@ async function jumpToWeek(newFrom){
     const go=target=>{
       const here=snapshotWeek();
       applyWeek(target);
-      state.weekFrom=newFrom; state.weekTo=isoOk(target.weekTo)?target.weekTo:addDaysIso(T,4);
-      el.value=state.weekFrom; document.getElementById('wTo').value=state.weekTo;
+      state.weekFrom=T; state.weekTo=addDaysIso(T,4);
+      showWeekDates();
       if(!keepOther) state.other=here;
       selected.clear();
       save(); renderAll(); refreshFutureCells();
@@ -3881,11 +3890,11 @@ async function jumpToWeek(newFrom){
       target=a;
     }
     if(target){ go(target); return; }
-    const brk=(Array.isArray(state.breaks)?state.breaks:DEFAULT_BREAKS).some(b=>b&&isoOk(b.from)&&isoOk(b.to)&&newFrom>=b.from&&newFrom<=b.to);
-    if(brk){ go({weekFrom:newFrom,weekTo:addDaysIso(T,4),classes:{}}); return; }
+    const brk=(Array.isArray(state.breaks)?state.breaks:DEFAULT_BREAKS).some(b=>b&&isoOk(b.from)&&isoOk(b.to)&&T>=b.from&&T<=b.to);
+    if(brk){ go({weekFrom:T,weekTo:addDaysIso(T,4),classes:{}}); return; }
     showModal('لا توجد بيانات محفوظة للأسبوع الذي يبدأ في '+T+'.\n\nالأسبوع الحالي ('+prev+') يُحفظ كما هو ويمكنكم الرجوع إليه.',[
-      {label:'عرض أسبوع فارغ بهذا التاريخ',className:'btn',onClick:()=>go({weekFrom:newFrom,weekTo:addDaysIso(T,4),classes:{}})},
-      {label:'تغيير التاريخ فقط (تبقى البيانات الحالية)',className:'btn ghost',onClick:()=>{ state.weekFrom=newFrom; save(); refreshFutureCells(); renderAll(); }},
+      {label:'عرض أسبوع فارغ بهذا التاريخ',className:'btn',onClick:()=>go({weekFrom:T,weekTo:addDaysIso(T,4),classes:{}})},
+      {label:'تغيير التاريخ فقط (تبقى البيانات الحالية)',className:'btn ghost',onClick:()=>{ state.weekFrom=newFrom; snapWeekDates(state); showWeekDates(); save(); refreshFutureCells(); renderAll(); }},
       {label:'إلغاء',className:'btn ghost',onClick:revert}
     ]);
   }finally{ weekJumpBusy=false; }
