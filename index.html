@@ -1734,17 +1734,21 @@ function triggerPrint(){
   const html=Th(`<!DOCTYPE html><html lang="${fr?'fr':'ar'}" dir="${pdir}"><head><meta charset="UTF-8">
 <title>ورقة غياب - ${currentClass}</title>
 <style>
-@page{size:landscape;margin:10mm}
-body{font-family:Arial,Tahoma,sans-serif;margin:0;padding:16px;color:#1E2A28}
-.phead{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+@page{size:A4 landscape;margin:7mm}
+html,body{margin:0;padding:0}
+body{font-family:Arial,Tahoma,sans-serif;color:#1E2A28}
+/* one A4 landscape page, whatever the number of students: #pgbox is the printable area, #pgsheet is scaled to fit it (see fitOnePage) */
+#pgbox{overflow:hidden;page-break-after:avoid;break-after:avoid}
+#pgsheet{transform-origin:top ${fr?'left':'right'}}
+.phead{display:flex;align-items:center;gap:12px;margin-bottom:10px}
 .phead img{width:46px;height:46px;border-radius:50%}${logoWide?'.phead img{width:auto;height:46px;max-width:170px;border-radius:6px;object-fit:contain}':''}
 h1{font-size:16px;margin:0}
 .psub{font-size:11px;color:#5B6664}
 table{border-collapse:collapse;width:100%;font-size:9.5px}
-th,td{border:1px solid #999;padding:3px 4px;text-align:center}
+th,td{border:1px solid #999;padding:2px 3px;text-align:center}
 th.pmeta{font-size:8px}
 .pteacher{color:#5B6664}
-.pname{text-align:${palign}}
+.pname{text-align:${palign};white-space:nowrap}
 .ptotal{font-weight:700;background:#eef4f3}
 .sep{border-inline-start:2.5px solid #0F4C46!important}
 th,td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -1754,14 +1758,31 @@ th.d0:not(.day){background:#EAF2FB}th.d1:not(.day){background:#E8F6EF}th.d2:not(
 .pfoot{background:#eef4f3;font-weight:700}
 .pbreak{font-size:15px;font-weight:900;color:#8a5a14;background:#f7ecd5}
 </style></head>
-<body onload="window.print()">
+<body onload="fitOnePage();window.print()">
+<div id="pgbox"><div id="pgsheet">
 <div class="phead"><img src="${logoSrc}"><div><h1>تتبع غياب التلاميذ — القسم: ${currentClass}</h1><div class="psub">${fr?instDisplay():state.instName}${weekInfo?' — '+weekInfo:''}</div></div></div>
 <table><thead>
 <tr><th rowspan="3">م</th><th rowspan="3">الاسم الكامل</th>${dayHeader}<th rowspan="3">${fr?'Total<br>absences<br>semaine':'مجموع<br>غياب<br>الأسبوع'}</th></tr>
 <tr>${perHeader}</tr>
 <tr>${metaRow}</tr>
 </thead><tbody>${rows}${footRow}</tbody></table>
-</body></html>`);
+</div></div>
+</body></html>`).replace('</body>',`<script>
+// Scale the sheet down (never up) so that it fills at most ONE A4 landscape page: 297 x 210 mm minus the 7 mm margins.
+function fitOnePage(){
+  var mm=96/25.4, W=(297-14)*mm, H=(210-14)*mm-6;
+  var box=document.getElementById('pgbox'), sh=document.getElementById('pgsheet'), s=1;
+  box.style.height=H+'px'; box.style.width=W+'px';
+  for(var i=0;i<6;i++){
+    sh.style.width=(W/s)+'px'; sh.style.transform=s<1?'scale('+s+')':'none';
+    var h=sh.scrollHeight, w=sh.scrollWidth;           // w > W/s when the columns are wider than the page
+    var n=Math.min(1,(H-2)/h,W/w);
+    if(Math.abs(n-s)<0.002) break;
+    s=n;
+  }
+  sh.style.width=(W/s)+'px'; sh.style.transform=s<1?'scale('+s+')':'none';
+}
+<\/script></body>`);
   const blob=new Blob([html],{type:'text/html'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
