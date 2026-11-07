@@ -528,6 +528,18 @@
         "Narrower student-name column in the print (from about 204 to 150 px) to widen the absence cells, and the “Friday afternoon” column removed from the print for good (only Friday morning is printed; the table in the app and its data are unchanged)."
       ],
       "tech": "goPrevWeek, goNextWeek, weekStep and weekFloor in index.html above jumpToWeek with keepOther, a modified renderWeekNav, ssSources, ssCollect, stuSheetOpen and stuSheetPrint (archive plus the sheet on screen and state.other), snapWeekDates and showWeekDates to fix Monday–Friday, a rewrite of the weekly print in triggerPrint (table-layout:fixed, fitOnePage for row height and fonts then scaling down when needed) and translations in fr.js. Tested in a local browser: navigation between weeks (33 checks passed) and printing with 8, 30, 45 and 70 students in Arabic and French (always one A4 landscape page, with no scaling for a class of 30); not yet tried on the published site."
+    },
+    {
+      "date": "2026-11-07",
+      "title": "Fix for importing the “educational organisation” file of the primary school",
+      "goal": "Importing the primary school's educational-organisation file showed the message “The class timetable (days and hours) with the subject codes was not found in the file” although the file was fine.",
+      "done": [
+        "Cause: the day headings of the class grid are written per half-day (“Monday morning”, “Monday afternoon”…) while the import only accepted the bare day name, and the lesson times use several dashes (“10:25----09:00”) while it accepted only one; so it found the 9 teachers but no class.",
+        "The import now accepts the day name followed by the half-day (morning or afternoon) and one or several dashes (or a long dash) between the start and end time of a lesson.",
+        "Tried on the school's file: 9 classes found (1APG to 6APG2), 9 teachers and 18 filled lessons per class, with subject and teacher (4 days of 4 lessons, Friday morning 2 lessons).",
+        "In the “Import educational organisation” window, the file's class “1APG” is suggested automatically for the only existing class whose name starts with it (for example “1APG1”) instead of creating a new class; the administrator can still change the choice."
+      ],
+      "tech": "orgDayIdx, ORG_DAYS, orgPeriodCols (dash expression), parseOrgWorkbook and orgRender in index.html. The reading function was tested in Node on the data of the school's Excel file (before the fix: 0 classes, after: 9 classes × 18 lessons); the import window has not yet been tried on the published site."
     }
   ],
   "method": [

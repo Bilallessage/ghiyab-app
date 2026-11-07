@@ -3643,6 +3643,8 @@ function svDeleteSeason(){
 const orgState={res:null};
 function orgNorm(v){ return String(v==null?'':v).replace(/[إأآ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/\s+/g,' ').trim(); }
 const ORG_DAYS=['الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة'].map(orgNorm);
+// a day heading: «الاثنين» alone, or followed by the half-day («الإثنين صباحا» / «الاثنين مساء»), as in the grids that give one heading per half-day
+function orgDayIdx(v){ const n=orgNorm(v); return ORG_DAYS.findIndex(d=>n===d||n.startsWith(d+' ')); }
 function orgStr(v){ return typeof v==='string'?v.replace(/\u0640/g,'').replace(/[\s\u00a0]+/g,' ').trim():(typeof v==='number'?String(v):''); }
 // 0..1 similarity of two names (to tell a typo from a really different subject)
 function orgSim(a,b){
@@ -3654,7 +3656,7 @@ function orgSim(a,b){
 }
 function orgPeriodCols(row,withDay,dayCols){
   const per=[];
-  row.forEach((v,c)=>{ const m=orgStr(v).replace(/\s/g,'').match(/^(\d{1,2})(?::\d{2})?[-–](\d{1,2})(?::\d{2})?$/); if(m) per.push({c,start:Math.min(+m[1],+m[2])}); });
+  row.forEach((v,c)=>{ const m=orgStr(v).replace(/\s/g,'').match(/^(\d{1,2})(?::\d{2})?[-–—]+(\d{1,2})(?::\d{2})?$/); if(m) per.push({c,start:Math.min(+m[1],+m[2])}); });
   per.sort((a,b)=>a.c-b.c);
   const cnt={};
   per.forEach(x=>{
@@ -3682,7 +3684,7 @@ function parseOrgWorkbook(wb){
   sheets.forEach(sh=>{
     if(classes.length) return;
     for(let hr=0;hr<sh.rows.length-1;hr++){
-      const dayCols=[]; sh.rows[hr].forEach((v,c)=>{ const d=ORG_DAYS.indexOf(orgNorm(v)); if(d>=0) dayCols.push({d,c}); });
+      const dayCols=[]; sh.rows[hr].forEach((v,c)=>{ const d=orgDayIdx(v); if(d>=0) dayCols.push({d,c}); });
       if(dayCols.length<3) continue;
       const per=orgPeriodCols(sh.rows[hr+1]||[],true,dayCols);
       if(per.length<3) continue;
@@ -3705,7 +3707,7 @@ function parseOrgWorkbook(wb){
     if(hr<0) return;
     const per=orgPeriodCols(sh.rows[hr],false,[]), cells={};
     for(let k=hr+1;k<=hr+7&&k<sh.rows.length;k++){
-      const rw=sh.rows[k]||[]; let d=-1; rw.some(x=>{ const i=ORG_DAYS.indexOf(orgNorm(x)); if(i>=0){ d=i; return true; } return false; });
+      const rw=sh.rows[k]||[]; let d=-1; rw.some(x=>{ const i=orgDayIdx(x); if(i>=0){ d=i; return true; } return false; });
       if(d<0) break;
       per.forEach(x=>{ const t=orgStr(rw[x.c]); if(t){ ((cells[d]=cells[d]||{})[x.s]=cells[d][x.s]||{})[x.p]=t; } });
     }
@@ -3766,7 +3768,9 @@ function orgRender(){
   const exist=state.classNames;
   let html='<thead><tr><th>القسم في الملف</th><th>الحصص المعبّأة</th><th>يُطبَّق على</th></tr></thead><tbody>';
   res.classes.forEach((c,i)=>{
-    const hit=exist.find(n=>orgKey(n)===orgKey(c.name));
+    // same name; else the only existing section whose name starts with it («1APG» -> «1APG1») when the file has no section of that name
+    let hit=exist.find(n=>orgKey(n)===orgKey(c.name));
+    if(!hit){ const cand=exist.filter(n=>orgKey(n).startsWith(orgKey(c.name))&&!res.classes.some(o=>orgKey(o.name)===orgKey(n))); if(cand.length===1) hit=cand[0]; }
     const pairs=[...new Set(Object.values(c.cells).map(x=>x.subject+(x.teacher?' ('+x.teacher+')':'')))];
     html+='<tr><td><b>'+svEsc(c.name)+'</b><div class="orgprev">'+svEsc(pairs.join(' · '))+'</div></td><td>'+c.filled+'</td><td><select data-i="'+i+'">'
       +'<option value="+new"'+(hit?'':' selected')+'>➕ إنشاء قسم «'+svEsc(c.name)+'»</option>'

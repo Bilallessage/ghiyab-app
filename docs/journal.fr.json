@@ -528,6 +528,18 @@
         "Colonne des noms des élèves plus étroite à l’impression (d’environ 204 à 150 px) pour élargir les cases d’absence, et colonne « Vendredi après-midi » retirée définitivement de l’impression (seul le vendredi matin est imprimé ; le tableau de l’application et ses données ne changent pas)."
       ],
       "tech": "goPrevWeek, goNextWeek, weekStep et weekFloor dans index.html au-dessus de jumpToWeek avec keepOther, renderWeekNav modifié, ssSources, ssCollect, stuSheetOpen et stuSheetPrint (archive plus feuille affichée et state.other), snapWeekDates et showWeekDates pour fixer lundi–vendredi, réécriture de l’impression hebdomadaire dans triggerPrint (table-layout:fixed, fitOnePage pour la hauteur des lignes et des polices puis réduction si nécessaire) et traductions dans fr.js. Testé dans un navigateur local : navigation entre les semaines (33 vérifications réussies) et impression avec 8, 30, 45 et 70 élèves en arabe et en français (toujours une page A4 paysage, sans réduction pour une classe de 30) ; pas encore essayé sur le site publié."
+    },
+    {
+      "date": "2026-11-07",
+      "title": "Correction de l’import de l’« organisation pédagogique » pour les fichiers de l’école primaire",
+      "goal": "Lors de l’import du fichier d’organisation pédagogique de l’école primaire, le message « Le tableau des classes (jours et séances) avec les codes des matières est introuvable dans le fichier » s’affichait alors que le fichier était correct.",
+      "done": [
+        "Cause : les titres de jours du tableau des classes sont écrits par demi-journée (« Lundi matin », « Lundi après-midi »…) alors que l’import n’acceptait que le nom du jour seul, et les horaires des séances s’écrivent avec plusieurs tirets (« 10:25----09:00 ») alors qu’il n’en acceptait qu’un ; il trouvait donc les 9 enseignants mais aucune classe.",
+        "L’import accepte désormais le nom du jour suivi de la période (matin ou après-midi) et un ou plusieurs tirets (ou un tiret long) entre l’heure de début et celle de fin de la séance.",
+        "Essai sur le fichier de l’école : 9 classes trouvées (1APG à 6APG2), 9 enseignants et 18 séances remplies par classe, avec matière et enseignant (4 jours de 4 séances, le vendredi matin 2 séances).",
+        "Dans la fenêtre « Import de l’organisation pédagogique », la classe « 1APG » du fichier est proposée automatiquement pour la seule classe existante dont le nom commence ainsi (par exemple « 1APG1 ») au lieu d’en créer une nouvelle ; l’administrateur peut toujours changer ce choix."
+      ],
+      "tech": "orgDayIdx, ORG_DAYS, orgPeriodCols (expression des tirets), parseOrgWorkbook et orgRender dans index.html. Fonction de lecture testée dans Node sur les données du fichier Excel de l’école (avant correction : 0 classe, après : 9 classes × 18 séances) ; la fenêtre d’import n’a pas encore été essayée sur le site publié."
     }
   ],
   "method": [
