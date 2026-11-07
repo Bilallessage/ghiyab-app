@@ -540,6 +540,18 @@
         "Dans la fenêtre « Import de l’organisation pédagogique », la classe « 1APG » du fichier est proposée automatiquement pour la seule classe existante dont le nom commence ainsi (par exemple « 1APG1 ») au lieu d’en créer une nouvelle ; l’administrateur peut toujours changer ce choix."
       ],
       "tech": "orgDayIdx, ORG_DAYS, orgPeriodCols (expression des tirets), parseOrgWorkbook et orgRender dans index.html. Fonction de lecture testée dans Node sur les données du fichier Excel de l’école (avant correction : 0 classe, après : 9 classes × 18 séances) ; la fenêtre d’import n’a pas encore été essayée sur le site publié."
+    },
+    {
+      "date": "2026-11-07",
+      "title": "Protection des absences des semaines passées lors de la navigation entre les semaines",
+      "goal": "L’administrateur a demandé de ne plus perdre les absences enregistrées en naviguant entre les semaines, après la disparition des absences d’octobre et de la première semaine de novembre.",
+      "done": [
+        "Faille trouvée à la revue : une semaine passée affichée est reconstruite depuis l’archive et rapprochée des élèves actuels par leur nom, puis, une fois enregistrée, elle écrase l’archive de cette semaine. Si un élève a été supprimé ou renommé, si la liste a été remplacée ou si la classe a été supprimée, son absence disparaissait définitivement de l’archive car elle ne figure pas dans le tableau.",
+        "Le serveur, lorsqu’il enregistre une semaine passée, conserve désormais dans l’archive les absences de tout élève dont le nom n’est pas dans la liste actuelle de la classe et de toute classe qui n’est plus dans le tableau, et recalcule les totaux de cette semaine ; la correction de l’absence d’un élève présent dans la liste s’applique comme avant.",
+        "La semaine en cours n’est pas concernée (renommer un élève n’y duplique pas ses absences), et les absences d’une semaine entièrement supprimée avant ce correctif ne reviennent pas.",
+        "Testé en local : sans la protection, les absences de la semaine archivée sont perdues (7 vérifications en échec) ; avec elle elles restent complètes (lignes, totaux, jours, classe supprimée) et la correction d’un élève présent reste possible ; le test de navigation entre les semaines (33 vérifications) passe toujours."
+      ],
+      "tech": "keepOrphans et archiveWeek dans api/_stats.js (appelés par api/state.js à chaque enregistrement). Seules les lignes d’archive ayant le même nombre de colonnes (même nombre de séances) sont fusionnées."
     }
   ],
   "method": [

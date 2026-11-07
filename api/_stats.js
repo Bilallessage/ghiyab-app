@@ -151,8 +151,40 @@ async function archiveWeek(redis, prefix, state) {
   // only add an empty week to the statistics
   const todayMon = mondayOf(new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Casablanca', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()));
   if (todayMon && snap.weekStart > todayMon && !Object.values(snap.classes).some((c) => c.weekStudents > 0)) return false;
+  // A PAST week shown on the sheet is rebuilt from this archive by student name, so the absences of a student who is no
+  // longer in the class list (deleted, renamed, list replaced) and of a class that no longer exists cannot be on the
+  // sheet. Saving that week must not wipe them from the archive: keep what the sheet cannot show.
+  if (todayMon && snap.weekStart < todayMon) {
+    try { keepOrphans(snap, await redis.hget(historyKey(prefix), snap.weekStart), state); } catch (e) { /* never block saving */ }
+  }
   await redis.hset(historyKey(prefix), { [snap.weekStart]: snap });
   return true;
 }
 
-module.exports = { DEFAULT_HOLIDAYS, holidayOn, validIso, addDays, mondayOf, deriveLevel, summarizeState, archiveWeek, historyKey, periodCounts, DEFAULT_BREAKS };
+// Put back into the new summary `snap` what the stored summary `old` of the same week holds and the sheet cannot hold.
+function keepOrphans(snap, old, state) {
+  if (typeof old === 'string') { try { old = JSON.parse(old); } catch (e) { return; } }
+  if (!old || typeof old !== 'object' || !old.classes || typeof old.classes !== 'object') return;
+  for (const c of Object.keys(old.classes)) {
+    const o = old.classes[c];
+    if (!o || typeof o !== 'object') continue;
+    const n = snap.classes[c];
+    if (!n) { snap.classes[c] = o; continue; }            // a class that is not on the sheet any more
+    if (!Array.isArray(o.abs) || !o.abs.length || !Array.isArray(n.abs)) continue;
+    const cls = state.data && state.data[c];
+    const names = new Set((cls && Array.isArray(cls.names) ? cls.names : []).map((x) => String(x == null ? '' : x).trim().slice(0, 80)));
+    const COLS = n.cols.length;
+    const extra = o.abs.filter((a) => Array.isArray(a) && typeof a[0] === 'string' && typeof a[1] === 'string' && a[1].length === COLS && !names.has(a[0]));
+    if (!extra.length) continue;
+    n.abs = n.abs.concat(extra);
+    const PER_DAY = COLS / DAYS;
+    for (const [, bits] of extra) {
+      const hit = Array(DAYS).fill(false);
+      for (let i = 0; i < COLS; i++) if (bits[i] !== '0') { n.cols[i]++; if (bits[i] === '2') n.colsJ[i]++; hit[Math.floor(i / PER_DAY)] = true; }
+      hit.forEach((h, d) => { if (h) n.dayStudents[d]++; });
+      n.weekStudents++;
+    }
+  }
+}
+
+module.exports = { keepOrphans, DEFAULT_HOLIDAYS, holidayOn, validIso, addDays, mondayOf, deriveLevel, summarizeState, archiveWeek, historyKey, periodCounts, DEFAULT_BREAKS };

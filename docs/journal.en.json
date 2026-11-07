@@ -540,6 +540,18 @@
         "In the “Import educational organisation” window, the file's class “1APG” is suggested automatically for the only existing class whose name starts with it (for example “1APG1”) instead of creating a new class; the administrator can still change the choice."
       ],
       "tech": "orgDayIdx, ORG_DAYS, orgPeriodCols (dash expression), parseOrgWorkbook and orgRender in index.html. The reading function was tested in Node on the data of the school's Excel file (before the fix: 0 classes, after: 9 classes × 18 lessons); the import window has not yet been tried on the published site."
+    },
+    {
+      "date": "2026-11-07",
+      "title": "Protecting the absences of past weeks when moving between weeks",
+      "goal": "The administrator asked that recorded absences no longer be lost when moving between absence weeks, after the absences of October and the first week of November disappeared.",
+      "done": [
+        "A hole found in review: a past week shown on the sheet is rebuilt from the archive and matched to the current students by name, then saving it overwrites that week's archive. If a student had been deleted or renamed, the list replaced or the class deleted, their absences were lost from the archive for good because they do not appear on the sheet.",
+        "When it saves a past week, the server now keeps in the archive the absences of every student whose name is not in the class's current list and of every class no longer on the sheet, and recomputes that week's totals; correcting the absence of a student who is in the list applies as before.",
+        "The current week is not affected (renaming a student there does not duplicate their absences), and absences of a week deleted entirely before this fix do not come back.",
+        "Tested locally: without the protection the archived week's absences are lost (7 failing checks); with it they stay complete (rows, totals, days, deleted class) and correcting a listed student still works; the week-navigation test (33 checks) still passes."
+      ],
+      "tech": "keepOrphans and archiveWeek in api/_stats.js (called by api/state.js on every save). Only archive rows with the same number of columns (same number of periods) are merged."
     }
   ],
   "method": [
