@@ -49,6 +49,15 @@
 
   /* ---------- exact strings ---------- */
   var EXACT = {
+    "🧹 أقسام قديمة في الأرشيف لم تعد في الجدول": "🧹 Anciennes classes de l'archive absentes du tableau",
+    "تظهر في الإحصائيات باسمها القديم (مثلا بعد تغيير اسم القسم). انقلوها إلى القسم الحالي المقابل لها، أو احذفوها إن كانت مسجّلة بالخطأ.": "Elles apparaissent dans les statistiques sous leur ancien nom (par exemple après un changement de nom de classe). Transférez-les vers la classe actuelle correspondante, ou supprimez-les si elles ont été enregistrées par erreur.",
+    "انقل إلى القسم…": "Transférer vers la classe…",
+    "نقل": "Transférer",
+    "حذف من كل الأسابيع": "Supprimer de toutes les semaines",
+    "لحذف غياب سُجّل بالخطأ: احذفوا غياب تلميذ(ة) أو القسم كله من هذا الأسبوع. (يمكن أيضا فتح الأسبوع في الجدول بزر «السابق» وتعديله هناك.)": "Pour supprimer une absence enregistrée par erreur : supprimez les absences d'un(e) élève ou de toute la classe pour cette semaine. (On peut aussi ouvrir la semaine dans le tableau avec « Précédent » et la corriger là.)",
+    "لا غياب مسجّل في هذا الأسبوع.": "Aucune absence enregistrée cette semaine.",
+    "✖ حذف غيابه": "✖ Supprimer ses absences",
+    "حذف غياب القسم كله من هذا الأسبوع": "Supprimer toutes les absences de la classe cette semaine",
     // titles, login
     'ورقة ضبط الغياب الأسبوعية': "Feuille hebdomadaire de suivi des absences",
     'جارٍ التحميل…': 'Chargement…',
@@ -608,6 +617,15 @@
   /* ---------- sentence patterns: [regex, template or function] ----------
    * template: $n = group n as it is, %n = group n translated again.  */
   var SENT = [
+    [/^(\d+) أسبوعا — (\d+) حالة غياب$/, '$1 semaines — $2 absences'],
+    [/^🧹 تصحيح غياب هذا الأسبوع \((.*)\)$/, '🧹 Correction des absences de cette semaine ($1)'],
+    [/^(\d+) تلميذ\(ة\)$/, '$1 élève(s)'],
+    [/^(\d+) حصة$/, '$1 séance(s)'],
+    [/^اختاروا القسم الحالي الذي ينقل إليه غياب «(.*)»\.$/, 'Choisissez la classe actuelle vers laquelle transférer les absences de « $1 ».'],
+    [/^نقل غياب «(.*)» في كل الأسابيع إلى القسم «(.*)»؟$/, 'Transférer les absences de « $1 » de toutes les semaines vers la classe « $2 » ?'],
+    [/^حذف غياب «(.*)» من كل الأسابيع في الأرشيف نهائيا؟$/, 'Supprimer définitivement les absences de « $1 » de toutes les semaines de l\'archive ?'],
+    [/^حذف غياب «(.*)» \(القسم (.*)\) من الأسبوع (.*)؟$/, 'Supprimer les absences de « $1 » (classe $2) de la semaine $3 ?'],
+    [/^حذف غياب القسم «(.*)» كله من الأسبوع (.*)؟$/, 'Supprimer toutes les absences de la classe « $1 » de la semaine $2 ?'],
     [/^(\d+) في الانتظار$/, '$1 en attente'],
     [/^سيتوقف رابط الدعوة المرسل إلى (.+) عن العمل\. المتابعة؟$/, "Le lien d'invitation envoyé à $1 cessera de fonctionner. Continuer ?"],
     [/^تم العثور على (\d+) (?:قسم|أقسام) و(\d+) (?:أستاذ|أساتذة) في الملف\. اختاروا القسم الذي يُطبَّق عليه كل جدول:$/, 'Trouvé dans le fichier : $1 classe(s) et $2 professeur(s). Choisissez la classe à laquelle appliquer chaque emploi du temps :'],

@@ -187,4 +187,75 @@ function keepOrphans(snap, old, state) {
   }
 }
 
-module.exports = { keepOrphans, DEFAULT_HOLIDAYS, holidayOn, validIso, addDays, mondayOf, deriveLevel, summarizeState, archiveWeek, historyKey, periodCounts, DEFAULT_BREAKS };
+
+// ---- editing the archive (administrator, from the statistics page) ---------------------------------------------
+// Recompute the counters of one archived class from its list of absences (one digit per column: 0 present, 1 absent, 2 justified).
+function recountClass(n) {
+  const COLS = Array.isArray(n.cols) ? n.cols.length : 0;
+  const PER_DAY = COLS / DAYS;
+  n.abs = (Array.isArray(n.abs) ? n.abs : []).filter((a) => Array.isArray(a) && typeof a[1] === 'string' && a[1].length === COLS && /[12]/.test(a[1]));
+  n.cols = Array(COLS).fill(0); n.colsJ = Array(COLS).fill(0); n.dayStudents = Array(DAYS).fill(0); n.weekStudents = 0;
+  for (const [, bits] of n.abs) {
+    const hit = Array(DAYS).fill(false);
+    for (let i = 0; i < COLS; i++) if (bits[i] !== '0') { n.cols[i]++; if (bits[i] === '2') n.colsJ[i]++; hit[Math.floor(i / PER_DAY)] = true; }
+    hit.forEach((h, d) => { if (h) n.dayStudents[d]++; });
+    n.weekStudents++;
+  }
+  return n;
+}
+// Merge archived class `b` into `a` of the same week (same column layout): the stronger mark of the two wins per student and column.
+function mergeClassSnap(a, b) {
+  if (!a || !Array.isArray(a.cols) || !b || !Array.isArray(b.cols) || a.cols.length !== b.cols.length) return null;
+  const by = new Map((a.abs || []).map(([nm, bits]) => [nm, bits]));
+  for (const [nm, bits] of b.abs || []) {
+    const cur = by.get(nm);
+    by.set(nm, cur ? cur.split('').map((ch, i) => (ch === '2' || bits[i] === '2' ? '2' : ch === '1' || bits[i] === '1' ? '1' : '0')).join('') : bits);
+  }
+  a.abs = [...by.entries()];
+  a.students = Math.max(a.students || 0, b.students || 0);
+  return recountClass(a);
+}
+async function readHistory(redis, prefix) {
+  const all = (await redis.hgetall(historyKey(prefix))) || {};
+  const out = {};
+  for (const [k, v] of Object.entries(all)) {
+    let snap = v;
+    if (typeof snap === 'string') { try { snap = JSON.parse(snap); } catch (e) { continue; } }
+    if (snap && validIso(snap.weekStart) && snap.classes && typeof snap.classes === 'object') out[k] = snap;
+  }
+  return out;
+}
+// op: {action:'rename',from,to} | {action:'removeClass',cls,week?} | {action:'removeStudent',cls,week,name}
+// Returns the number of weeks changed.
+async function editHistory(redis, prefix, op) {
+  const weeks = await readHistory(redis, prefix);
+  const clean = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+  let changed = 0;
+  for (const [wk, snap] of Object.entries(weeks)) {
+    if (op.week && wk !== op.week) continue;
+    const cl = snap.classes;
+    let dirty = false;
+    if (op.action === 'rename') {
+      const from = clean(op.from, 80), to = clean(op.to, 80);
+      if (!from || !to || from === to || !cl[from]) continue;
+      if (cl[to]) { const m = mergeClassSnap(cl[to], cl[from]); if (!m) continue; } else cl[to] = cl[from];
+      delete cl[from]; dirty = true;
+    } else if (op.action === 'removeClass') {
+      const c = clean(op.cls, 80);
+      if (!cl[c]) continue;
+      delete cl[c]; dirty = true;
+    } else if (op.action === 'removeStudent') {
+      const c = clean(op.cls, 80), nm = clean(op.name, 80);
+      const n = cl[c];
+      if (!n || !Array.isArray(n.abs) || !n.abs.some((a) => a[0] === nm)) continue;
+      n.abs = n.abs.filter((a) => a[0] !== nm); recountClass(n); dirty = true;
+    }
+    if (!dirty) continue;
+    changed++;
+    if (Object.keys(cl).length) await redis.hset(historyKey(prefix), { [wk]: snap });
+    else await redis.hdel(historyKey(prefix), wk);   // nothing left in that week
+  }
+  return changed;
+}
+
+module.exports = { editHistory, keepOrphans, DEFAULT_HOLIDAYS, holidayOn, validIso, addDays, mondayOf, deriveLevel, summarizeState, archiveWeek, historyKey, periodCounts, DEFAULT_BREAKS };

@@ -1418,9 +1418,15 @@ function renameClass(oldName){
     state.classNames[idx]=newName;
     state.data[newName]=state.data[oldName];
     delete state.data[oldName];
+    if(state.levels&&state.levels[oldName]!==undefined){ state.levels[newName]=state.levels[oldName]; delete state.levels[oldName]; }
+    // the week kept aside while a past week is on the sheet, and the archived weeks of the statistics, are keyed by class name too
+    if(state.other&&state.other.classes&&state.other.classes[oldName]){ state.other.classes[newName]=state.other.classes[oldName]; delete state.other.classes[oldName]; }
     if(currentClass===oldName) currentClass=newName;
     save();
     renderAll();
+    // the archive is renamed once the sheet itself is saved, so the statistics never see the two names at once
+    Promise.resolve(saveNow()).then(()=>fetch('/api/history',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify({action:'rename',from:oldName,to:newName})}))
+      .then(r=>{ if(r.status===401){ onAuthRejected(); return; } if(svOpen) svLoad(); }).catch(()=>{ /* the statistics page can move it later: «أقسام قديمة في الأرشيف» */ });
   });
 }
 function addClass(){
@@ -3061,17 +3067,80 @@ function svRenderTools(full){
     }else lv.innerHTML='';
   }
   const cur=svWeeks.find(w=>w.weekStart===svWeek);
-  if(canWrite && svPeriod==='week' && cur && !cur.current){
-    dl.innerHTML='<div class="panel"><button class="btn danger" id="svDelWeek">حذف هذا الأسبوع من السجل</button> <span class="sub">مفيد إذا سُجّل أسبوع بتاريخ خاطئ.</span></div>';
-    document.getElementById('svDelWeek').onclick=()=>showConfirm('حذف الأسبوع '+svWeek+' من سجل الإحصائيات نهائيا؟',async()=>{
-      try{
-        const r=await fetch('/api/history?week='+encodeURIComponent(svWeek),{method:'DELETE',headers:authHeaders()});
-        if(r.status===401){ onAuthRejected(); return; }
-        if(!r.ok) throw new Error('bad status');
-        svWeek=''; await svLoad();
-      }catch(e){ showAlert('تعذر حذف الأسبوع، أعيدوا المحاولة.'); }
+  const weekPanel=(canWrite && svPeriod==='week' && cur && !cur.current)
+    ?'<div class="panel"><button class="btn danger" id="svDelWeek">حذف هذا الأسبوع من السجل</button> <span class="sub">مفيد إذا سُجّل أسبوع بتاريخ خاطئ.</span></div>':'';
+  dl.innerHTML=weekPanel+svCleanHtml(cur);
+  const dw=document.getElementById('svDelWeek');
+  if(dw) dw.onclick=()=>showConfirm('حذف الأسبوع '+svWeek+' من سجل الإحصائيات نهائيا؟',async()=>{
+    try{
+      const r=await fetch('/api/history?week='+encodeURIComponent(svWeek),{method:'DELETE',headers:authHeaders()});
+      if(r.status===401){ onAuthRejected(); return; }
+      if(!r.ok) throw new Error('bad status');
+      svWeek=''; await svLoad();
+    }catch(e){ showAlert('تعذر حذف الأسبوع، أعيدوا المحاولة.'); }
+  });
+  svBindClean();
+}
+
+// ---- cleaning the archive: old class names, absences recorded by mistake (administrator) -------------------------
+// The statistics read the archive, which keeps one summary per week. What is no longer on the sheet (a class that was renamed or
+// deleted, a student who left) still counts there, and cannot be corrected from the sheet: it is removed from here.
+function svCleanHtml(cur){
+  if(!canWrite||!svWeeks.length) return '';
+  const old={};                                   // class names in the archive that are no longer on the sheet
+  svWeeks.forEach(w=>{ if(w.current) return; Object.keys(w.classes||{}).forEach(c=>{ if(!state.classNames.includes(c)){ const o=old[c]=old[c]||{weeks:0,abs:0}; o.weeks++; o.abs+=(w.classes[c].weekStudents||0); } }); });
+  let h='';
+  const oc=Object.keys(old);
+  if(oc.length){
+    h+='<div class="panel"><h3 style="margin:0 0 4px;font-size:14px;color:var(--teal)">🧹 أقسام قديمة في الأرشيف لم تعد في الجدول</h3>'
+      +'<div class="sub" style="margin-bottom:8px">تظهر في الإحصائيات باسمها القديم (مثلا بعد تغيير اسم القسم). انقلوها إلى القسم الحالي المقابل لها، أو احذفوها إن كانت مسجّلة بالخطأ.</div>';
+    oc.forEach(c=>{
+      h+='<div class="svcl" data-c="'+svEsc(c)+'" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--line)">'
+        +'<b style="min-width:90px">'+svEsc(c)+'</b><span class="sub">'+old[c].weeks+' أسبوعا — '+old[c].abs+' حالة غياب</span>'
+        +'<select class="svTo" style="padding:4px 6px"><option value="">انقل إلى القسم…</option>'+state.classNames.map(n=>'<option>'+svEsc(n)+'</option>').join('')+'</select>'
+        +'<button type="button" class="btn svMove">نقل</button><button type="button" class="btn danger svDelAll">حذف من كل الأسابيع</button></div>';
     });
-  }else dl.innerHTML='';
+    h+='</div>';
+  }
+  if(svPeriod==='week' && cur && !cur.current){
+    const rows=Object.keys(cur.classes||{}).filter(c=>(cur.classes[c].abs||[]).length);
+    h+='<div class="panel"><h3 style="margin:0 0 4px;font-size:14px;color:var(--teal)">🧹 تصحيح غياب هذا الأسبوع ('+svEsc(svWeek)+')</h3>'
+      +'<div class="sub" style="margin-bottom:8px">لحذف غياب سُجّل بالخطأ: احذفوا غياب تلميذ(ة) أو القسم كله من هذا الأسبوع. (يمكن أيضا فتح الأسبوع في الجدول بزر «السابق» وتعديله هناك.)</div>';
+    if(!rows.length) h+='<div class="sub">لا غياب مسجّل في هذا الأسبوع.</div>';
+    rows.forEach(c=>{
+      const k=cur.classes[c];
+      h+='<details class="svwk" data-c="'+svEsc(c)+'" style="border-top:1px solid var(--line);padding:4px 0"><summary style="cursor:pointer"><b>'+svEsc(c)+'</b> <span class="sub">'+k.abs.length+' تلميذ(ة)</span></summary>'
+        +k.abs.map(a=>{ const n=(a[1].match(/[12]/g)||[]).length; return '<div style="display:flex;gap:8px;align-items:center;padding:3px 12px"><span style="flex:1">'+svEsc(a[0])+' <span class="sub">'+n+' حصة</span></span><button type="button" class="btn ghost svDelSt" data-n="'+svEsc(a[0])+'">✖ حذف غيابه</button></div>'; }).join('')
+        +'<div style="padding:4px 12px"><button type="button" class="btn danger svDelCls">حذف غياب القسم كله من هذا الأسبوع</button></div></details>';
+    });
+    h+='</div>';
+  }
+  return h;
+}
+async function svEdit(body,okMsg){
+  try{
+    const r=await fetch('/api/history',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify(body)});
+    if(r.status===401){ onAuthRejected(); return; }
+    if(!r.ok) throw new Error('bad status');
+    await svLoad();
+  }catch(e){ showAlert('تعذر تنفيذ العملية، أعيدوا المحاولة.'); }
+}
+function svBindClean(){
+  const box=document.getElementById('svDelBox'); if(!box) return;
+  box.querySelectorAll('.svcl').forEach(row=>{
+    const c=row.dataset.c;
+    row.querySelector('.svMove').onclick=()=>{
+      const to=row.querySelector('.svTo').value;
+      if(!to){ showAlert('اختاروا القسم الحالي الذي ينقل إليه غياب «'+c+'».'); return; }
+      showConfirm('نقل غياب «'+c+'» في كل الأسابيع إلى القسم «'+to+'»؟',()=>svEdit({action:'rename',from:c,to}));
+    };
+    row.querySelector('.svDelAll').onclick=()=>showConfirm('حذف غياب «'+c+'» من كل الأسابيع في الأرشيف نهائيا؟',()=>svEdit({action:'removeClass',cls:c}));
+  });
+  box.querySelectorAll('.svwk').forEach(d=>{
+    const c=d.dataset.c;
+    d.querySelectorAll('.svDelSt').forEach(bt=>{ bt.onclick=()=>{ const n=bt.dataset.n; showConfirm('حذف غياب «'+n+'» (القسم '+c+') من الأسبوع '+svWeek+'؟',()=>svEdit({action:'removeStudent',cls:c,week:svWeek,name:n})); }; });
+    d.querySelector('.svDelCls').onclick=()=>showConfirm('حذف غياب القسم «'+c+'» كله من الأسبوع '+svWeek+'؟',()=>svEdit({action:'removeClass',cls:c,week:svWeek}));
+  });
 }
 
 async function svLoad(){

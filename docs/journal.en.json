@@ -564,6 +564,19 @@
         "Note: each site (primary, middle school, demo) has its own account database; a request created on one site does not appear on another."
       ],
       "tech": "usersBadge, usersRefreshCount, usersFetch and startApp in index.html, the CSS rule #usersBtn.attn and a line in fr.js. Tested with a full scenario (sign-up, indicator, acceptance, login, indicator appearing by itself after 14 seconds, French) on a local copy."
+    },
+    {
+      "date": "2026-11-08",
+      "title": "Statistics kept up to date when classes are renamed, and a tool to delete mistaken absences from the archive",
+      "goal": "The statistics kept the old class names after they were renamed, and an old absence recorded by mistake showed in the statistics but not in the table, with no way to delete it.",
+      "done": [
+        "Cause: the statistics read a weekly archive keyed by class name, and renaming a class only changed the table; the archive kept the old name and classes appeared twice in the statistics.",
+        "Renaming a class now moves its absences in all archived weeks to the new name (merging them if a class of that name exists in a week), together with its custom level and the week kept aside (state.other), whose absences were lost on returning to the current week.",
+        "“🧹 Old classes in the archive no longer in the table” panel in the statistics: for each old name, its number of weeks and absences, with “Transfer” to a current class or “Delete from all weeks” (to handle what is left from past renames).",
+        "“🧹 Correct this week's absences” panel in the “weekly” view of an archived week: list of the classes and students with absences, with “✖ Delete his/her absences” for a student or “Delete all the class's absences this week”; the week's totals are recomputed.",
+        "Administrator only and without effect on the current week (corrected in the table); with French translation."
+      ],
+      "tech": "POST /api/history (rename, removeClass, removeStudent), editHistory, recountClass and mergeClassSnap in api/_stats.js and api/history.js; renameClass, svCleanHtml, svBindClean and svEdit in index.html; fr.js translations. Tested with a full scenario on a local copy (13 checks: transfer, merge, deletion, recount, rename from the table, refusal of a non-administrator)."
     }
   ],
   "method": [

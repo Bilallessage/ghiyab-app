@@ -3,6 +3,8 @@
 //                           week currently on the sheet is always included, computed
 //                           live from the stored sheet (flagged current:true).
 //   DELETE ?week=YYYY-MM-DD -> admin only: remove one archived week (its Monday).
+//   POST {action:'rename',from,to} | {action:'removeClass',cls,week?} | {action:'removeStudent',cls,week,name}
+//                        -> admin only: edit the archive (class renamed on the sheet, absences recorded by mistake).
 const L = require('./_lib');
 const S = require('./_stats');
 
@@ -40,6 +42,18 @@ module.exports = async function handler(req, res) {
       if (!S.validIso(week)) return L.send(res, 400, { error: 'bad_request' });
       await redis.hdel(key, week);
       return L.send(res, 200, { ok: true });
+    }
+
+    if (req.method === 'POST') {
+      if (session.role !== 'admin') {
+        return L.send(res, 403, { error: 'forbidden', message: 'حسابكم للاطلاع فقط، ولا يملك صلاحية التعديل' });
+      }
+      const b = L.parseBody(req) || {};
+      if (!['rename', 'removeClass', 'removeStudent'].includes(b.action)) return L.send(res, 400, { error: 'bad_request' });
+      if (b.week != null && b.week !== '' && !S.validIso(String(b.week))) return L.send(res, 400, { error: 'bad_request' });
+      if (b.action === 'removeStudent' && !b.week) return L.send(res, 400, { error: 'bad_request' });
+      const changed = await S.editHistory(redis, L.PREFIX, { action: b.action, from: b.from, to: b.to, cls: b.cls, name: b.name, week: b.week ? String(b.week) : '' });
+      return L.send(res, 200, { ok: true, changed });
     }
 
     return L.send(res, 405, { error: 'method_not_allowed' });

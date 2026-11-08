@@ -564,6 +564,19 @@
         "Remarque : chaque site (primaire, collège, démonstration) a sa propre base de comptes ; une demande créée sur un site n’apparaît pas sur un autre."
       ],
       "tech": "usersBadge, usersRefreshCount, usersFetch et startApp dans index.html, règle CSS #usersBtn.attn et une ligne dans fr.js. Testé par un scénario complet (inscription, indicateur, acceptation, connexion, indicateur apparu seul après 14 secondes, français) sur une copie locale."
+    },
+    {
+      "date": "2026-11-08",
+      "title": "Statistiques à jour après le changement de nom des classes et outil de suppression des absences erronées de l’archive",
+      "goal": "Les statistiques gardaient les anciens noms de classes après leur changement, et une ancienne absence saisie par erreur apparaissait dans les statistiques sans figurer dans le tableau, sans moyen de la supprimer.",
+      "done": [
+        "Cause : les statistiques lisent une archive hebdomadaire indexée par nom de classe, et renommer une classe ne changeait que le tableau ; l’archive gardait l’ancien nom et les classes apparaissaient en double dans les statistiques.",
+        "Renommer une classe déplace désormais ses absences de toutes les semaines archivées vers le nouveau nom (en les fusionnant si une classe de même nom existe dans une semaine), ainsi que son niveau personnalisé et la semaine mise de côté (state.other), dont les absences se perdaient au retour à la semaine en cours.",
+        "Panneau « 🧹 Anciennes classes de l’archive absentes du tableau » dans les statistiques : pour chaque ancien nom, son nombre de semaines et d’absences, avec « Transférer » vers une classe actuelle ou « Supprimer de toutes les semaines » (pour traiter ce qui reste de changements passés).",
+        "Panneau « 🧹 Correction des absences de cette semaine » dans la vue « hebdomadaire » d’une semaine archivée : liste des classes et des élèves absents, avec « ✖ Supprimer ses absences » pour un(e) élève ou « Supprimer toutes les absences de la classe cette semaine » ; les totaux de la semaine sont recalculés.",
+        "Réservé à l’administrateur, sans effet sur la semaine en cours (à corriger dans le tableau) ; avec traduction française."
+      ],
+      "tech": "POST /api/history (rename, removeClass, removeStudent), editHistory, recountClass et mergeClassSnap dans api/_stats.js et api/history.js ; renameClass, svCleanHtml, svBindClean et svEdit dans index.html ; traductions fr.js. Testé par un scénario complet en local (13 vérifications : transfert, fusion, suppression, recalcul, renommage depuis le tableau, refus d’un non-administrateur)."
     }
   ],
   "method": [
