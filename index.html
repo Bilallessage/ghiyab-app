@@ -345,10 +345,13 @@ header h1{font-size:34px;line-height:1.2}
 .btn{--bc:#0E9F8E;font-weight:700;font-size:13.5px;border-radius:10px;border:1px solid transparent;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25);
   background:linear-gradient(135deg,var(--bc),color-mix(in srgb,var(--bc) 76%,#000));box-shadow:0 2px 6px color-mix(in srgb,var(--bc) 38%,transparent);transition:filter .15s,transform .1s}
 .btn.ghost{color:#fff;border-color:transparent;background:linear-gradient(135deg,var(--bc),color-mix(in srgb,var(--bc) 76%,#000))}
-.btn.danger{--bc:#E0245E}
-.btn.ghost:not(.langBtn){--bc:#0891B2}
-.btn.langBtn,.btn.ghost.langBtn{--bc:#C026D3}
-#logoutBtn{--bc:#E0245E} #callBtn{--bc:#0E9F8E} #backupBtn{--bc:#7C3AED}
+/* four colours only, each with one meaning: blue = view / move between pages, violet = settings, green = do / print / export / save, red = delete / exit; grey = close / back / language */
+.btn{--bc:#0F8A52}
+.btn.ghost,.btn.ghost.langBtn{--bc:#5B6B7F}
+.btn.danger,#logoutBtn,#logoResetBtn{--bc:#E0245E}
+#curWeekBtn,#prevWeekBtn,#newWeekBtn,#statsBtn,#catchBtn,#callBtn,#callBtn2,#parentMsgBtn{--bc:#1E6FD9}
+#logoBtn,#periodsBtn,#orgBtn,#timesBtn,#holBtn,#backupBtn,#seasonBtn,#importBtn,#usersBtn{--bc:#7C3AED}
+#printBtn,#stuSheetBtn,#svPrintBtn,#svPngBtn,#svXlsBtn,#cuPrintBtn,#cuXlsBtn{--bc:#0F8A52}
 .btn:hover:not(:disabled),.btn.ghost:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px);background:linear-gradient(135deg,var(--bc),color-mix(in srgb,var(--bc) 76%,#000))}
 .btn:active:not(:disabled){transform:translateY(1px);filter:brightness(.95)}
 .btn.wa{background:linear-gradient(135deg,#1FB655,#128C46);border-color:transparent}

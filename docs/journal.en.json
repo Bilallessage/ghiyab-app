@@ -600,6 +600,17 @@
         "A dark version consistent with night mode; the day-navigation buttons keep their colours; printed sheets are unchanged."
       ],
       "tech": "Google Fonts link (Cairo and Lalezar) and a CSS block in index.html with the variables --f-ui, --f-title, --t1, --t2, linear-gradient and color-mix. Tested on desktop and phone in light and dark mode (no horizontal scroll, no leftover dark-green button); the real fonts could not be previewed because the test environment blocks the internet."
+    },
+    {
+      "date": "2026-11-08",
+      "title": "Simpler button colours: four colours, one meaning each",
+      "goal": "The administrator noticed that too many different colours on the buttons confuse users, and asked for the colours and fonts to be reorganised so the app is easier to control.",
+      "done": [
+        "Buttons now use only four colours, each with a fixed meaning: blue for viewing and moving around (current, previous and next week, statistics, catch-up list, call follow-up, message to a parent), violet for settings (logo, number of lessons, school timetable import, lesson times, holidays, backups, season archive, list import, account approval), green for doing (print, export, send, save, add) and red for leaving and deleting.",
+        "A blue-grey for close, back and language buttons, so they do not compete with the important ones.",
+        "The bold “Cairo” font in the same size everywhere; the app title and the class tabs stay in magenta, and the pending-accounts button pulses pink when a new request arrives."
+      ],
+      "tech": "Per-id --bc rules at the end of the last CSS block of index.html (blue #1E6FD9, violet #7C3AED, green #0F8A52, red #E0245E, grey #5B6B7F); the same gradients serve dark mode. Tested on desktop and phone in light and dark mode with no horizontal scroll; the navigation and print tests stay green."
     }
   ],
   "method": [

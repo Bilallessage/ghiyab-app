@@ -600,6 +600,17 @@
         "Version sombre cohérente avec le mode nuit ; les boutons de navigation entre les jours gardent leurs couleurs ; les feuilles imprimées ne changent pas."
       ],
       "tech": "Lien Google Fonts (Cairo et Lalezar) et bloc CSS dans index.html avec les variables --f-ui, --f-title, --t1, --t2, des linear-gradient et color-mix. Testé sur ordinateur et mobile en mode clair et sombre (pas de défilement horizontal, aucun bouton resté vert foncé) ; les vraies polices n’ont pas pu être prévisualisées, Internet étant bloqué dans l’environnement de test."
+    },
+    {
+      "date": "2026-11-08",
+      "title": "Couleurs des boutons simplifiées : quatre couleurs, un sens par couleur",
+      "goal": "L’administrateur a remarqué que trop de couleurs différentes sur les boutons déroutent l’utilisateur et a demandé de réorganiser couleurs et polices pour faciliter l’usage de l’application.",
+      "done": [
+        "Les boutons n’ont plus que quatre couleurs, chacune avec un sens fixe : bleu pour consulter et naviguer (semaine en cours, précédente, suivante, statistiques, liste de rattrapage, suivi de l’appel, message au parent), violet pour les réglages (logo, nombre de séances, organisation pédagogique, horaires, jours fériés, sauvegardes, archivage de la saison, import de la liste, approbation des comptes), vert pour agir (imprimer, exporter, envoyer, enregistrer, ajouter) et rouge pour quitter et supprimer.",
+        "Un gris bleuté pour fermer, revenir et changer de langue, afin qu’ils ne concurrencent pas les boutons importants.",
+        "La police « Cairo » en gras et la même taille partout ; le titre de l’application et les onglets des classes restent en rouge pourpre, et le bouton des comptes en attente pulse en rose quand une demande arrive."
+      ],
+      "tech": "Règles --bc par identifiant à la fin du dernier bloc CSS de index.html (bleu #1E6FD9, violet #7C3AED, vert #0F8A52, rouge #E0245E, gris #5B6B7F) ; les mêmes dégradés servent en mode sombre. Testé sur ordinateur et mobile en clair et en sombre, sans défilement horizontal ; les tests de navigation et d’impression restent verts."
     }
   ],
   "method": [
