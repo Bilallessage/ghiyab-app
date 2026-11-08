@@ -552,6 +552,18 @@
         "Testé en local : sans la protection, les absences de la semaine archivée sont perdues (7 vérifications en échec) ; avec elle elles restent complètes (lignes, totaux, jours, classe supprimée) et la correction d’un élève présent reste possible ; le test de navigation entre les semaines (33 vérifications) passe toujours."
       ],
       "tech": "keepOrphans et archiveWeek dans api/_stats.js (appelés par api/state.js à chaque enregistrement). Seules les lignes d’archive ayant le même nombre de colonnes (même nombre de séances) sont fusionnées."
+    },
+    {
+      "date": "2026-11-08",
+      "title": "Indicateur plus clair et plus rapide des demandes de compte en attente",
+      "goal": "L’administrateur a créé un compte externe depuis la page de connexion sans voir l’indicateur « compte en attente d’approbation », et le bouton d’approbation semblait ne pas fonctionner.",
+      "done": [
+        "Vérification complète en local : inscription d’un compte externe, apparition dans « 👥 Approuver un nouveau compte », acceptation puis connexion, tout fonctionne ; mais l’indicateur était un petit nombre mis à jour à l’ouverture de la page puis chaque minute seulement, donc invisible pour qui attend devant la page ouverte.",
+        "L’indicateur s’écrit désormais « 1 en attente », se met à jour toutes les 20 secondes et aussitôt au retour sur la page ou sur la fenêtre du navigateur ; le bouton est coloré et clignote doucement, et le nombre apparaît dans le titre de l’onglet « (1) Suivi des absences » ; la requête de la liste n’est plus mise en cache par le navigateur.",
+        "Traduction française : « 1 en attente ».",
+        "Remarque : chaque site (primaire, collège, démonstration) a sa propre base de comptes ; une demande créée sur un site n’apparaît pas sur un autre."
+      ],
+      "tech": "usersBadge, usersRefreshCount, usersFetch et startApp dans index.html, règle CSS #usersBtn.attn et une ligne dans fr.js. Testé par un scénario complet (inscription, indicateur, acceptation, connexion, indicateur apparu seul après 14 secondes, français) sur une copie locale."
     }
   ],
   "method": [

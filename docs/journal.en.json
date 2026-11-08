@@ -552,6 +552,18 @@
         "Tested locally: without the protection the archived week's absences are lost (7 failing checks); with it they stay complete (rows, totals, days, deleted class) and correcting a listed student still works; the week-navigation test (33 checks) still passes."
       ],
       "tech": "keepOrphans and archiveWeek in api/_stats.js (called by api/state.js on every save). Only archive rows with the same number of columns (same number of periods) are merged."
+    },
+    {
+      "date": "2026-11-08",
+      "title": "Clearer and faster indicator for pending account requests",
+      "goal": "The administrator created an external account from the login page and did not see the “account awaiting approval” indicator, and the approval button seemed not to work.",
+      "done": [
+        "Full check on a local copy: signing up an external account, its appearance under “👥 Approve a new account”, accepting it and logging in all work; but the indicator was a small number refreshed when the page opened and then only every minute, so it did not show for someone waiting in front of the open page.",
+        "The indicator now reads “1 pending”, refreshes every 20 seconds and at once when the administrator comes back to the page or the browser window; the button is coloured and pulses gently, and the count appears in the browser tab title “(1) Student Absence Tracker”; the accounts-list request is no longer cached by the browser.",
+        "French translation: “1 en attente”.",
+        "Note: each site (primary, middle school, demo) has its own account database; a request created on one site does not appear on another."
+      ],
+      "tech": "usersBadge, usersRefreshCount, usersFetch and startApp in index.html, the CSS rule #usersBtn.attn and a line in fr.js. Tested with a full scenario (sign-up, indicator, acceptance, login, indicator appearing by itself after 14 seconds, French) on a local copy."
     }
   ],
   "method": [

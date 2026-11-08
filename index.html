@@ -309,6 +309,9 @@ table.cu th:nth-child(1){width:24%}table.cu th:nth-child(2){width:13%}table.cu t
 .btn.ghost{--bc:var(--teal);color:var(--bc);border-color:color-mix(in srgb,var(--bc) 55%,transparent);background:color-mix(in srgb,var(--bc) 8%,transparent);transition:background .15s}
 .btn.ghost:hover:not(:disabled){background:color-mix(in srgb,var(--bc) 17%,transparent)}
 #logoBtn{--bc:var(--c-violet)} #periodsBtn{--bc:var(--c-blue)} #holBtn{--bc:var(--c-rose)} #seasonBtn{--bc:var(--c-slate)} #timesBtn{--bc:var(--c-amber)} #prevWeekBtn{--bc:var(--c-slate)} #newWeekBtn{--bc:var(--c-green)}
+#usersBtn.attn{--bc:var(--c-rose);background:color-mix(in srgb,var(--bc) 18%,transparent);font-weight:700;animation:usersPulse 1.6s ease-in-out infinite}
+@keyframes usersPulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c-rose) 55%,transparent)}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--c-rose) 0%,transparent)}}
+@media (prefers-reduced-motion:reduce){#usersBtn.attn{animation:none}}
 #statsBtn{--bc:var(--c-indigo)} #catchBtn,#cuXlsBtn{--bc:var(--c-amber)} #cuXlsBtn{--bc:var(--c-green)} #usersBtn{--bc:var(--c-rose)} #printBtn,#stuSheetBtn{--bc:var(--c-slate)} #importBtn{--bc:var(--c-green)} #callBtn2{--bc:var(--c-green)} #parentMsgBtn{--bc:var(--c-rose)} #svXlsBtn{--bc:var(--c-green)} #svPngBtn{--bc:var(--c-violet)}
 .langBtn{--bc:var(--c-slate)}
 /* a week ribbon under the header: Monday to Friday */
@@ -4226,18 +4229,26 @@ function backupRestore(b,mode){
 
 // ---- approving viewer accounts (admin) ---------------------------------------
 async function usersFetch(all){
-  const r=await fetch('/api/users'+(all?'?all=1':''),{headers:authHeaders()});
+  const r=await fetch('/api/users'+(all?'?all=1':''),{headers:authHeaders(),cache:'no-store'});
   if(r.status===401){ onAuthRejected(); return null; }
   if(!r.ok) return null;
   return r.json();
 }
 function usersBadge(n){
   const b=document.getElementById('usersBadge'); if(!b) return;
-  b.textContent=n; b.style.display=n?'inline-block':'none';
+  b.textContent=n?n+' في الانتظار':n; b.style.display=n?'inline-block':'none';
+  const bt=document.getElementById('usersBtn'); if(bt) bt.classList.toggle('attn',n>0);
+  // the browser tab says it too, for an administrator working in another tab
+  if(!usersBadge.base) usersBadge.base=document.title.replace(/^\(\d+\) /,'');
+  document.title=(n?'('+n+') ':'')+usersBadge.base;
 }
+// the pending requests are looked up often (every 20 s), and at once when the administrator comes back to the page
+let usersCountBusy=false;
 async function usersRefreshCount(){
-  if(!canWrite) return;
-  try{ const d=await usersFetch(false); if(d) usersBadge(d.pending.length); }catch(e){ /* try again next minute */ }
+  if(!canWrite||usersCountBusy) return;
+  usersCountBusy=true;
+  try{ const d=await usersFetch(false); if(d) usersBadge(d.pending.length); }catch(e){ /* try again shortly */ }
+  finally{ usersCountBusy=false; }
 }
 function usersClose(){ document.getElementById('usersOverlay').style.display='none'; }
 async function usersDialog(){
@@ -4524,7 +4535,11 @@ function logoReset(){
 async function startApp(){
   updateInstName();
   applyPermissionUI();      // sets controls for the current role and renders
-  if(canWrite){ usersRefreshCount(); setInterval(usersRefreshCount,60000); }
+  if(canWrite){
+    usersRefreshCount(); setInterval(usersRefreshCount,20000);
+    document.addEventListener('visibilitychange',()=>{ if(!document.hidden) usersRefreshCount(); });
+    window.addEventListener('focus',usersRefreshCount);
+  }
   const branding=applyBranding();
   await initSync();         // read the shared sheet first...
   await branding;

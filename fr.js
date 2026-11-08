@@ -608,6 +608,7 @@
   /* ---------- sentence patterns: [regex, template or function] ----------
    * template: $n = group n as it is, %n = group n translated again.  */
   var SENT = [
+    [/^(\d+) في الانتظار$/, '$1 en attente'],
     [/^سيتوقف رابط الدعوة المرسل إلى (.+) عن العمل\. المتابعة؟$/, "Le lien d'invitation envoyé à $1 cessera de fonctionner. Continuer ?"],
     [/^تم العثور على (\d+) (?:قسم|أقسام) و(\d+) (?:أستاذ|أساتذة) في الملف\. اختاروا القسم الذي يُطبَّق عليه كل جدول:$/, 'Trouvé dans le fichier : $1 classe(s) et $2 professeur(s). Choisissez la classe à laquelle appliquer chaque emploi du temps :'],
     [/^➕ إنشاء قسم «(.*)»$/, '➕ Créer la classe « $1 »'],
