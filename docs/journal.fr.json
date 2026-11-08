@@ -594,7 +594,7 @@
       "title": "Un look plus vivant : titre en belle police et boutons aux couleurs vives",
       "goal": "L’administrateur a demandé d’écrire le titre de l’application dans une plus belle police, en rouge pourpre, et d’utiliser de belles polices et des couleurs vives pour tous les boutons.",
       "done": [
-        "Titre en police « Lalezar » avec un dégradé du magenta au violet, dans l’interface et sur la page de connexion.",
+        "Titre en police « Lalezar » d’un rouge pourpre (magenta) uni, dans l’interface et sur la page de connexion (le dégradé vers le violet a été retiré à la demande de l’administrateur).",
         "Tous les boutons en police « Cairo », bien lisible et en gras, avec des dégradés vifs et une légère ombre : bleu, turquoise, vert, orange, violet, rouge et rose, chaque fonction ayant sa couleur ; les boutons de suppression et de déconnexion en rouge.",
         "Boutons des classes (onglets) avec contour violet, la classe active en dégradé magenta → violet ; les boutons haut et bas de page ont le même dégradé.",
         "Version sombre cohérente avec le mode nuit ; les boutons de navigation entre les jours gardent leurs couleurs ; les feuilles imprimées ne changent pas."

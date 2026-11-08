@@ -332,18 +332,15 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
 /* ---- bright look: magenta-purple title, rounded fonts, vivid gradient buttons ---- */
 :root{
   --f-ui:'Cairo','Segoe UI','Tahoma','Arial',sans-serif; --f-title:'Lalezar','Cairo','Segoe UI','Tahoma',sans-serif;
-  --t1:#D6187F; --t2:#7B2FF7;
+  --t0:#C2127D; --t1:#D6187F; --t2:#7B2FF7;
 }
-@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --t1:#FF5CAF; --t2:#B388FF; } }
-:root[data-theme="dark"]{ --t1:#FF5CAF; --t2:#B388FF; }
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --t0:#FF4FB8; --t1:#FF5CAF; --t2:#B388FF; } }
+:root[data-theme="dark"]{ --t0:#FF4FB8; --t1:#FF5CAF; --t2:#B388FF; }
 /* the vivid colours of the buttons (the dark theme keeps the tokens above and darkens them under white text) */
 :root{ --c-violet:#7C3AED; --c-blue:#1E6FD9; --c-amber:#D9560A; --c-slate:#0B7F8C; --c-green:#0F8A52; --c-indigo:#4F46E5; --c-rose:#E11D74; }
-header h1,#authForm h2{font-family:var(--f-title);font-weight:400;letter-spacing:.3px;color:var(--t1)}
+header h1,#authForm h2{font-family:var(--f-title);font-weight:400;letter-spacing:.3px;color:var(--t0)}
 header h1{font-size:34px;line-height:1.2}
 #authForm h2{font-size:30px;line-height:1.25}
-@supports (-webkit-background-clip:text) or (background-clip:text){
-  header h1,#authForm h2{background:linear-gradient(90deg,var(--t1),var(--t2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;display:inline-block}
-}
 .btn,.tab,.vnav button,.scrollnav button{font-family:var(--f-ui)}
 .btn{--bc:#0E9F8E;font-weight:700;font-size:13.5px;border-radius:10px;border:1px solid transparent;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25);
   background:linear-gradient(135deg,var(--bc),color-mix(in srgb,var(--bc) 76%,#000));box-shadow:0 2px 6px color-mix(in srgb,var(--bc) 38%,transparent);transition:filter .15s,transform .1s}

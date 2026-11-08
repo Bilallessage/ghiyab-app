@@ -594,7 +594,7 @@
       "title": "A livelier look: title in a nicer font and vividly coloured buttons",
       "goal": "The administrator asked for the app title in a nicer font in magenta-purple, and for nice fonts and vivid colours on all buttons.",
       "done": [
-        "Title in the “Lalezar” font with a gradient from magenta to violet, in the app and on the login page.",
+        "Title in the “Lalezar” font in a solid magenta (red-purple), in the app and on the login page (the gradient to violet was removed at the administrator’s request).",
         "All buttons in the clear, bold “Cairo” font with vivid gradients and a light shadow: blue, turquoise, green, orange, purple, red and pink, each function having its own colour; delete and logout buttons in red.",
         "Class buttons (tabs) with a violet outline, the selected class in a magenta → violet gradient; the top/bottom-of-page buttons use the same gradient.",
         "A dark version consistent with night mode; the day-navigation buttons keep their colours; printed sheets are unchanged."
