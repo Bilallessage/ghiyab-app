@@ -577,6 +577,17 @@
         "Administrator only and without effect on the current week (corrected in the table); with French translation."
       ],
       "tech": "POST /api/history (rename, removeClass, removeStudent), editHistory, recountClass and mergeClassSnap in api/_stats.js and api/history.js; renameClass, svCleanHtml, svBindClean and svEdit in index.html; fr.js translations. Tested with a full scenario on a local copy (13 checks: transfer, merge, deletion, recount, rename from the table, refusal of a non-administrator)."
+    },
+    {
+      "date": "2026-11-08",
+      "title": "“Top of page” and “Bottom of page” buttons on the phone version",
+      "goal": "The administrator asked for two buttons on the left side of the phone version to jump quickly to the top and the bottom of the page.",
+      "done": [
+        "Two fixed round buttons on the left edge (▲ top of page, ▼ bottom of page) on screens 700 px wide or less, above the other buttons and below the pop-up windows.",
+        "A button dims when the page is already at the end it leads to; it updates on scrolling and as the page grows while the table and the statistics load.",
+        "Hidden on the login page, on desktop and in print; smooth scrolling except for people who prefer reduced motion on their device; French labels: “Haut de la page” and “Bas de la page”."
+      ],
+      "tech": "pageScroll, scrollNavUpdate, showApp and the .scrollnav rules in index.html, two lines in fr.js. Tested on a simulated phone (390 px): display, position, scrolling to both ends, disabled state, French, absence on desktop and on the login page."
     }
   ],
   "method": [

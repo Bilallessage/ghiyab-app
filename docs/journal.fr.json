@@ -577,6 +577,17 @@
         "Réservé à l’administrateur, sans effet sur la semaine en cours (à corriger dans le tableau) ; avec traduction française."
       ],
       "tech": "POST /api/history (rename, removeClass, removeStudent), editHistory, recountClass et mergeClassSnap dans api/_stats.js et api/history.js ; renameClass, svCleanHtml, svBindClean et svEdit dans index.html ; traductions fr.js. Testé par un scénario complet en local (13 vérifications : transfert, fusion, suppression, recalcul, renommage depuis le tableau, refus d’un non-administrateur)."
+    },
+    {
+      "date": "2026-11-08",
+      "title": "Boutons « Haut de la page » et « Bas de la page » sur la version mobile",
+      "goal": "L’administrateur a demandé deux boutons sur le côté gauche de la version mobile pour accéder rapidement au haut et au bas de la page.",
+      "done": [
+        "Deux boutons ronds fixes sur le bord gauche (▲ haut de la page, ▼ bas de la page) sur les écrans de 700 px ou moins, au-dessus des autres boutons et sous les fenêtres modales.",
+        "Un bouton s’atténue quand la page est déjà à l’extrémité qu’il atteint ; la mise à jour se fait au défilement et quand la page s’agrandit avec le chargement du tableau et des statistiques.",
+        "Absents de la page de connexion, de l’ordinateur et de l’impression ; défilement fluide sauf pour qui préfère moins d’animations sur son appareil ; traduction : « Haut de la page » et « Bas de la page »."
+      ],
+      "tech": "pageScroll, scrollNavUpdate, showApp et règles .scrollnav dans index.html, deux lignes dans fr.js. Testé sur un mobile simulé (390 px) : affichage, position, défilement vers les deux extrémités, état désactivé, français, absence sur ordinateur et sur la page de connexion."
     }
   ],
   "method": [

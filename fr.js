@@ -49,6 +49,8 @@
 
   /* ---------- exact strings ---------- */
   var EXACT = {
+    'أعلى الصفحة': 'Haut de la page',
+    'أسفل الصفحة': 'Bas de la page',
     "🧹 أقسام قديمة في الأرشيف لم تعد في الجدول": "🧹 Anciennes classes de l'archive absentes du tableau",
     "تظهر في الإحصائيات باسمها القديم (مثلا بعد تغيير اسم القسم). انقلوها إلى القسم الحالي المقابل لها، أو احذفوها إن كانت مسجّلة بالخطأ.": "Elles apparaissent dans les statistiques sous leur ancien nom (par exemple après un changement de nom de classe). Transférez-les vers la classe actuelle correspondante, ou supprimez-les si elles ont été enregistrées par erreur.",
     "انقل إلى القسم…": "Transférer vers la classe…",

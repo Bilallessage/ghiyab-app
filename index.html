@@ -312,6 +312,12 @@ table.cu th:nth-child(1){width:24%}table.cu th:nth-child(2){width:13%}table.cu t
 #usersBtn.attn{--bc:var(--c-rose);background:color-mix(in srgb,var(--bc) 18%,transparent);font-weight:700;animation:usersPulse 1.6s ease-in-out infinite}
 @keyframes usersPulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c-rose) 55%,transparent)}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--c-rose) 0%,transparent)}}
 @media (prefers-reduced-motion:reduce){#usersBtn.attn{animation:none}}
+/* phone: two round buttons on the left edge jump to the top / bottom of the page (they dim when already there) */
+.scrollnav{display:none}
+@media(max-width:700px){.scrollnav.on{display:flex;flex-direction:column;gap:10px;position:fixed;left:max(10px,env(safe-area-inset-left,0px));bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:40}}
+.scrollnav button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--teal);color:#fff;font-size:20px;line-height:1;padding:0;cursor:pointer;opacity:.88;box-shadow:0 2px 8px rgba(0,0,0,.28);transition:opacity .2s}
+.scrollnav button:disabled{opacity:.28;cursor:default;box-shadow:none}
+@media print{.scrollnav{display:none!important}}
 #statsBtn{--bc:var(--c-indigo)} #catchBtn,#cuXlsBtn{--bc:var(--c-amber)} #cuXlsBtn{--bc:var(--c-green)} #usersBtn{--bc:var(--c-rose)} #printBtn,#stuSheetBtn{--bc:var(--c-slate)} #importBtn{--bc:var(--c-green)} #callBtn2{--bc:var(--c-green)} #parentMsgBtn{--bc:var(--c-rose)} #svXlsBtn{--bc:var(--c-green)} #svPngBtn{--bc:var(--c-violet)}
 .langBtn{--bc:var(--c-slate)}
 /* a week ribbon under the header: Monday to Friday */
@@ -646,6 +652,8 @@ html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var
   </div>
 </div>
 
+<div class="scrollnav" id="scrollNav"><button type="button" id="goTopBtn" onclick="pageScroll(0)" title="أعلى الصفحة" aria-label="أعلى الصفحة">▲</button><button type="button" id="goBottomBtn" onclick="pageScroll(1)" title="أسفل الصفحة" aria-label="أسفل الصفحة">▼</button></div>
+
 <script>
 document.querySelectorAll('.langBtn').forEach(b=>{ b.textContent=LANG==='fr'?'العربية':'Français'; });
 const DAY_NAMES=["الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة"];
@@ -897,7 +905,23 @@ function showGate(msg){
   document.getElementById('authError').textContent=msg||'';
   setTimeout(()=>document.getElementById(authMode==='invite'?'authPass':'authEmail').focus(),50);
 }
+function pageScroll(down){
+  const el=document.scrollingElement||document.documentElement;
+  const top=down?el.scrollHeight:0;
+  let smooth=true; try{ smooth=!window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  window.scrollTo({top,behavior:smooth?'smooth':'auto'});
+}
+function scrollNavUpdate(){
+  const el=document.scrollingElement||document.documentElement;
+  const t=document.getElementById('goTopBtn'), b=document.getElementById('goBottomBtn'); if(!t||!b) return;
+  t.disabled=el.scrollTop<40;
+  b.disabled=el.scrollHeight-el.clientHeight-el.scrollTop<40;
+}
+window.addEventListener('scroll',scrollNavUpdate,{passive:true});
+window.addEventListener('resize',scrollNavUpdate);
+try{ new ResizeObserver(scrollNavUpdate).observe(document.body); }catch(e){ setInterval(scrollNavUpdate,1000); }   // the page grows while the sheet and the statistics load
 function showApp(){
+  document.getElementById('scrollNav').classList.add('on'); scrollNavUpdate();
   document.getElementById('loadingBox').style.display='none';
   document.getElementById('authGate').style.display='none';
   document.getElementById('appWrap').style.display='block';
