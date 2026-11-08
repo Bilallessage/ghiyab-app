@@ -588,6 +588,18 @@
         "Hidden on the login page, on desktop and in print; smooth scrolling except for people who prefer reduced motion on their device; French labels: “Haut de la page” and “Bas de la page”."
       ],
       "tech": "pageScroll, scrollNavUpdate, showApp and the .scrollnav rules in index.html, two lines in fr.js. Tested on a simulated phone (390 px): display, position, scrolling to both ends, disabled state, French, absence on desktop and on the login page."
+    },
+    {
+      "date": "2026-11-08",
+      "title": "A livelier look: title in a nicer font and vividly coloured buttons",
+      "goal": "The administrator asked for the app title in a nicer font in magenta-purple, and for nice fonts and vivid colours on all buttons.",
+      "done": [
+        "Title in the “Lalezar” font with a gradient from magenta to violet, in the app and on the login page.",
+        "All buttons in the clear, bold “Cairo” font with vivid gradients and a light shadow: blue, turquoise, green, orange, purple, red and pink, each function having its own colour; delete and logout buttons in red.",
+        "Class buttons (tabs) with a violet outline, the selected class in a magenta → violet gradient; the top/bottom-of-page buttons use the same gradient.",
+        "A dark version consistent with night mode; the day-navigation buttons keep their colours; printed sheets are unchanged."
+      ],
+      "tech": "Google Fonts link (Cairo and Lalezar) and a CSS block in index.html with the variables --f-ui, --f-title, --t1, --t2, linear-gradient and color-mix. Tested on desktop and phone in light and dark mode (no horizontal scroll, no leftover dark-green button); the real fonts could not be previewed because the test environment blocks the internet."
     }
   ],
   "method": [

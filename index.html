@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>تتبع غياب التلاميذ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;600;700;800&family=Lalezar&display=swap" rel="stylesheet">
 <script src="fr.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- ملاحظة: ميزة "استيراد من إكسيل" تحتاج اتصالاً بالإنترنت لتحميل مكتبتها في هذا السطر أعلاه. باقي التطبيق (الجدول، المشاركة عبر الشبكة، الطباعة) يعمل بدون إنترنت إطلاقًا. -->
@@ -309,7 +312,7 @@ table.cu th:nth-child(1){width:24%}table.cu th:nth-child(2){width:13%}table.cu t
 .btn.ghost{--bc:var(--teal);color:var(--bc);border-color:color-mix(in srgb,var(--bc) 55%,transparent);background:color-mix(in srgb,var(--bc) 8%,transparent);transition:background .15s}
 .btn.ghost:hover:not(:disabled){background:color-mix(in srgb,var(--bc) 17%,transparent)}
 #logoBtn{--bc:var(--c-violet)} #periodsBtn{--bc:var(--c-blue)} #holBtn{--bc:var(--c-rose)} #seasonBtn{--bc:var(--c-slate)} #timesBtn{--bc:var(--c-amber)} #prevWeekBtn{--bc:var(--c-slate)} #newWeekBtn{--bc:var(--c-green)}
-#usersBtn.attn{--bc:var(--c-rose);background:color-mix(in srgb,var(--bc) 18%,transparent);font-weight:700;animation:usersPulse 1.6s ease-in-out infinite}
+#usersBtn.attn{--bc:var(--c-rose);font-weight:800;animation:usersPulse 1.6s ease-in-out infinite}
 @keyframes usersPulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--c-rose) 55%,transparent)}50%{box-shadow:0 0 0 6px color-mix(in srgb,var(--c-rose) 0%,transparent)}}
 @media (prefers-reduced-motion:reduce){#usersBtn.attn{animation:none}}
 /* phone: two round buttons on the left edge jump to the top / bottom of the page (they dim when already there) */
@@ -326,6 +329,48 @@ header::after{content:"";position:absolute;inset-inline:0;bottom:0;height:4px;bo
   background:linear-gradient(270deg,var(--d0) 0 20%,var(--d1) 20% 40%,var(--d2) 40% 60%,var(--d3) 60% 80%,var(--d4) 80% 100%)}
 html[dir=ltr] header::after{background:linear-gradient(90deg,var(--d0) 0 20%,var(--d1) 20% 40%,var(--d2) 40% 60%,var(--d3) 60% 80%,var(--d4) 80% 100%)}
 @media print{header::after{display:none}}
+/* ---- bright look: magenta-purple title, rounded fonts, vivid gradient buttons ---- */
+:root{
+  --f-ui:'Cairo','Segoe UI','Tahoma','Arial',sans-serif; --f-title:'Lalezar','Cairo','Segoe UI','Tahoma',sans-serif;
+  --t1:#D6187F; --t2:#7B2FF7;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --t1:#FF5CAF; --t2:#B388FF; } }
+:root[data-theme="dark"]{ --t1:#FF5CAF; --t2:#B388FF; }
+/* the vivid colours of the buttons (the dark theme keeps the tokens above and darkens them under white text) */
+:root{ --c-violet:#7C3AED; --c-blue:#1E6FD9; --c-amber:#D9560A; --c-slate:#0B7F8C; --c-green:#0F8A52; --c-indigo:#4F46E5; --c-rose:#E11D74; }
+header h1,#authForm h2{font-family:var(--f-title);font-weight:400;letter-spacing:.3px;color:var(--t1)}
+header h1{font-size:34px;line-height:1.2}
+#authForm h2{font-size:30px;line-height:1.25}
+@supports (-webkit-background-clip:text) or (background-clip:text){
+  header h1,#authForm h2{background:linear-gradient(90deg,var(--t1),var(--t2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;display:inline-block}
+}
+.btn,.tab,.vnav button,.scrollnav button{font-family:var(--f-ui)}
+.btn{--bc:#0E9F8E;font-weight:700;font-size:13.5px;border-radius:10px;border:1px solid transparent;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25);
+  background:linear-gradient(135deg,var(--bc),color-mix(in srgb,var(--bc) 76%,#000));box-shadow:0 2px 6px color-mix(in srgb,var(--bc) 38%,transparent);transition:filter .15s,transform .1s}
+.btn.ghost{color:#fff;border-color:transparent;background:linear-gradient(135deg,var(--bc),color-mix(in srgb,var(--bc) 76%,#000))}
+.btn.danger{--bc:#E0245E}
+.btn.ghost:not(.langBtn){--bc:#0891B2}
+.btn.langBtn,.btn.ghost.langBtn{--bc:#C026D3}
+#logoutBtn{--bc:#E0245E} #callBtn{--bc:#0E9F8E} #backupBtn{--bc:#7C3AED}
+.btn:hover:not(:disabled),.btn.ghost:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px);background:linear-gradient(135deg,var(--bc),color-mix(in srgb,var(--bc) 76%,#000))}
+.btn:active:not(:disabled){transform:translateY(1px);filter:brightness(.95)}
+.btn.wa{background:linear-gradient(135deg,#1FB655,#128C46);border-color:transparent}
+a.btn.wa.done{background:linear-gradient(135deg,#0E9F8E,#0A7568)}
+.btn.jbtn-yes{background:var(--teal-soft);color:var(--teal);border:1px solid var(--teal);text-shadow:none;box-shadow:none}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .btn,:root:not([data-theme="light"]) .btn.ghost{background:linear-gradient(135deg,color-mix(in srgb,var(--bc) 62%,#0d0d18),color-mix(in srgb,var(--bc) 44%,#0d0d18))}
+  :root:not([data-theme="light"]) .btn.jbtn-yes{background:var(--teal-soft)}
+}
+:root[data-theme="dark"] .btn,:root[data-theme="dark"] .btn.ghost{background:linear-gradient(135deg,color-mix(in srgb,var(--bc) 62%,#0d0d18),color-mix(in srgb,var(--bc) 44%,#0d0d18))}
+:root[data-theme="dark"] .btn.jbtn-yes{background:var(--teal-soft)}
+/* tabs (classes, periods, modes): violet outline, active one in magenta-to-purple */
+.tab{font-weight:700;border:1.5px solid color-mix(in srgb,var(--t2) 38%,var(--line));color:color-mix(in srgb,var(--t2) 72%,var(--ink));background:color-mix(in srgb,var(--t2) 6%,var(--panel));transition:filter .15s,transform .1s}
+.tab:hover{filter:brightness(1.04);transform:translateY(-1px)}
+.tab.active{background:linear-gradient(135deg,var(--t1),var(--t2));border-color:transparent;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.25);box-shadow:0 2px 8px color-mix(in srgb,var(--t1) 38%,transparent)}
+.tab.add-tab{background:transparent;border-style:dashed;color:var(--t2)}
+.scrollnav button{background:linear-gradient(135deg,var(--t1),var(--t2));border-color:transparent}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .tab.active,:root:not([data-theme="light"]) .scrollnav button{background:linear-gradient(135deg,#C2187A,#6D28D9)} }
+:root[data-theme="dark"] .tab.active,:root[data-theme="dark"] .scrollnav button{background:linear-gradient(135deg,#C2187A,#6D28D9)}
 /* the four summary cards get a colour of their own */
 .stats .card{border-top:4px solid var(--teal)}
 .stats .card:nth-child(1){border-top-color:var(--d0)} .stats .card:nth-child(2){border-top-color:var(--d1)}

@@ -588,6 +588,18 @@
         "Absents de la page de connexion, de l’ordinateur et de l’impression ; défilement fluide sauf pour qui préfère moins d’animations sur son appareil ; traduction : « Haut de la page » et « Bas de la page »."
       ],
       "tech": "pageScroll, scrollNavUpdate, showApp et règles .scrollnav dans index.html, deux lignes dans fr.js. Testé sur un mobile simulé (390 px) : affichage, position, défilement vers les deux extrémités, état désactivé, français, absence sur ordinateur et sur la page de connexion."
+    },
+    {
+      "date": "2026-11-08",
+      "title": "Un look plus vivant : titre en belle police et boutons aux couleurs vives",
+      "goal": "L’administrateur a demandé d’écrire le titre de l’application dans une plus belle police, en rouge pourpre, et d’utiliser de belles polices et des couleurs vives pour tous les boutons.",
+      "done": [
+        "Titre en police « Lalezar » avec un dégradé du magenta au violet, dans l’interface et sur la page de connexion.",
+        "Tous les boutons en police « Cairo », bien lisible et en gras, avec des dégradés vifs et une légère ombre : bleu, turquoise, vert, orange, violet, rouge et rose, chaque fonction ayant sa couleur ; les boutons de suppression et de déconnexion en rouge.",
+        "Boutons des classes (onglets) avec contour violet, la classe active en dégradé magenta → violet ; les boutons haut et bas de page ont le même dégradé.",
+        "Version sombre cohérente avec le mode nuit ; les boutons de navigation entre les jours gardent leurs couleurs ; les feuilles imprimées ne changent pas."
+      ],
+      "tech": "Lien Google Fonts (Cairo et Lalezar) et bloc CSS dans index.html avec les variables --f-ui, --f-title, --t1, --t2, des linear-gradient et color-mix. Testé sur ordinateur et mobile en mode clair et sombre (pas de défilement horizontal, aucun bouton resté vert foncé) ; les vraies polices n’ont pas pu être prévisualisées, Internet étant bloqué dans l’environnement de test."
     }
   ],
   "method": [
