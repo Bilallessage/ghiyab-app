@@ -617,7 +617,7 @@
       "title": "“☰ Menu” dropdown gathering the sections of the app (desktop and phone)",
       "goal": "The administrator asked for a dropdown menu, on desktop and on phone, containing the tabs of the application to make it easier to control.",
       "done": [
-        "A “☰ Menu” button at the top of the page and, on the phone, an extra round ☰ button among the floating buttons on the left, always within reach while scrolling.",
+        "A “☰ Menu” button right beside the app title (on the same line, even on the phone) and, on the phone, an extra round ☰ button among the floating buttons on the left, always within reach while scrolling.",
         "The menu is split, using the button colours, into four groups: Browse (absence sheet, statistics, catch-up list, call follow-up, message to a parent, previous, current and next week), Settings (lessons, school timetable import, lesson times, holidays, list import, logo, backups, season archive, account approval), Printing, and Account (language and logout).",
         "Each entry first goes back to the absence sheet and then runs the original button’s function, so you can go from the statistics to any setting in two taps; the page being shown is highlighted; only the entries allowed for the account appear (a teacher or a read-only account sees fewer).",
         "The menu closes by tapping outside or with the Esc key, can be driven with the ▲▼ arrow keys, and ☰ pulses pink when an account is waiting for approval; the menu is fully translated into French."

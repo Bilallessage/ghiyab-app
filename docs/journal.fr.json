@@ -617,7 +617,7 @@
       "title": "Menu déroulant « ☰ Menu » regroupant les sections de l’application (ordinateur et mobile)",
       "goal": "L’administrateur a demandé un menu déroulant, sur ordinateur et sur mobile, contenant les onglets de l’application pour en faciliter l’usage.",
       "done": [
-        "Un bouton « ☰ Menu » en haut de la page et, sur mobile, un bouton rond ☰ supplémentaire parmi les boutons flottants du côté gauche, toujours à portée de main pendant le défilement.",
+        "Un bouton « ☰ Menu » juste à côté du titre de l’application (sur la même ligne, même sur mobile) et, sur mobile, un bouton rond ☰ supplémentaire parmi les boutons flottants du côté gauche, toujours à portée de main pendant le défilement.",
         "Le menu est divisé, avec les couleurs des boutons, en quatre groupes : Consulter (tableau des absences, statistiques, liste de rattrapage, suivi de l’appel, message au parent, semaine précédente, en cours et suivante), Réglages (séances, organisation pédagogique, horaires, jours fériés, import de la liste, logo, sauvegardes, archivage de l’année, approbation des comptes), Impression, et Compte (langue et déconnexion).",
         "Chaque entrée revient d’abord au tableau des absences puis exécute la fonction du bouton d’origine : on passe donc des statistiques à n’importe quel réglage en deux clics ; la page affichée est surlignée ; seules les entrées permises au compte apparaissent (un professeur ou un compte en lecture seule en voit moins).",
         "Le menu se ferme en cliquant à côté ou avec la touche Échap, se parcourt avec les flèches ▲▼ du clavier, et ☰ pulse en rose quand un compte attend l’approbation ; le menu est entièrement traduit en français."
