@@ -611,6 +611,18 @@
         "La police « Cairo » en gras et la même taille partout ; le titre de l’application et les onglets des classes restent en rouge pourpre, et le bouton des comptes en attente pulse en rose quand une demande arrive."
       ],
       "tech": "Règles --bc par identifiant à la fin du dernier bloc CSS de index.html (bleu #1E6FD9, violet #7C3AED, vert #0F8A52, rouge #E0245E, gris #5B6B7F) ; les mêmes dégradés servent en mode sombre. Testé sur ordinateur et mobile en clair et en sombre, sans défilement horizontal ; les tests de navigation et d’impression restent verts."
+    },
+    {
+      "date": "2026-11-08",
+      "title": "Menu déroulant « ☰ Menu » regroupant les sections de l’application (ordinateur et mobile)",
+      "goal": "L’administrateur a demandé un menu déroulant, sur ordinateur et sur mobile, contenant les onglets de l’application pour en faciliter l’usage.",
+      "done": [
+        "Un bouton « ☰ Menu » en haut de la page et, sur mobile, un bouton rond ☰ supplémentaire parmi les boutons flottants du côté gauche, toujours à portée de main pendant le défilement.",
+        "Le menu est divisé, avec les couleurs des boutons, en quatre groupes : Consulter (tableau des absences, statistiques, liste de rattrapage, suivi de l’appel, message au parent, semaine précédente, en cours et suivante), Réglages (séances, organisation pédagogique, horaires, jours fériés, import de la liste, logo, sauvegardes, archivage de l’année, approbation des comptes), Impression, et Compte (langue et déconnexion).",
+        "Chaque entrée revient d’abord au tableau des absences puis exécute la fonction du bouton d’origine : on passe donc des statistiques à n’importe quel réglage en deux clics ; la page affichée est surlignée ; seules les entrées permises au compte apparaissent (un professeur ou un compte en lecture seule en voit moins).",
+        "Le menu se ferme en cliquant à côté ou avec la touche Échap, se parcourt avec les flèches ▲▼ du clavier, et ☰ pulse en rose quand un compte attend l’approbation ; le menu est entièrement traduit en français."
+      ],
+      "tech": "MENU_GROUPS, menuBuild, menuToggle et menuGo dans index.html, l’élément #appMenu et quelques lignes de traduction dans fr.js. Le menu lit l’état des boutons d’origine à l’ouverture ; il n’y a donc rien à maintenir quand les droits changent. Testé sur ordinateur, mobile (390 px) et en français : 39 vérifications (ouverture, position dans l’écran, passage aux statistiques, au rattrapage et au tableau, ouverture d’une fenêtre de réglage depuis les statistiques, fermeture par Échap et par clic extérieur, aucune erreur de page)."
     }
   ],
   "method": [

@@ -611,6 +611,18 @@
         "The bold “Cairo” font in the same size everywhere; the app title and the class tabs stay in magenta, and the pending-accounts button pulses pink when a new request arrives."
       ],
       "tech": "Per-id --bc rules at the end of the last CSS block of index.html (blue #1E6FD9, violet #7C3AED, green #0F8A52, red #E0245E, grey #5B6B7F); the same gradients serve dark mode. Tested on desktop and phone in light and dark mode with no horizontal scroll; the navigation and print tests stay green."
+    },
+    {
+      "date": "2026-11-08",
+      "title": "“☰ Menu” dropdown gathering the sections of the app (desktop and phone)",
+      "goal": "The administrator asked for a dropdown menu, on desktop and on phone, containing the tabs of the application to make it easier to control.",
+      "done": [
+        "A “☰ Menu” button at the top of the page and, on the phone, an extra round ☰ button among the floating buttons on the left, always within reach while scrolling.",
+        "The menu is split, using the button colours, into four groups: Browse (absence sheet, statistics, catch-up list, call follow-up, message to a parent, previous, current and next week), Settings (lessons, school timetable import, lesson times, holidays, list import, logo, backups, season archive, account approval), Printing, and Account (language and logout).",
+        "Each entry first goes back to the absence sheet and then runs the original button’s function, so you can go from the statistics to any setting in two taps; the page being shown is highlighted; only the entries allowed for the account appear (a teacher or a read-only account sees fewer).",
+        "The menu closes by tapping outside or with the Esc key, can be driven with the ▲▼ arrow keys, and ☰ pulses pink when an account is waiting for approval; the menu is fully translated into French."
+      ],
+      "tech": "MENU_GROUPS, menuBuild, menuToggle and menuGo in index.html, the #appMenu element and a few translation lines in fr.js. The menu reads the state of the original buttons when it opens, so nothing needs maintaining when permissions change. Tested on desktop, phone (390 px) and in French: 39 checks (opening, position inside the screen, going to statistics, catch-up and the sheet, opening a settings dialog from the statistics, closing with Esc and by clicking outside, no page errors)."
     }
   ],
   "method": [

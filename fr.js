@@ -50,6 +50,14 @@
   /* ---------- exact strings ---------- */
   var EXACT = {
     'أعلى الصفحة': 'Haut de la page',
+    '☰ القائمة': '☰ Menu',
+    'القائمة': 'Menu',
+    'كل أقسام التطبيق في قائمة واحدة': 'Toutes les sections de l’application dans un seul menu',
+    'التصفّح والعرض': 'Consulter',
+    'الإعدادات': 'Réglages',
+    'الطباعة': 'Impression',
+    'الحساب': 'Compte',
+    'جدول الغياب': 'Tableau des absences',
     'أسفل الصفحة': 'Bas de la page',
     "🧹 أقسام قديمة في الأرشيف لم تعد في الجدول": "🧹 Anciennes classes de l'archive absentes du tableau",
     "تظهر في الإحصائيات باسمها القديم (مثلا بعد تغيير اسم القسم). انقلوها إلى القسم الحالي المقابل لها، أو احذفوها إن كانت مسجّلة بالخطأ.": "Elles apparaissent dans les statistiques sous leur ancien nom (par exemple après un changement de nom de classe). Transférez-les vers la classe actuelle correspondante, ou supprimez-les si elles ont été enregistrées par erreur.",

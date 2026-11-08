@@ -352,6 +352,23 @@ header h1{font-size:34px;line-height:1.2}
 #curWeekBtn,#prevWeekBtn,#newWeekBtn,#statsBtn,#catchBtn,#callBtn,#callBtn2,#parentMsgBtn{--bc:#1E6FD9}
 #logoBtn,#periodsBtn,#orgBtn,#timesBtn,#holBtn,#backupBtn,#seasonBtn,#importBtn,#usersBtn{--bc:#7C3AED}
 #printBtn,#stuSheetBtn,#svPrintBtn,#svPngBtn,#svXlsBtn,#cuPrintBtn,#cuXlsBtn{--bc:#0F8A52}
+/* the dropdown menu */
+#menuBtn{--bc:#C2127D;font-size:14px;padding:7px 16px}
+#menuBtn.attn{animation:usersPulse 1.6s ease-in-out infinite}
+.scrollnav button.attn{animation:usersPulse 1.6s ease-in-out infinite}
+@media(max-width:700px){.scrollnav.on #goMenuBtn{display:block}}
+#goMenuBtn{display:none}
+#appMenu{position:fixed;z-index:70;overflow-y:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:6px 8px 10px;box-shadow:0 12px 34px rgba(0,0,0,.28);font-family:var(--f-ui)}
+#appMenu[hidden]{display:none}
+#appMenu .mh{font-size:12px;font-weight:800;letter-spacing:.2px;margin:8px 4px 4px;color:var(--gc)}
+#appMenu .mg{--gc:#1E6FD9}
+#appMenu .mg-set{--gc:#7C3AED} #appMenu .mg-ok{--gc:#0F8A52} #appMenu .mg-out{--gc:#E0245E}
+#appMenu .mi{display:block;width:100%;text-align:start;font-family:var(--f-ui);font-size:14px;font-weight:600;color:var(--ink);background:transparent;border:0;border-inline-start:4px solid var(--gc);border-radius:8px;padding:10px 12px;margin:2px 0;min-height:42px;cursor:pointer}
+#appMenu .mi:hover,#appMenu .mi:focus-visible{background:color-mix(in srgb,var(--gc) 13%,transparent);outline:none}
+#appMenu .mi[aria-current="true"]{background:color-mix(in srgb,var(--gc) 20%,transparent);font-weight:800}
+#appMenu .mi:disabled{opacity:.4;cursor:default}
+#appMenu .mi.attn{color:var(--c-rose,#E11D74);font-weight:800}
+@media print{#menuBtn,#appMenu{display:none!important}}
 .btn:hover:not(:disabled),.btn.ghost:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px);background:linear-gradient(135deg,var(--bc),color-mix(in srgb,var(--bc) 76%,#000))}
 .btn:active:not(:disabled){transform:translateY(1px);filter:brightness(.95)}
 .btn.wa{background:linear-gradient(135deg,#1FB655,#128C46);border-color:transparent}
@@ -416,6 +433,7 @@ a.btn.wa.done{background:linear-gradient(135deg,#0E9F8E,#0A7568)}
       <div class="wkdates"><button class="btn ghost" id="logoBtn" style="display:none" onclick="logoDialog()" title="تغيير شعار المؤسسة الظاهر في أعلى الصفحة وفي الطباعة">🖼️ شعار المؤسسة</button><button class="btn ghost" id="curWeekBtn" style="display:none" onclick="goCurrentWeek()" title="العودة إلى الأسبوع الجاري بعد عرض الأسبوع السابق">📍 الأسبوع الجاري</button><label>من</label><input type="date" id="wFrom"><label>إلى</label><input type="date" id="wTo"></div>
       <div class="wkbtns"><button class="btn ghost" id="prevWeekBtn" style="display:none" onclick="goPrevWeek()" title="عرض الأسبوع السابق (يمكنكم التراجع أسبوعا بعد أسبوع) لتصحيح غياب سُجّل بالخطأ">⏪ السابق</button><button class="btn ghost" id="newWeekBtn" style="display:none" onclick="goNextWeek()" title="بدء الأسبوع التالي: يُحفظ غياب الأسبوع الجاري ثم يُمسح الجدول">⏩ التالي</button></div>
     </div>
+    <button class="btn" id="menuBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="appMenu" onclick="menuToggle(this)" title="كل أقسام التطبيق في قائمة واحدة">☰ القائمة</button>
     <span class="userchip" id="userChip" style="display:none"></span>
     <button class="btn ghost" id="logoutBtn" style="display:none" onclick="logout()">خروج</button>
     <br>
@@ -697,7 +715,8 @@ a.btn.wa.done{background:linear-gradient(135deg,#0E9F8E,#0A7568)}
   </div>
 </div>
 
-<div class="scrollnav" id="scrollNav"><button type="button" id="goTopBtn" onclick="pageScroll(0)" title="أعلى الصفحة" aria-label="أعلى الصفحة">▲</button><button type="button" id="goBottomBtn" onclick="pageScroll(1)" title="أسفل الصفحة" aria-label="أسفل الصفحة">▼</button></div>
+<div class="scrollnav" id="scrollNav"><button type="button" id="goTopBtn" onclick="pageScroll(0)" title="أعلى الصفحة" aria-label="أعلى الصفحة">▲</button><button type="button" id="goBottomBtn" onclick="pageScroll(1)" title="أسفل الصفحة" aria-label="أسفل الصفحة">▼</button><button type="button" id="goMenuBtn" aria-haspopup="menu" aria-expanded="false" aria-controls="appMenu" onclick="menuToggle(this)" title="القائمة" aria-label="القائمة">☰</button></div>
+<div id="appMenu" role="menu" aria-label="القائمة" hidden></div>
 
 <script>
 document.querySelectorAll('.langBtn').forEach(b=>{ b.textContent=LANG==='fr'?'العربية':'Français'; });
@@ -963,6 +982,78 @@ function scrollNavUpdate(){
   b.disabled=el.scrollHeight-el.clientHeight-el.scrollTop<40;
 }
 window.addEventListener('scroll',scrollNavUpdate,{passive:true});
+
+/* ---- the dropdown menu: every section of the application in one list (desktop and phone) ----
+   Each entry stands for an existing button: it is shown only if that button is shown for this account
+   (so a teacher or a read-only account sees fewer entries), and a click goes back to the table and clicks it. */
+const MENU_GROUPS=[
+  {k:'nav',t:'التصفّح والعرض',items:[['@home'],['statsBtn'],['catchBtn'],['callBtn'],['parentMsgBtn'],['prevWeekBtn'],['curWeekBtn'],['newWeekBtn']]},
+  {k:'set',t:'الإعدادات',items:[['periodsBtn'],['orgBtn'],['timesBtn'],['holBtn'],['importBtn'],['logoBtn'],['backupBtn'],['seasonBtn'],['usersBtn']]},
+  {k:'ok',t:'الطباعة',items:[['printBtn'],['stuSheetBtn']]},
+  {k:'out',t:'الحساب',items:[['@lang'],['logoutBtn']]}
+];
+function menuBtnEl(id){ return id==='@lang'?document.querySelector('header .langBtn'):document.getElementById(id); }
+function menuLabel(el){ let t=''; el.childNodes.forEach(n=>{ if(n.nodeType===3) t+=n.textContent; else if(n.nodeType===1&&getComputedStyle(n).display!=='none') t+=n.textContent; }); return t.replace(/\s+/g,' ').trim(); }
+function menuShown(el){ return !!el && getComputedStyle(el).display!=='none'; }
+function menuHome(){ if(typeof svOpen!=='undefined'&&svOpen) closeStats(); if(typeof cuOpen!=='undefined'&&cuOpen) closeCatch(); }
+function menuCurrent(){ return (typeof svOpen!=='undefined'&&svOpen)?'statsBtn':(typeof cuOpen!=='undefined'&&cuOpen)?'catchBtn':'@home'; }
+function menuBuild(){
+  const box=document.getElementById('appMenu'), cur=menuCurrent(); let h='';
+  MENU_GROUPS.forEach(g=>{
+    let rows='';
+    g.items.forEach(([id])=>{
+      if(id==='@home'){ rows+=`<button type="button" role="menuitem" class="mi" data-id="@home"${cur===id?' aria-current="true"':''}>📋 ${svEsc(Th2('جدول الغياب'))}</button>`; return; }
+      const el=menuBtnEl(id); if(!menuShown(el)) return;
+      const label=menuLabel(el); if(!label) return;
+      rows+=`<button type="button" role="menuitem" class="mi${el.classList.contains('attn')?' attn':''}" data-id="${id}"${el.disabled?' disabled':''}${cur===id?' aria-current="true"':''}>${svEsc(label)}</button>`;
+    });
+    if(rows) h+=`<div class="mg mg-${g.k}" role="group"><div class="mh">${svEsc(Th2(g.t))}</div>${rows}</div>`;
+  });
+  box.innerHTML=h;
+}
+function Th2(s){ try{ return typeof T==='function'?T(s):s; }catch(e){ return s; } }
+function menuPlace(trg){
+  const box=document.getElementById('appMenu'), r=trg.getBoundingClientRect();
+  const w=Math.min(340,window.innerWidth-20); box.style.width=w+'px';
+  box.style.left=Math.max(10,Math.min(window.innerWidth-w-10,r.right-w))+'px';
+  if(r.top>window.innerHeight/2){ box.style.top='auto'; box.style.bottom=(window.innerHeight-r.top+8)+'px'; box.style.maxHeight=(r.top-18)+'px'; }
+  else { box.style.bottom='auto'; box.style.top=(r.bottom+8)+'px'; box.style.maxHeight=(window.innerHeight-r.bottom-18)+'px'; }
+}
+let menuTrg=null;
+function menuClose(back){
+  const box=document.getElementById('appMenu'); if(!box||box.hidden) return;
+  box.hidden=true; ['menuBtn','goMenuBtn'].forEach(i=>{ const b=document.getElementById(i); if(b) b.setAttribute('aria-expanded','false'); });
+  if(back&&menuTrg) menuTrg.focus(); menuTrg=null;
+}
+function menuToggle(trg){
+  const box=document.getElementById('appMenu');
+  if(!box.hidden){ menuClose(true); return; }
+  menuBuild(); menuTrg=trg; box.hidden=false; trg.setAttribute('aria-expanded','true'); menuPlace(trg);
+  const f=box.querySelector('[aria-current="true"]')||box.querySelector('.mi:not(:disabled)'); if(f) f.focus({preventScroll:true});
+}
+function menuGo(id){
+  menuClose(false);
+  menuHome();
+  if(id==='@home'){ window.scrollTo({top:0}); return; }
+  const el=menuBtnEl(id); if(el&&!el.disabled) el.click();
+}
+document.addEventListener('click',e=>{
+  const box=document.getElementById('appMenu'); if(!box||box.hidden) return;
+  const mi=e.target.closest&&e.target.closest('#appMenu .mi');
+  if(mi){ if(!mi.disabled) menuGo(mi.dataset.id); return; }
+  if(e.target.closest&&e.target.closest('#menuBtn,#goMenuBtn')) return;
+  menuClose(false);
+});
+document.addEventListener('keydown',e=>{
+  const box=document.getElementById('appMenu'); if(!box||box.hidden) return;
+  if(e.key==='Escape'){ menuClose(true); return; }
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    const l=[...box.querySelectorAll('.mi:not(:disabled)')]; if(!l.length) return;
+    let i=l.indexOf(document.activeElement); i=e.key==='ArrowDown'?(i+1)%l.length:(i<=0?l.length-1:i-1);
+    l[i].focus(); e.preventDefault();
+  }
+});
+window.addEventListener('resize',()=>menuClose(false));
 window.addEventListener('resize',scrollNavUpdate);
 try{ new ResizeObserver(scrollNavUpdate).observe(document.body); }catch(e){ setInterval(scrollNavUpdate,1000); }   // the page grows while the sheet and the statistics load
 function showApp(){
@@ -4376,6 +4467,7 @@ function usersBadge(n){
   const b=document.getElementById('usersBadge'); if(!b) return;
   b.textContent=n?n+' في الانتظار':n; b.style.display=n?'inline-block':'none';
   const bt=document.getElementById('usersBtn'); if(bt) bt.classList.toggle('attn',n>0);
+  ['menuBtn','goMenuBtn'].forEach(i=>{ const m=document.getElementById(i); if(m) m.classList.toggle('attn',n>0); });
   // the browser tab says it too, for an administrator working in another tab
   if(!usersBadge.base) usersBadge.base=document.title.replace(/^\(\d+\) /,'');
   document.title=(n?'('+n+') ':'')+usersBadge.base;
